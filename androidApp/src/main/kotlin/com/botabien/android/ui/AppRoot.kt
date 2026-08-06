@@ -69,8 +69,10 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             frames = frameSource.frames,
                             viewfinder = { CameraViewfinder(frameSource, it) },
                             onOpenSettings = { navState.push(AppDestination.Settings) },
-                            onOpenResultDetail = { outcome ->
-                                navState.push(AppDestination.ResultDetail(outcome))
+                            onOpenResultDetail = { outcome, isManual ->
+                                navState.push(
+                                    AppDestination.ResultDetail(outcome, isManual)
+                                )
                             },
                         )
 

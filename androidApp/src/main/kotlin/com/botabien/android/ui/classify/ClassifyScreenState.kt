@@ -58,6 +58,15 @@ class ClassifyScreenState(
         collectJob = null
     }
 
+    /**
+     * Aplica el resultado de una selección manual del usuario (CUS-006): la
+     * decisión sustituye a la visible y retira cualquier indicación pendiente.
+     */
+    fun applyManualOutcome(manualOutcome: ClassificationOutcome) {
+        outcome = manualOutcome
+        hints.offer(emptyList())
+    }
+
     private suspend fun process(frame: ImageFrame) {
         val material = awaitingMaterial
         val result = if (material != null && clock() - awaitingSince >= INTERIOR_GRACE_MS) {
