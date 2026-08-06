@@ -29,6 +29,13 @@
     <string name="hint_center_object">Centra el objeto en el marco</string>
     <string name="hint_point_inside">Apunta hacia adentro del recipiente</string>
 
+    <!-- Selección manual y baja confianza (RF-023, RF-024, RF-025 · CUS-006) -->
+    <string name="manual_entry_action">Manual</string>
+    <string name="manual_selection_title">¿Qué residuo es?</string>
+    <string name="manual_selection_subtitle">Elige el material y te digo dónde va según la normativa de tu país.</string>
+    <string name="low_confidence_message">No logro identificarlo con certeza. Prueba otro ángulo o elige el material.</string>
+    <string name="low_confidence_action">Elegir material</string>
+
     <!-- Resultado de clasificación (RF-013 · CUS-003) -->
     <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>
 
