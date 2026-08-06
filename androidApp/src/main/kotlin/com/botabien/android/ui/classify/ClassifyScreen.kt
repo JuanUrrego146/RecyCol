@@ -41,13 +41,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.botabien.android.R
 import com.botabien.android.ui.AppDependencies
+import com.botabien.android.ui.components.BotaButton
+import com.botabien.android.ui.components.BotaButtonStyle
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
+import com.botabien.domain.model.ClassificationOutcome
 import com.botabien.domain.model.Disposal
 import com.botabien.domain.model.WasteMaterial
-import kotlinx.coroutines.flow.Flow
 import com.botabien.domain.model.ImageFrame
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 /**
  * Pantalla principal: la vista en vivo con superposiciones (RF-009, RF-013,
@@ -64,13 +68,23 @@ fun ClassifyScreen(
     frames: Flow<ImageFrame>,
     viewfinder: @Composable (Modifier) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenResultDetail: (ClassificationOutcome, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val state = remember { ClassifyScreenState(dependencies.classifyWaste, scope) }
+    var showManualSheet by remember { mutableStateOf(false) }
     DisposableEffect(frames) {
         state.start(frames)
         onDispose { state.stop() }
+    }
+
+    fun resolveManual(material: WasteMaterial) {
+        scope.launch {
+            val result = dependencies.resolveManualDisposal.resolve(material)
+            state.applyManualOutcome(result)
+            onOpenResultDetail(result, true)
+        }
     }
 
     Box(modifier = modifier.fillMaxSize().background(BotaTheme.colors.cameraBackdrop)) {
@@ -91,6 +105,14 @@ fun ClassifyScreen(
                 .padding(BotaTheme.spacing.screenMargin),
         )
 
+        OverlayAction(
+            text = stringResource(R.string.manual_entry_action),
+            onClick = { showManualSheet = true },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(BotaTheme.spacing.screenMargin),
+        )
+
         HintOverlay(
             hint = state.hints.visible,
             modifier = Modifier
@@ -101,6 +123,7 @@ fun ClassifyScreen(
         ResultOverlay(
             disposal = state.outcome?.disposal,
             material = state.outcome?.classification?.material,
+            onClick = { state.outcome?.let { onOpenResultDetail(it, false) } },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -109,6 +132,68 @@ fun ClassifyScreen(
                     bottom = BotaTheme.spacing.xxl,
                 ),
         )
+
+        LowConfidencePrompt(
+            visible = state.outcome?.needsUserDecision == true &&
+                state.outcome?.disposal == null,
+            onChooseManually = { showManualSheet = true },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = BotaTheme.spacing.screenMargin,
+                    end = BotaTheme.spacing.screenMargin,
+                    bottom = BotaTheme.spacing.xxl,
+                ),
+        )
+
+        if (showManualSheet) {
+            ManualSelectionSheet(
+                onSelect = { material ->
+                    showManualSheet = false
+                    resolveManual(material)
+                },
+                onDismiss = { showManualSheet = false },
+            )
+        }
+    }
+}
+
+/**
+ * Aviso de baja confianza (RF-023): la app no adivina; ofrece otra toma o
+ * la selección manual. Discreto, sin bloquear la vista en vivo.
+ */
+@Composable
+private fun LowConfidencePrompt(
+    visible: Boolean,
+    onChooseManually: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(BotaMotion.surfaceSpring()) { it / 2 } + fadeIn(),
+        exit = slideOutVertically(tween(BotaMotion.DURATION_FAST_MS)) { it / 2 } + fadeOut(),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(BotaTheme.shapes.large)
+                .background(BotaTheme.colors.scrim)
+                .padding(BotaTheme.spacing.lg),
+        ) {
+            Text(
+                text = stringResource(R.string.low_confidence_message),
+                style = BotaTheme.typography.subheadline,
+                color = BotaTheme.colors.onScrim,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+            BotaButton(
+                text = stringResource(R.string.low_confidence_action),
+                onClick = onChooseManually,
+                style = BotaButtonStyle.Tinted,
+                compact = true,
+            )
+        }
     }
 }
 
@@ -153,11 +238,15 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
     }
 }
 
-/** Tarjeta de decisión: caneca, color y categoría sobre velo translúcido. */
+/**
+ * Tarjeta de decisión: caneca, color y categoría sobre velo translúcido.
+ * Pulsarla abre el detalle con la justificación normativa (CUS-007).
+ */
 @Composable
 private fun ResultOverlay(
     disposal: Disposal?,
     material: WasteMaterial?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -169,12 +258,19 @@ private fun ResultOverlay(
         var lastDisposal by remember { mutableStateOf(disposal) }
         if (disposal != null) lastDisposal = disposal
 
+        val interactionSource = remember { MutableInteractionSource() }
         lastDisposal?.let { current ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(BotaTheme.shapes.large)
                     .background(BotaTheme.colors.scrim)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
                     .padding(BotaTheme.spacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -204,7 +300,11 @@ private fun ResultOverlay(
                     )
                     if (current.degradedByContamination) {
                         Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
-                        DegradedNotice()
+                        DegradedNotice(stringResource(R.string.result_degraded_by_contamination))
+                    }
+                    current.unavailableBinNotice?.let { notice ->
+                        Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
+                        DegradedNotice(notice)
                     }
                 }
             }
@@ -228,9 +328,12 @@ private fun BinSwatch(colorHex: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** Aviso de degradación por contaminación; el texto porta la información (RNF-010). */
+/**
+ * Aviso de degradación de la decisión (contaminación o caneca ausente); el
+ * texto porta la información, el punto de color solo refuerza (RNF-010).
+ */
 @Composable
-private fun DegradedNotice(modifier: Modifier = Modifier) {
+private fun DegradedNotice(text: String, modifier: Modifier = Modifier) {
     val dotColor = BotaTheme.colors.warning
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Canvas(modifier = Modifier.size(BotaTheme.spacing.sm)) {
@@ -238,7 +341,7 @@ private fun DegradedNotice(modifier: Modifier = Modifier) {
         }
         Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
         Text(
-            text = stringResource(R.string.result_degraded_by_contamination),
+            text = text,
             style = BotaTheme.typography.footnoteEmphasized,
             color = BotaTheme.colors.onScrim,
         )
