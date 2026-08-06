@@ -2,8 +2,10 @@ package com.botabien.android.inference.image
 
 import com.botabien.android.inference.FakePixelFrame
 import com.botabien.android.inference.model.ModelSpec
+import com.botabien.android.inference.roi.CropRegion
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class FramePreprocessorTest {
 
@@ -75,6 +77,42 @@ class FramePreprocessorTest {
         val value = buffer.asFloatBuffer().get(0)
         // (127 - 127.5) / 127.5 ≈ -0.0039
         assertEquals(-0.0039f, value, absoluteTolerance = 0.0005f)
+    }
+
+    @Test
+    fun `una region explicita recorta esa zona y no el centro (RF-010)`() {
+        // Frame 10x10: cuadrante superior izquierdo (5x5) rojo, el resto verde.
+        val red = 0xFFFF0000.toInt()
+        val green = 0xFF00FF00.toInt()
+        val pixels = IntArray(100) { index ->
+            if (index % 10 < 5 && index / 10 < 5) red else green
+        }
+        val frame = FakePixelFrame(width = 10, height = 10, pixels = pixels)
+
+        val buffer = preprocessor.preprocess(
+            frame,
+            quantizedSpec(2),
+            region = CropRegion(left = 0, top = 0, size = 4),
+        )
+
+        // Todo el recorte cae dentro del cuadrante rojo.
+        for (pixel in 0 until 4) {
+            assertEquals(0xFF.toByte(), buffer.get(pixel * 3), "canal R del píxel $pixel")
+            assertEquals(0x00.toByte(), buffer.get(pixel * 3 + 1), "canal G del píxel $pixel")
+        }
+    }
+
+    @Test
+    fun `una region que no cabe en el frame se rechaza`() {
+        val frame = FakePixelFrame.solid(width = 10, height = 10, argb = 0xFFFFFFFF.toInt())
+
+        assertFailsWith<IllegalArgumentException> {
+            preprocessor.preprocess(
+                frame,
+                quantizedSpec(2),
+                region = CropRegion(left = 8, top = 8, size = 4),
+            )
+        }
     }
 
     @Test
