@@ -3,37 +3,22 @@ package com.botabien.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.botabien.android.ui.AppRoot
+import com.botabien.android.ui.theme.BotaBienTheme
 
 /**
- * Punto de entrada de la aplicación (S01: shell mínimo que compila).
- * Las pantallas reales llegan con el agente FRONT en el milestone M1.
+ * Punto de entrada de la aplicación. El árbol entero vive dentro de
+ * [BotaBienTheme]; el grafo de navegación y el arranque condicionado por el
+ * onboarding se resuelven en [AppRoot] (S05).
  */
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                AppShell()
+            BotaBienTheme {
+                AppRoot()
             }
         }
-    }
-}
-
-@Composable
-private fun AppShell(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = stringResource(R.string.app_name))
     }
 }
