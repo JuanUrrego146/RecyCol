@@ -104,5 +104,6 @@ object TestProfiles {
             ),
         ),
         conservativeBin = blackBin.id,
+        unavailableBinNotice = "No hay {ideal} disponible; usa {assigned}.",
     )
 }

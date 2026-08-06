@@ -138,4 +138,31 @@ class FakeRuleEngineTest {
         assertEquals(TestProfiles.blackBin, disposal.bin)
         assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
     }
+
+    @Test
+    fun elAvisoDeCanecaAusenteSeRellenaConLosNombresVisibles() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.PLASTIC,
+            contamination = ContaminationState.CLEAN,
+            availableBins = setOf(TestProfiles.blackBin.id),
+            profile = profile,
+        )
+
+        assertEquals(
+            "No hay Caneca blanca disponible; usa Caneca negra.",
+            disposal.unavailableBinNotice,
+        )
+    }
+
+    @Test
+    fun sinCambioDeCanecaNoHayAviso() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.PLASTIC,
+            contamination = ContaminationState.CLEAN,
+            availableBins = emptySet(),
+            profile = profile,
+        )
+
+        assertEquals(null, disposal.unavailableBinNotice)
+    }
 }

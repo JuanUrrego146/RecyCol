@@ -60,6 +60,16 @@ class FakeRuleEngine : RuleEngine {
             idealBin
         }
 
+        // Aviso de caneca ausente (RF-008, #61): plantilla del perfil con los
+        // marcadores sustituidos por los nombres visibles de las canecas.
+        val notice = if (unavailable && profile.unavailableBinNotice.isNotEmpty()) {
+            profile.unavailableBinNotice
+                .replace("{ideal}", idealBin.displayName)
+                .replace("{assigned}", resolvedBin.displayName)
+        } else {
+            null
+        }
+
         return Disposal(
             bin = resolvedBin,
             route = resolvedBin.route,
@@ -70,6 +80,7 @@ class FakeRuleEngine : RuleEngine {
                 degradedByContamination -> FallbackReason.CONTAMINATION
                 else -> FallbackReason.NONE
             },
+            unavailableBinNotice = notice,
         )
     }
 }

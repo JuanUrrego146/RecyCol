@@ -30,6 +30,10 @@ enum class FallbackReason {
  * @property fallbackReason motivo del cambio de caneca. El valor por defecto
  *   [FallbackReason.NONE] existe solo para no romper a los emisores en vuelo;
  *   el RuleEngine real lo emite desde S32 y es la señal autoritativa.
+ * @property unavailableBinNotice aviso listo para mostrar cuando
+ *   [fallbackReason] es [FallbackReason.UNAVAILABLE_BIN]: la plantilla
+ *   `unavailableBinNotice` del perfil con los marcadores ya sustituidos por el
+ *   motor. `null` en cualquier otro caso o si el perfil no declara plantilla.
  */
 data class Disposal(
     val bin: BinDefinition,
@@ -37,4 +41,5 @@ data class Disposal(
     val justification: String,
     val degradedByContamination: Boolean,
     val fallbackReason: FallbackReason = FallbackReason.NONE,
+    val unavailableBinNotice: String? = null,
 )
