@@ -13,3 +13,8 @@ Antes de empezar una issue:
 5. Trabaja contra los fakes de `shared/testing/` si tu módulo depende de otro agente.
 
 No modifiques archivos fuera de tu ámbito sin una issue de coordinación.
+
+Notas de CI: los checks corren en runners self-hosted del proyecto
+(`.github/runner/README.md`); nada se fusiona a `main` sin el check
+«Compilar y probar» en verde (protección de rama activa). Si los runners
+propios están caídos: `gh workflow run ci-respaldo.yml --ref <rama>`.
