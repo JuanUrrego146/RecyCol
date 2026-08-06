@@ -49,6 +49,19 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.core)
+
+    // Cámara: agente CAM (androidApp/camera/), RF-009
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+    // Fakes deterministas del contrato M0: las pruebas validan contra los puertos
+    testImplementation(project(":shared:testing"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
