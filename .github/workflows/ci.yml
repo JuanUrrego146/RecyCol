@@ -38,5 +38,8 @@ jobs:
       - name: Verificar aislamiento de plataforma en shared
         run: ./gradlew :shared:verifyPlatformIsolation --stacktrace
 
+      - name: Pruebas del runtime de inferencia (S15)
+        run: ./gradlew :androidApp:inference:testDebugUnitTest --stacktrace
+
       - name: Compilar androidApp (debug)
         run: ./gradlew :androidApp:assembleDebug --stacktrace

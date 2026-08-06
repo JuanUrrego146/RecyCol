@@ -42,9 +42,26 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    // Provisional (modelo de trabajo M0: nadie espera a nadie): la UI se cablea
+    // sobre los fakes deterministas hasta que RULES (S30) y DATA (S36) publiquen
+    // sus implementaciones; entonces esta dependencia sale del APK.
+    implementation(project(":shared:testing"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.core)
+
+    // Cámara: agente CAM (androidApp/camera/), RF-009
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+    // Fakes deterministas del contrato M0: las pruebas validan contra los puertos
+    testImplementation(project(":shared:testing"))
 
     // Pruebas unitarias contra los fakes deterministas del contrato M0 (agente QA)
     testImplementation(libs.kotlin.test)
