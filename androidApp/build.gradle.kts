@@ -49,6 +49,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    // Ciclo de vida para el visor de cámara (LocalLifecycleOwner sin API obsoleta)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
 
     // Cámara: agente CAM (androidApp/camera/), RF-009

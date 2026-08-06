@@ -276,12 +276,6 @@ private fun OverlayAction(
     }
 }
 
-/** Visor provisional hasta la integración de la cámara real (S10, agente CAM). */
-@Composable
-fun PlaceholderViewfinder(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.background(BotaTheme.colors.cameraBackdrop))
-}
-
 /** Traduce el color de caneca del perfil (`#RRGGBB`) a color de UI. */
 private fun binColor(colorHex: String): Color = runCatching {
     Color(android.graphics.Color.parseColor(colorHex))

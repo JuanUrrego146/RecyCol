@@ -17,6 +17,11 @@
     <!-- Estados comunes -->
     <string name="loading_description">Cargando</string>
 
+    <!-- Cámara (RF-009 · CUS-003) -->
+    <string name="camera_permission_message">BotaBien necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
+    <string name="camera_permission_action">Permitir cámara</string>
+    <string name="camera_error_message">No se pudo iniciar la cámara. Inténtalo de nuevo.</string>
+
     <!-- Indicaciones de captura (RF-017 · CUS-004) -->
     <string name="hint_move_closer">Acércate un poco</string>
     <string name="hint_more_light">Busca más luz</string>
