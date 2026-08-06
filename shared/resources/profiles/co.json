@@ -1,0 +1,101 @@
+{
+  "isoCode": "co",
+  "regulationName": "Resolución 2184 de 2019",
+  "regulationReference": "Ministerio de Ambiente y Desarrollo Sostenible de Colombia, Resolución 2184 de 2019: código de colores blanco, negro y verde para la separación de residuos en la fuente, vigente desde el 1 de enero de 2021",
+  "bins": [
+    {
+      "id": "white",
+      "displayName": "Caneca blanca",
+      "colorHex": "#FFFFFF",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "black",
+      "displayName": "Caneca negra",
+      "colorHex": "#1C1C1C",
+      "route": "NON_RECYCLABLE"
+    },
+    {
+      "id": "green",
+      "displayName": "Caneca verde",
+      "colorHex": "#2E7D32",
+      "route": "ORGANIC"
+    }
+  ],
+  "rules": [
+    {
+      "material": "PLASTIC",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "Los plásticos son residuos aprovechables y van en la caneca blanca siempre que estén limpios y secos; contaminados con residuos orgánicos o líquidos van en la negra."
+    },
+    {
+      "material": "PAPER",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "El papel limpio y seco es aprovechable y va en la caneca blanca; papel engrasado, plastificado o húmedo va en la negra."
+    },
+    {
+      "material": "CARDBOARD",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "El cartón limpio y seco es aprovechable y va en la caneca blanca; contaminado con grasa o líquidos va en la negra."
+    },
+    {
+      "material": "BEVERAGE_CARTON",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "El cartón para bebidas (vasos de café, envases de cartón laminado) solo es aprovechable limpio y seco: sin residuo líquido interior va en la caneca blanca; con residuo de bebida o alimento va en la negra."
+    },
+    {
+      "material": "GLASS",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "Los envases de vidrio limpios y secos son aprovechables y van en la caneca blanca; con residuos en su interior van en la negra."
+    },
+    {
+      "material": "METAL",
+      "targetBin": "white",
+      "contaminatedFallback": "black",
+      "justification": "Las latas y envases metálicos limpios y secos son aprovechables y van en la caneca blanca; contaminados van en la negra."
+    },
+    {
+      "material": "ORGANIC",
+      "targetBin": "green",
+      "contaminatedFallback": null,
+      "justification": "Los restos de comida y residuos de poda son orgánicos aprovechables y van en la caneca verde."
+    },
+    {
+      "material": "TEXTILE",
+      "targetBin": "black",
+      "contaminatedFallback": null,
+      "justification": "Los textiles no hacen parte de la corriente aprovechable del código de colores y van en la caneca negra; en buen estado, la donación es preferible a la disposición."
+    },
+    {
+      "material": "BATTERY",
+      "targetBin": "black",
+      "contaminatedFallback": null,
+      "justification": "Las pilas no van en la corriente aprovechable; el manejo ideal es un punto de recolección posconsumo. Entre las canecas del código de colores, la negra es la única admisible."
+    },
+    {
+      "material": "ELECTRONIC",
+      "targetBin": "black",
+      "contaminatedFallback": null,
+      "justification": "Los aparatos eléctricos y electrónicos no van en la corriente aprovechable doméstica; el manejo ideal es un punto de recolección posconsumo. Entre las canecas del código de colores, la negra es la única admisible."
+    },
+    {
+      "material": "RESIDUAL",
+      "targetBin": "black",
+      "contaminatedFallback": null,
+      "justification": "Los residuos no aprovechables van en la caneca negra."
+    }
+  ],
+  "inspectionRules": [
+    {
+      "material": "BEVERAGE_CARTON",
+      "promptKey": "inspection.point_inside",
+      "requiresInteriorView": true
+    }
+  ],
+  "conservativeBin": "black"
+}
