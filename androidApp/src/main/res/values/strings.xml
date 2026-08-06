@@ -57,6 +57,7 @@
     <string name="result_detail_title">Resultado</string>
     <string name="result_manual_selection">Selección manual</string>
     <string name="result_unavailable_bin">Caneca ideal no disponible</string>
+    <string name="result_open_detail_action">Ver la justificación normativa</string>
     <string name="result_section_material">Material identificado</string>
     <string name="result_section_rule">Regla aplicada</string>
     <string name="result_section_regulation">Norma citada</string>

@@ -132,6 +132,21 @@ degradaría el contraste); una petición `Filled` destructiva se presenta como `
 Marca de verificación para listas de selección única (país, nivel de rendimiento).
 Acompáñala siempre de `contentDescription` («Seleccionado») para lectores de pantalla.
 
+### `BotaRouteGlyph`
+
+Glifo geométrico por ruta de disposición (triángulo aprovechable, cuadrado no
+aprovechable, círculo orgánico, rombo peligroso, estrella recolección especial). La
+caneca se comunica por color, **texto e icono**, nunca solo por color (RNF-010). Se
+dibuja en el color del contenido circundante y siempre acompaña a un texto, así que es
+decorativo para lectores de pantalla.
+
+### Nota de contraste (RNF-010)
+
+`secondaryLabel` claro usa 76 % de opacidad (frente al 60 % de iOS) para cumplir AA
+(≥ 4,5:1) como texto normal sobre fondos claros. Los tonos semánticos del esquema claro
+son las variantes accesibles de iOS y superan AA sobre blanco; el esquema oscuro cumple
+con los valores originales.
+
 ### `BotaCard`
 
 ```kotlin

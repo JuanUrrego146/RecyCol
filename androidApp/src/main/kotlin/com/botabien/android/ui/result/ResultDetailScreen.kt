@@ -35,6 +35,7 @@ import com.botabien.android.ui.classify.materialLabel
 import com.botabien.android.ui.components.BotaButton
 import com.botabien.android.ui.components.BotaButtonStyle
 import com.botabien.android.ui.components.BotaCard
+import com.botabien.android.ui.components.BotaRouteGlyph
 import com.botabien.android.ui.components.BotaStatusPill
 import com.botabien.android.ui.components.BotaStatusTone
 import com.botabien.android.ui.theme.BotaTheme
@@ -117,11 +118,18 @@ fun ResultDetailScreen(
                         color = BotaTheme.colors.label,
                     )
                     Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
-                    Text(
-                        text = routeLabel(disposal.route),
-                        style = BotaTheme.typography.subheadline,
-                        color = BotaTheme.colors.secondaryLabel,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BotaRouteGlyph(
+                            route = disposal.route,
+                            color = BotaTheme.colors.secondaryLabel,
+                        )
+                        Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
+                        Text(
+                            text = routeLabel(disposal.route),
+                            style = BotaTheme.typography.subheadline,
+                            color = BotaTheme.colors.secondaryLabel,
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(BotaTheme.spacing.lg))
