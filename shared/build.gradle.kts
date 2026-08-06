@@ -29,6 +29,12 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
+        jvmTest.dependencies {
+            // Validación de los perfiles normativos contra profile.schema.json (S03).
+            // Solo pruebas JVM: no entra en la app ni en el dominio.
+            implementation(libs.json.schema.validator)
+            implementation(libs.kotlinx.serialization.json)
+        }
     }
 }
 
@@ -42,6 +48,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+/*
+ * Los perfiles normativos (shared/resources/) son entrada de las pruebas:
+ * cambiar un perfil o el esquema re-ejecuta la validación aunque el código
+ * Kotlin no haya cambiado.
+ */
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("resources"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 /*

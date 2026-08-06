@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://botabien.app/schemas/profile.schema.json",
+  "title": "Perfil normativo de país — BotaBien",
+  "description": "Formato de los perfiles normativos. Todo lo específico de un país vive en un archivo con este esquema (RNF-004): agregar un país es agregar un archivo, nunca tocar código. El vocabulario de materiales es el enumerado compartido WasteMaterial y el de rutas es DisposalRoute; ambos deben mantenerse sincronizados con shared/domain.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "isoCode",
+    "regulationName",
+    "regulationReference",
+    "bins",
+    "rules",
+    "inspectionRules",
+    "conservativeBin"
+  ],
+  "properties": {
+    "isoCode": {
+      "description": "Código ISO 3166-1 alfa-2 del país, en minúsculas.",
+      "type": "string",
+      "pattern": "^[a-z]{2}$"
+    },
+    "regulationName": {
+      "description": "Nombre corto y citable de la norma.",
+      "type": "string",
+      "minLength": 1
+    },
+    "regulationReference": {
+      "description": "Referencia completa de la norma (entidad emisora, número y año).",
+      "type": "string",
+      "minLength": 1
+    },
+    "bins": {
+      "description": "Canecas que define la norma del país.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/binDefinition" }
+    },
+    "rules": {
+      "description": "Regla de destino por material. Un material sin regla cae en la caneca conservadora.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/materialRule" }
+    },
+    "inspectionRules": {
+      "description": "Materiales que exigen inspección de contaminación antes de decidir.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/inspectionRule" }
+    },
+    "conservativeBin": {
+      "description": "Ruta conservadora: caneca por defecto para materiales sin regla o cuando la caneca ideal no está disponible. Ante la duda no se contamina la corriente aprovechable.",
+      "$ref": "#/$defs/binId"
+    }
+  },
+  "$defs": {
+    "binId": {
+      "description": "Identificador estable de caneca dentro del perfil.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "wasteMaterial": {
+      "description": "Vocabulario cerrado de materiales: enumerado compartido WasteMaterial.",
+      "type": "string",
+      "enum": [
+        "PLASTIC",
+        "PAPER",
+        "CARDBOARD",
+        "BEVERAGE_CARTON",
+        "GLASS",
+        "METAL",
+        "ORGANIC",
+        "TEXTILE",
+        "BATTERY",
+        "ELECTRONIC",
+        "RESIDUAL"
+      ]
+    },
+    "disposalRoute": {
+      "description": "Ruta de disposición portable entre países: enumerado DisposalRoute.",
+      "type": "string",
+      "enum": [
+        "RECYCLABLE",
+        "NON_RECYCLABLE",
+        "ORGANIC",
+        "HAZARDOUS",
+        "SPECIAL_COLLECTION"
+      ]
+    },
+    "binDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "colorHex", "route"],
+      "properties": {
+        "id": { "$ref": "#/$defs/binId" },
+        "displayName": {
+          "description": "Nombre visible de la caneca en el idioma del perfil.",
+          "type": "string",
+          "minLength": 1
+        },
+        "colorHex": {
+          "description": "Color de la caneca en formato #RRGGBB.",
+          "type": "string",
+          "pattern": "^#[0-9A-F]{6}$"
+        },
+        "route": { "$ref": "#/$defs/disposalRoute" }
+      }
+    },
+    "materialRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material", "targetBin", "justification"],
+      "properties": {
+        "material": { "$ref": "#/$defs/wasteMaterial" },
+        "targetBin": { "$ref": "#/$defs/binId" },
+        "contaminatedFallback": {
+          "description": "Caneca alternativa cuando el residuo está contaminado; null u omitido si la contaminación no cambia el destino.",
+          "oneOf": [
+            { "$ref": "#/$defs/binId" },
+            { "type": "null" }
+          ]
+        },
+        "justification": {
+          "description": "Justificación normativa citable de la regla.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inspectionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material", "promptKey", "requiresInteriorView"],
+      "properties": {
+        "material": { "$ref": "#/$defs/wasteMaterial" },
+        "promptKey": {
+          "description": "Clave del mensaje de captura dirigida; la UI la resuelve desde recursos de cadenas (RNF-011).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.]*$"
+        },
+        "requiresInteriorView": {
+          "description": "true si hace falta una toma del interior del objeto.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

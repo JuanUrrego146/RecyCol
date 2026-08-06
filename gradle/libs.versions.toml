@@ -26,6 +26,9 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+# Solo pruebas JVM: validación de perfiles normativos contra su JSON Schema (S03)
+json-schema-validator = { module = "com.networknt:json-schema-validator", version = "1.5.1" }
+
 # Inyección de dependencias
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core" }
