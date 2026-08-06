@@ -20,9 +20,18 @@ object TierPolicyFactory {
 
     fun create(context: Context): BenchmarkedTierPolicy {
         val appContext = context.applicationContext
+        return create(context, PrefsTierStore(appContext))
+    }
+
+    /**
+     * Variante con almacén compartido: la DI reutiliza el mismo [TierStore]
+     * para la política y para el puerto `TierPreferenceRepository` (#94).
+     */
+    fun create(context: Context, store: TierStore): BenchmarkedTierPolicy {
+        val appContext = context.applicationContext
         return create(
             probe = AndroidCapabilitiesProbe(appContext),
-            store = PrefsTierStore(appContext),
+            store = store,
             provider = AssetModelProvider(appContext),
         )
     }
