@@ -8,6 +8,11 @@ serialization = "1.8.0"
 koin = "4.0.2"
 sqldelight = "2.0.2"
 
+# Inferencia on-device (M3). LiteRT es el runtime; litert-gpu trae el delegado
+# GPU y su CompatibilityList. El delegado NNAPI viene en el artefacto base.
+litert = "1.4.2"
+junit = "4.13.2"
+
 # Android
 android-compileSdk = "35"
 android-targetSdk = "34"
@@ -28,6 +33,13 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 
 # Solo pruebas JVM: validación de perfiles normativos contra su JSON Schema (S03)
 json-schema-validator = { module = "com.networknt:json-schema-validator", version = "1.5.1" }
+
+# Pruebas unitarias JVM de módulos Android (kotlin-test resuelve sobre JUnit4)
+junit = { module = "junit:junit", version.ref = "junit" }
+
+# Inferencia on-device (S15): runtime LiteRT y delegado GPU
+litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
+litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "litert" }
 
 # Inyección de dependencias
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
