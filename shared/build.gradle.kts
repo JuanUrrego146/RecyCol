@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -24,6 +25,9 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
+            // Persistencia local (S36): el runtime de SQLDelight es multiplataforma
+            // puro; los drivers concretos viven en cada plataforma (RNF-005).
+            implementation(libs.sqldelight.runtime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -34,6 +38,22 @@ kotlin {
             // Solo pruebas JVM: no entra en la app ni en el dominio.
             implementation(libs.json.schema.validator)
             implementation(libs.kotlinx.serialization.json)
+            // Driver JDBC sobre archivo para probar que la persistencia
+            // sobrevive al cierre y reapertura (S36, RNF-014).
+            implementation(libs.sqldelight.sqlite.driver)
+        }
+    }
+}
+
+/*
+ * Base de datos local (S36). El esquema vive en shared/src/commonMain/sqldelight
+ * y el código generado queda en com.botabien.data.db, sin dependencias de
+ * plataforma: cada plataforma aporta su driver vía DatabaseDriverFactory.
+ */
+sqldelight {
+    databases {
+        create("BotaBienDatabase") {
+            packageName.set("com.botabien.data.db")
         }
     }
 }

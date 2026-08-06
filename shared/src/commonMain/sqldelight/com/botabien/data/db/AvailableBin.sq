@@ -1,0 +1,19 @@
+-- Conjunto de canecas disponibles confirmado por el usuario (CUS-002, S36).
+-- Un conjunto vacío significa «sin restricción», según el contrato de
+-- BinAvailabilityRepository. Solo se guarda el identificador de la caneca:
+-- la definición completa vive en el perfil normativo activo.
+
+CREATE TABLE available_bin (
+    bin_id TEXT NOT NULL PRIMARY KEY
+);
+
+selectAll:
+SELECT bin_id
+FROM available_bin;
+
+insertBin:
+INSERT OR REPLACE INTO available_bin(bin_id)
+VALUES (?);
+
+deleteAll:
+DELETE FROM available_bin;
