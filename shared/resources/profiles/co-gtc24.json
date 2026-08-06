@@ -1,0 +1,126 @@
+{
+  "isoCode": "co",
+  "regulationName": "GTC 24:2009 — código institucional",
+  "regulationReference": "Icontec, Guía Técnica Colombiana GTC 24:2009, Gestión ambiental. Residuos sólidos. Guía para la separación en la fuente: código de colores multicorriente (gris: papel y cartón; azul: plásticos; blanco: vidrio; marrón oscuro: metales; crema: orgánicos; verde: ordinarios no aprovechables; rojo: peligrosos) usado por universidades, hospitales e industria",
+  "bins": [
+    {
+      "id": "gray",
+      "displayName": "Caneca gris — papel y cartón",
+      "colorHex": "#9E9E9E",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "blue",
+      "displayName": "Caneca azul — plásticos",
+      "colorHex": "#1565C0",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "white",
+      "displayName": "Caneca blanca — vidrio",
+      "colorHex": "#FFFFFF",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "darkbrown",
+      "displayName": "Caneca marrón oscuro — metales",
+      "colorHex": "#4E342E",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "cream",
+      "displayName": "Caneca crema — orgánicos",
+      "colorHex": "#E8D5B0",
+      "route": "ORGANIC"
+    },
+    {
+      "id": "green",
+      "displayName": "Caneca verde — ordinarios",
+      "colorHex": "#2E7D32",
+      "route": "NON_RECYCLABLE"
+    },
+    {
+      "id": "red",
+      "displayName": "Caneca roja — peligrosos",
+      "colorHex": "#C62828",
+      "route": "HAZARDOUS"
+    }
+  ],
+  "rules": [
+    {
+      "material": "PLASTIC",
+      "targetBin": "blue",
+      "contaminatedFallback": "green",
+      "justification": "En el código GTC 24 los plásticos limpios y secos van en la caneca azul; contaminados con residuos orgánicos o líquidos van con los ordinarios en la verde."
+    },
+    {
+      "material": "PAPER",
+      "targetBin": "gray",
+      "contaminatedFallback": "green",
+      "justification": "El papel limpio y seco va en la caneca gris; el papel plastificado, engrasado o húmedo se considera ordinario y va en la verde."
+    },
+    {
+      "material": "CARDBOARD",
+      "targetBin": "gray",
+      "contaminatedFallback": "green",
+      "justification": "El cartón limpio y seco va en la caneca gris; contaminado con grasa o líquidos va con los ordinarios en la verde."
+    },
+    {
+      "material": "BEVERAGE_CARTON",
+      "targetBin": "gray",
+      "contaminatedFallback": "green",
+      "justification": "El cartón para bebidas solo se aprovecha limpio y seco: sin residuo líquido interior va con el cartón en la caneca gris; con residuo de bebida o alimento va con los ordinarios en la verde."
+    },
+    {
+      "material": "GLASS",
+      "targetBin": "white",
+      "contaminatedFallback": "green",
+      "justification": "El vidrio limpio va en la caneca blanca; con residuos en su interior va con los ordinarios en la verde."
+    },
+    {
+      "material": "METAL",
+      "targetBin": "darkbrown",
+      "contaminatedFallback": "green",
+      "justification": "Los metales limpios van en la caneca marrón oscuro del código GTC 24; contaminados van con los ordinarios en la verde."
+    },
+    {
+      "material": "ORGANIC",
+      "targetBin": "cream",
+      "contaminatedFallback": null,
+      "justification": "Los residuos orgánicos biodegradables van en la caneca crema para su aprovechamiento."
+    },
+    {
+      "material": "TEXTILE",
+      "targetBin": "green",
+      "contaminatedFallback": null,
+      "justification": "Los textiles no hacen parte de las corrientes aprovechables del código GTC 24 y van con los ordinarios en la caneca verde; en buen estado, la donación es preferible."
+    },
+    {
+      "material": "BATTERY",
+      "targetBin": "red",
+      "contaminatedFallback": null,
+      "justification": "Las pilas y baterías son residuos peligrosos y van en la caneca roja para manejo especial o entrega posconsumo."
+    },
+    {
+      "material": "ELECTRONIC",
+      "targetBin": "red",
+      "contaminatedFallback": null,
+      "justification": "Los aparatos eléctricos y electrónicos se gestionan como residuo especial: se entregan con la corriente de manejo peligroso (caneca roja) o en un punto de recolección posconsumo."
+    },
+    {
+      "material": "RESIDUAL",
+      "targetBin": "green",
+      "contaminatedFallback": null,
+      "justification": "Los residuos ordinarios no aprovechables van en la caneca verde del código GTC 24."
+    }
+  ],
+  "inspectionRules": [
+    {
+      "material": "BEVERAGE_CARTON",
+      "promptKey": "inspection.point_inside",
+      "requiresInteriorView": true
+    }
+  ],
+  "conservativeBin": "green",
+  "unavailableBinNotice": "La caneca ideal ({ideal}) no está entre las canecas registradas en tu entorno; usa {assigned}, la alternativa más conservadora disponible."
+}
