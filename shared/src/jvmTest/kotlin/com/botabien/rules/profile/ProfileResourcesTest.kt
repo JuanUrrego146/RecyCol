@@ -45,6 +45,8 @@ class ProfileResourcesTest {
 
         val profile = catalog.load(descriptor.id).getOrThrow()
         assertEquals("Resolución 2184 de 2019", profile.regulationName)
-        assertEquals(3, profile.bins.size)
+        // Tres canecas del código de colores más el punto de recolección
+        // especial para pilas y RAEE (decisión de v1, coordinación #54).
+        assertEquals(4, profile.bins.size)
     }
 }
