@@ -1,0 +1,120 @@
+{
+  "isoCode": "es",
+  "regulationName": "Ley 7/2022 — recogida separada municipal",
+  "regulationReference": "España, Ley 7/2022, de 8 de abril, de residuos y suelos contaminados para una economía circular; sistema municipal de recogida separada por contenedores (azul: papel y cartón; amarillo: envases ligeros; verde: vidrio; marrón: fracción orgánica; gris: fracción resto) y puntos limpios para flujos especiales",
+  "bins": [
+    {
+      "id": "blue",
+      "displayName": "Contenedor azul",
+      "colorHex": "#1565C0",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "yellow",
+      "displayName": "Contenedor amarillo",
+      "colorHex": "#F9A825",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "green",
+      "displayName": "Contenedor verde",
+      "colorHex": "#2E7D32",
+      "route": "RECYCLABLE"
+    },
+    {
+      "id": "brown",
+      "displayName": "Contenedor marrón",
+      "colorHex": "#6D4C41",
+      "route": "ORGANIC"
+    },
+    {
+      "id": "gray",
+      "displayName": "Contenedor gris (resto)",
+      "colorHex": "#616161",
+      "route": "NON_RECYCLABLE"
+    },
+    {
+      "id": "special",
+      "displayName": "Punto limpio o punto de recogida",
+      "colorHex": "#795548",
+      "route": "SPECIAL_COLLECTION"
+    }
+  ],
+  "rules": [
+    {
+      "material": "PLASTIC",
+      "targetBin": "yellow",
+      "contaminatedFallback": "gray",
+      "justification": "Los envases de plástico van al contenedor amarillo, bien vaciados; con abundantes restos de comida o líquido que no puedas vaciar van a la fracción resto."
+    },
+    {
+      "material": "PAPER",
+      "targetBin": "blue",
+      "contaminatedFallback": "gray",
+      "justification": "El papel limpio y seco va al contenedor azul; el papel engrasado o muy sucio no es reciclable y va a la fracción resto."
+    },
+    {
+      "material": "CARDBOARD",
+      "targetBin": "blue",
+      "contaminatedFallback": "gray",
+      "justification": "El cartón limpio y seco va al contenedor azul; contaminado con grasa o líquidos va a la fracción resto."
+    },
+    {
+      "material": "BEVERAGE_CARTON",
+      "targetBin": "yellow",
+      "contaminatedFallback": "gray",
+      "justification": "Los briks y vasos de cartón para bebidas son envases compuestos: vacíos y sin residuo van al contenedor amarillo; con restos de bebida o comida van a la fracción resto."
+    },
+    {
+      "material": "GLASS",
+      "targetBin": "green",
+      "contaminatedFallback": null,
+      "justification": "Los envases de vidrio van al contenedor verde; basta con vaciarlos bien, no hace falta lavarlos."
+    },
+    {
+      "material": "METAL",
+      "targetBin": "yellow",
+      "contaminatedFallback": null,
+      "justification": "Las latas y envases metálicos van al contenedor amarillo, bien vaciados."
+    },
+    {
+      "material": "ORGANIC",
+      "targetBin": "brown",
+      "contaminatedFallback": null,
+      "justification": "Los restos de alimentos y de poda son biorresiduos y van al contenedor marrón, de recogida separada obligatoria según la Ley 7/2022."
+    },
+    {
+      "material": "TEXTILE",
+      "targetBin": "special",
+      "contaminatedFallback": null,
+      "justification": "La ropa y los textiles no van en los contenedores de calle ordinarios: se entregan en contenedores de recogida textil o en el punto limpio."
+    },
+    {
+      "material": "BATTERY",
+      "targetBin": "special",
+      "contaminatedFallback": null,
+      "justification": "Las pilas y baterías se entregan en los puntos de recogida específicos o en el punto limpio; nunca en la fracción resto."
+    },
+    {
+      "material": "ELECTRONIC",
+      "targetBin": "special",
+      "contaminatedFallback": null,
+      "justification": "Los aparatos eléctricos y electrónicos (RAEE) se entregan en el punto limpio o en el comercio al comprar un equipo equivalente."
+    },
+    {
+      "material": "RESIDUAL",
+      "targetBin": "gray",
+      "contaminatedFallback": null,
+      "justification": "Los residuos no reciclables ni compostables van al contenedor gris de fracción resto."
+    }
+  ],
+  "inspectionRules": [
+    {
+      "material": "BEVERAGE_CARTON",
+      "promptKey": "inspection.point_inside",
+      "requiresInteriorView": true
+    }
+  ],
+  "conservativeBin": "gray",
+  "unavailableBinNotice": "No hay {ideal} disponible; usa {assigned}."
+}

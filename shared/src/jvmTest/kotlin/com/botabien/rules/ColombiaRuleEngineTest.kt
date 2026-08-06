@@ -3,6 +3,7 @@ package com.botabien.rules
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
 import com.botabien.domain.model.WasteMaterial
 import com.botabien.rules.profile.ProfileParser
 import java.io.File
@@ -26,6 +27,7 @@ class ColombiaRuleEngineTest {
     private val white = BinId("white")
     private val black = BinId("black")
     private val green = BinId("green")
+    private val special = BinId("special")
 
     private val recyclables = listOf(
         WasteMaterial.PLASTIC,
@@ -53,8 +55,10 @@ class ColombiaRuleEngineTest {
             WasteMaterial.METAL to white,
             WasteMaterial.ORGANIC to green,
             WasteMaterial.TEXTILE to black,
-            WasteMaterial.BATTERY to black,
-            WasteMaterial.ELECTRONIC to black,
+            // Pilas y RAEE van al punto de recolección posconsumo, fuera del
+            // código de colores (decisión de v1, coordinación #54).
+            WasteMaterial.BATTERY to special,
+            WasteMaterial.ELECTRONIC to special,
             WasteMaterial.RESIDUAL to black,
         )
 
@@ -115,6 +119,20 @@ class ColombiaRuleEngineTest {
 
         assertEquals(black, disposal.bin.id)
         assertEquals(DisposalRoute.NON_RECYCLABLE, disposal.route)
+    }
+
+    @Test
+    fun elAvisoAprobadoExplicaPorQueNoSeRecomendoLaCanecaIdeal() {
+        val restricted = resolve(WasteMaterial.PLASTIC, availableBins = setOf(black, green))
+        val unrestricted = resolve(WasteMaterial.PLASTIC)
+
+        assertEquals(unrestricted.justification, restricted.justification, "La regla citada se conserva pura")
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, restricted.fallbackReason)
+        assertEquals(
+            "No hay Caneca blanca disponible; usa Caneca negra.",
+            restricted.unavailableBinNotice,
+            "Frase aprobada el 06/08/2026 (#61/#78), renderizada con los nombres del perfil",
+        )
     }
 
     @Test
