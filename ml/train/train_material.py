@@ -75,7 +75,7 @@ def route_by_material() -> dict[str, str]:
 
 class ManifestDataset(Dataset):
     def __init__(self, manifest: Path, input_side: int, train: bool, epoch: int = 0,
-                 limit: int | None = None):
+                 limit: int | None = None, use_augment: bool = True):
         with manifest.open(encoding="utf-8") as handle:
             self.rows = list(csv.DictReader(handle))
         if limit:
@@ -83,6 +83,7 @@ class ManifestDataset(Dataset):
         self.input_side = input_side
         self.train = train
         self.epoch = epoch
+        self.use_augment = use_augment
 
     def __len__(self) -> int:
         return len(self.rows)
@@ -91,7 +92,7 @@ class ManifestDataset(Dataset):
         row = self.rows[index]
         with Image.open(ML_DIR / "data" / row["path"]) as img:
             image = img.convert("RGB")
-        if self.train:
+        if self.train and self.use_augment:
             # Augmentación de dominio móvil (S23), reproducible por imagen+época.
             image = augment_image(image, rng_for(f"{row['path']}#e{self.epoch}"))
         image = image.resize((self.input_side, self.input_side), Image.BILINEAR)
@@ -175,6 +176,8 @@ def main() -> int:
     parser.add_argument("--lr-phase2", type=float, default=1e-4)
     parser.add_argument("--run-name", default=None,
                         help="subdirectorio de runs/ (por defecto full/smoke)")
+    parser.add_argument("--no-augment", action="store_true",
+                        help="ablación: entrena sin la augmentación de S23")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
@@ -194,7 +197,8 @@ def main() -> int:
     phase1 = 1 if args.smoke else args.phase1_epochs
     phase2 = 1 if args.smoke else args.phase2_epochs
 
-    train_ds = ManifestDataset(MANIFESTS / "train.csv", side, train=True, limit=limit)
+    train_ds = ManifestDataset(MANIFESTS / "train.csv", side, train=True, limit=limit,
+                               use_augment=not args.no_augment)
     val_ds = ManifestDataset(MANIFESTS / "val.csv", side, train=False, limit=limit)
     print(f"variant={args.variant} arch={arch} input={side} "
           f"train={len(train_ds)} val={len(val_ds)}")
