@@ -63,6 +63,7 @@ Los tonos semánticos del esquema claro usan las variantes accesibles (contraste
 | `separator` | Divisores finos |
 | `success` / `warning` / `error` / `info` | Estados semánticos |
 | `scrim` / `onScrim` | Velo sobre la cámara y bajo las hojas; contenido sobre él |
+| `cameraBackdrop` | Fondo del área de cámara, oscuro en ambos temas |
 | `isDark` | Verdadero en el esquema oscuro |
 
 ### Tipografía (`BotaTheme.typography`)

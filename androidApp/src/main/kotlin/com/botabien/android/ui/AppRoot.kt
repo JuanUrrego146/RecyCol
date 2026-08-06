@@ -11,9 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.botabien.android.ui.classify.ClassifyScreen
+import com.botabien.android.ui.classify.PlaceholderViewfinder
 import com.botabien.android.ui.components.BotaActivityIndicator
 import com.botabien.android.ui.country.CountrySelectionScreen
-import com.botabien.android.ui.home.HomeScreen
 import com.botabien.android.ui.navigation.AppDestination
 import com.botabien.android.ui.navigation.AppNavHost
 import com.botabien.android.ui.navigation.AppNavState
@@ -29,6 +30,7 @@ import com.botabien.android.ui.theme.BotaTheme
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
     val dependencies = remember { fakeAppDependencies() }
+    val frames = remember { demoFrames() }
     var start by remember { mutableStateOf<AppDestination?>(null) }
     LaunchedEffect(dependencies) {
         start = if (dependencies.selectCountry.activeProfileOrNull() == null) {
@@ -58,8 +60,10 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             onCountryApplied = { navState.replaceAll(AppDestination.Home) },
                         )
 
-                        AppDestination.Home -> HomeScreen(
+                        AppDestination.Home -> ClassifyScreen(
                             dependencies = dependencies,
+                            frames = frames,
+                            viewfinder = { PlaceholderViewfinder(it) },
                             onOpenSettings = { navState.push(AppDestination.Settings) },
                         )
 

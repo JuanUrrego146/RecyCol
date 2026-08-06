@@ -16,4 +16,27 @@
 
     <!-- Estados comunes -->
     <string name="loading_description">Cargando</string>
+
+    <!-- Indicaciones de captura (RF-017 · CUS-004) -->
+    <string name="hint_move_closer">Acércate un poco</string>
+    <string name="hint_more_light">Busca más luz</string>
+    <string name="hint_clean_lens">Limpia el lente de la cámara</string>
+    <string name="hint_center_object">Centra el objeto en el marco</string>
+    <string name="hint_point_inside">Apunta hacia adentro del recipiente</string>
+
+    <!-- Resultado de clasificación (RF-013 · CUS-003) -->
+    <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>
+
+    <!-- Materiales (RNF-011) -->
+    <string name="material_plastic">Plástico</string>
+    <string name="material_paper">Papel</string>
+    <string name="material_cardboard">Cartón</string>
+    <string name="material_beverage_carton">Cartón para bebidas</string>
+    <string name="material_glass">Vidrio</string>
+    <string name="material_metal">Metal</string>
+    <string name="material_organic">Orgánico</string>
+    <string name="material_textile">Textil</string>
+    <string name="material_battery">Pilas y baterías</string>
+    <string name="material_electronic">Electrónico</string>
+    <string name="material_residual">No aprovechable</string>
 </resources>
