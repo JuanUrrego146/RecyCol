@@ -41,6 +41,7 @@ import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.ClassificationOutcome
 import com.botabien.domain.model.CountryProfile
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
 import kotlin.math.roundToInt
 
 /**
@@ -132,12 +133,25 @@ fun ResultDetailScreen(
                         tone = BotaStatusTone.Accent,
                     )
                 }
-                if (disposal.degradedByContamination) {
+                if (disposal.degradedByContamination ||
+                    disposal.fallbackReason == FallbackReason.CONTAMINATION
+                ) {
                     BotaStatusPill(
                         text = stringResource(R.string.result_degraded_by_contamination),
                         tone = BotaStatusTone.Warning,
                     )
                 }
+                if (disposal.fallbackReason == FallbackReason.UNAVAILABLE_BIN) {
+                    BotaStatusPill(
+                        text = stringResource(R.string.result_unavailable_bin),
+                        tone = BotaStatusTone.Warning,
+                    )
+                }
+            }
+
+            disposal.unavailableBinNotice?.let { notice ->
+                Spacer(modifier = Modifier.height(BotaTheme.spacing.md))
+                UnavailableBinNotice(text = notice)
             }
             Spacer(modifier = Modifier.height(BotaTheme.spacing.xxl))
 
@@ -210,6 +224,28 @@ private fun SectionCard(
             ),
         )
         BotaCard(modifier = Modifier.fillMaxWidth(), content = content)
+    }
+}
+
+/**
+ * Aviso de caneca ideal no disponible (RF-027). El texto llega listo desde el
+ * motor de reglas: la plantilla vive en el perfil normativo como dato y el
+ * copy fue aprobado por Juan (coordinación #61); la UI solo lo presenta.
+ */
+@Composable
+private fun UnavailableBinNotice(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(BotaTheme.shapes.large)
+            .background(BotaTheme.colors.warning.copy(alpha = NOTICE_TINT_ALPHA))
+            .padding(BotaTheme.spacing.lg),
+    ) {
+        Text(
+            text = text,
+            style = BotaTheme.typography.callout,
+            color = BotaTheme.colors.label,
+        )
     }
 }
 

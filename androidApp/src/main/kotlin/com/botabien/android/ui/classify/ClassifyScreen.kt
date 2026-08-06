@@ -218,7 +218,11 @@ private fun ResultOverlay(
                     )
                     if (current.degradedByContamination) {
                         Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
-                        DegradedNotice()
+                        DegradedNotice(stringResource(R.string.result_degraded_by_contamination))
+                    }
+                    current.unavailableBinNotice?.let { notice ->
+                        Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
+                        DegradedNotice(notice)
                     }
                 }
             }
@@ -242,9 +246,12 @@ private fun BinSwatch(colorHex: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** Aviso de degradación por contaminación; el texto porta la información (RNF-010). */
+/**
+ * Aviso de degradación de la decisión (contaminación o caneca ausente); el
+ * texto porta la información, el punto de color solo refuerza (RNF-010).
+ */
 @Composable
-private fun DegradedNotice(modifier: Modifier = Modifier) {
+private fun DegradedNotice(text: String, modifier: Modifier = Modifier) {
     val dotColor = BotaTheme.colors.warning
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Canvas(modifier = Modifier.size(BotaTheme.spacing.sm)) {
@@ -252,7 +259,7 @@ private fun DegradedNotice(modifier: Modifier = Modifier) {
         }
         Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
         Text(
-            text = stringResource(R.string.result_degraded_by_contamination),
+            text = text,
             style = BotaTheme.typography.footnoteEmphasized,
             color = BotaTheme.colors.onScrim,
         )
