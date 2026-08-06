@@ -4,16 +4,22 @@ import com.botabien.domain.model.BinDefinition
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
+import com.botabien.domain.model.MaterialRule
 import com.botabien.domain.model.WasteMaterial
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * Restricción a canecas disponibles con respaldo conservador (S32, RF-008,
  * CUS-002/CUS-003): la recomendación se limita a lo que existe en el entorno,
- * la alternativa es la más conservadora y el aviso del perfil explica por qué
- * no se recomendó la ideal. Cubre los escenarios de una, dos y tres canecas.
+ * la alternativa es la más conservadora, la reasignación se señala con
+ * [FallbackReason.UNAVAILABLE_BIN] y el aviso del perfil viaja renderizado en
+ * `Disposal.unavailableBinNotice` (#61/#78). Cubre los escenarios de una, dos
+ * y tres canecas y la exención de la recolección especial (#54).
  */
 class AvailableBinsRuleEngineTest {
 
@@ -43,7 +49,9 @@ class AvailableBinsRuleEngineTest {
         val disposal = resolve(WasteMaterial.PLASTIC, white, green, black)
 
         assertEquals(white, disposal.bin)
-        assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification, "Sin aviso: la ideal está disponible")
+        assertEquals(FallbackReason.NONE, disposal.fallbackReason)
+        assertNull(disposal.unavailableBinNotice)
+        assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification)
     }
 
     @Test
@@ -51,9 +59,17 @@ class AvailableBinsRuleEngineTest {
         val disposal = resolve(WasteMaterial.PLASTIC, green, black)
 
         assertEquals(black, disposal.bin)
-        assertTrue(disposal.justification.startsWith(RuleProfileFixtures.plasticRule.justification))
-        assertTrue(white.displayName in disposal.justification, "El aviso nombra la caneca ideal")
-        assertTrue(black.displayName in disposal.justification, "El aviso nombra la caneca asignada")
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
+        assertEquals(
+            "No hay ${white.displayName} disponible; usa ${black.displayName}.",
+            disposal.unavailableBinNotice,
+            "El aviso aprobado nombra la caneca ideal y la asignada",
+        )
+        assertEquals(
+            RuleProfileFixtures.plasticRule.justification,
+            disposal.justification,
+            "La justificación citada se conserva pura: el aviso viaja aparte",
+        )
     }
 
     @Test
@@ -62,7 +78,8 @@ class AvailableBinsRuleEngineTest {
 
         assertEquals(green, disposal.bin)
         assertEquals(DisposalRoute.ORGANIC, disposal.route)
-        assertTrue(green.displayName in disposal.justification, "El aviso explica la asignación")
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
+        assertTrue(green.displayName in disposal.unavailableBinNotice.orEmpty())
     }
 
     @Test
@@ -82,6 +99,7 @@ class AvailableBinsRuleEngineTest {
         val disposal = resolve(WasteMaterial.RESIDUAL, white, green)
 
         assertEquals(white, disposal.bin)
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
     }
 
     @Test
@@ -89,7 +107,8 @@ class AvailableBinsRuleEngineTest {
         val disposal = resolve(WasteMaterial.PLASTIC, foreign)
 
         assertEquals(white, disposal.bin)
-        assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification)
+        assertEquals(FallbackReason.NONE, disposal.fallbackReason)
+        assertNull(disposal.unavailableBinNotice)
     }
 
     @Test
@@ -97,8 +116,9 @@ class AvailableBinsRuleEngineTest {
         val disposal = resolve(WasteMaterial.GLASS, green)
 
         assertEquals(green, disposal.bin)
-        assertTrue(disposal.justification.startsWith(profile.regulationReference))
-        assertTrue(green.displayName in disposal.justification)
+        assertEquals(profile.regulationReference, disposal.justification)
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
+        assertTrue(green.displayName in disposal.unavailableBinNotice.orEmpty())
     }
 
     @Test
@@ -113,14 +133,15 @@ class AvailableBinsRuleEngineTest {
         assertEquals(black, disposal.bin, "La alternativa por contaminación está disponible: se usa directa")
         assertTrue(disposal.degradedByContamination)
         assertEquals(
-            RuleProfileFixtures.beverageCartonRule.justification,
-            disposal.justification,
-            "La caneca asignada es la ideal degradada: no hay aviso de indisponibilidad",
+            FallbackReason.CONTAMINATION,
+            disposal.fallbackReason,
+            "La caneca asignada es la ideal degradada: no hubo reasignación por disponibilidad",
         )
+        assertNull(disposal.unavailableBinNotice)
     }
 
     @Test
-    fun unPerfilSinAvisoDeclaradoNoAlteraLaJustificacion() {
+    fun unPerfilSinAvisoDeclaradoReasignaSinTexto() {
         val silentProfile = profile.copy(unavailableBinNotice = "")
 
         val disposal = engine.resolve(
@@ -131,6 +152,40 @@ class AvailableBinsRuleEngineTest {
         )
 
         assertEquals(black, disposal.bin)
-        assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification)
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason, "La señal no depende del texto")
+        assertNull(disposal.unavailableBinNotice, "Sin plantilla no hay aviso que mostrar")
+    }
+
+    @Test
+    fun laCanecaDeRecoleccionEspecialQuedaExentaDeLaRestriccion() {
+        val special = BinDefinition(
+            id = BinId("special"),
+            displayName = "Punto de recolección especial",
+            colorHex = "#795548",
+            route = DisposalRoute.SPECIAL_COLLECTION,
+        )
+        val withSpecial = profile.copy(
+            bins = profile.bins + special,
+            rules = profile.rules + MaterialRule(
+                material = WasteMaterial.BATTERY,
+                targetBin = special.id,
+                contaminatedFallback = null,
+                justification = "Las pilas van al punto de recolección posconsumo",
+            ),
+        )
+
+        // Solo la negra está registrada en el entorno: la recomendación del
+        // punto especial no se degrada porque no es una caneca del entorno (#54).
+        val disposal = engine.resolve(
+            WasteMaterial.BATTERY,
+            ContaminationState.CLEAN,
+            setOf(black.id),
+            withSpecial,
+        )
+
+        assertEquals(special, disposal.bin)
+        assertEquals(FallbackReason.NONE, disposal.fallbackReason)
+        assertNull(disposal.unavailableBinNotice)
+        assertFalse(disposal.degradedByContamination)
     }
 }

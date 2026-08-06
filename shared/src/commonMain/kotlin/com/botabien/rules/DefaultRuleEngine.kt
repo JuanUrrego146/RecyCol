@@ -6,6 +6,7 @@ import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.CountryProfile
 import com.botabien.domain.model.Disposal
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
 import com.botabien.domain.model.WasteMaterial
 
 /**
@@ -27,8 +28,14 @@ import com.botabien.domain.model.WasteMaterial
  * 4. La decisión se restringe a las canecas disponibles (RF-008): un conjunto
  *    vacío significa «sin restricción». Si la caneca ideal no está disponible
  *    se propone la conservadora del perfil y, si tampoco está, la disponible
- *    de ruta más conservadora; la justificación incorpora entonces el aviso
- *    [CountryProfile.unavailableBinNotice] que explica el motivo.
+ *    de ruta más conservadora. La reasignación se señala con
+ *    [FallbackReason.UNAVAILABLE_BIN] y el aviso del perfil
+ *    ([CountryProfile.unavailableBinNotice]) viaja ya renderizado en
+ *    [Disposal.unavailableBinNotice] (coordinaciones #61 y #78).
+ * 5. Una caneca ideal de ruta [DisposalRoute.SPECIAL_COLLECTION] queda exenta
+ *    de la restricción: el punto de recolección especial no es una caneca del
+ *    entorno escaneado y la recomendación de llevarlo allí no se degrada
+ *    (coordinación #54: pilas y aparatos electrónicos).
  *
  * La justificación de cada decisión es la de la regla aplicada: dato citable
  * del perfil, nunca un literal de código (RNF-011). Para un material sin regla
@@ -53,25 +60,53 @@ class DefaultRuleEngine : RuleEngine {
         val ideal = profile.requireBin(if (degraded) rule.contaminatedFallback!! else rule.targetBin)
         val assigned = restrictToAvailable(ideal, availableBins, profile)
 
-        return Disposal(
-            bin = assigned,
-            route = assigned.route,
-            justification = justifyAssignment(rule.justification, ideal, assigned, profile),
-            degradedByContamination = degraded,
-        )
+        return disposal(ideal, assigned, rule.justification, degraded, profile)
     }
 
     /** Decisión para un material que el perfil no contempla: ante la duda, la caneca conservadora. */
     private fun conservativeDisposal(profile: CountryProfile, availableBins: Set<BinId>): Disposal {
         val ideal = profile.requireBin(profile.conservativeBin)
         val assigned = restrictToAvailable(ideal, availableBins, profile)
+        return disposal(ideal, assigned, profile.regulationReference, degraded = false, profile)
+    }
+
+    /**
+     * Arma la decisión final con las señales del contrato (#78): si la caneca
+     * asignada no es la ideal manda [FallbackReason.UNAVAILABLE_BIN] con el
+     * aviso del perfil renderizado; si no, la degradación por contaminación.
+     * [Disposal.degradedByContamination] conserva su señal aunque además haya
+     * reasignación por disponibilidad.
+     */
+    private fun disposal(
+        ideal: BinDefinition,
+        assigned: BinDefinition,
+        justification: String,
+        degraded: Boolean,
+        profile: CountryProfile,
+    ): Disposal {
+        val reassigned = assigned.id != ideal.id
         return Disposal(
             bin = assigned,
             route = assigned.route,
-            justification = justifyAssignment(profile.regulationReference, ideal, assigned, profile),
-            degradedByContamination = false,
+            justification = justification,
+            degradedByContamination = degraded,
+            fallbackReason = when {
+                reassigned -> FallbackReason.UNAVAILABLE_BIN
+                degraded -> FallbackReason.CONTAMINATION
+                else -> FallbackReason.NONE
+            },
+            unavailableBinNotice = if (reassigned) renderNotice(profile, ideal, assigned) else null,
         )
     }
+
+    /** Aviso del perfil con los marcadores sustituidos, o `null` si no declara plantilla. */
+    private fun renderNotice(
+        profile: CountryProfile,
+        ideal: BinDefinition,
+        assigned: BinDefinition,
+    ): String? = profile.unavailableBinNotice.takeIf { it.isNotBlank() }
+        ?.replace(IDEAL_PLACEHOLDER, ideal.displayName)
+        ?.replace(ASSIGNED_PLACEHOLDER, assigned.displayName)
 
     /**
      * Restringe la caneca ideal al conjunto realmente disponible en el entorno
@@ -86,6 +121,9 @@ class DefaultRuleEngine : RuleEngine {
         availableBins: Set<BinId>,
         profile: CountryProfile,
     ): BinDefinition {
+        // Exenta de restricción (#54): el punto de recolección especial no es
+        // una caneca del entorno escaneado; la recomendación no se degrada.
+        if (ideal.route == DisposalRoute.SPECIAL_COLLECTION) return ideal
         if (availableBins.isEmpty() || ideal.id in availableBins) return ideal
 
         val usable = profile.bins.filter { it.id in availableBins }
@@ -109,24 +147,6 @@ class DefaultRuleEngine : RuleEngine {
         DisposalRoute.HAZARDOUS -> 2
         DisposalRoute.RECYCLABLE -> 3
         DisposalRoute.ORGANIC -> 4
-    }
-
-    /**
-     * Justificación de la decisión: la de la regla y, si la caneca asignada no
-     * es la ideal, el aviso del perfil con los nombres visibles de ambas.
-     */
-    private fun justifyAssignment(
-        base: String,
-        ideal: BinDefinition,
-        assigned: BinDefinition,
-        profile: CountryProfile,
-    ): String {
-        if (assigned.id == ideal.id || profile.unavailableBinNotice.isBlank()) return base
-
-        val notice = profile.unavailableBinNotice
-            .replace(IDEAL_PLACEHOLDER, ideal.displayName)
-            .replace(ASSIGNED_PLACEHOLDER, assigned.displayName)
-        return "$base\n\n$notice"
     }
 
     private fun CountryProfile.requireBin(id: BinId): BinDefinition =
