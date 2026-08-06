@@ -1,0 +1,73 @@
+{
+  "variant": "low",
+  "run": "full-v2",
+  "arch": "mobilenet_v3_small",
+  "split": "control",
+  "n": 4752,
+  "top1": 0.4209,
+  "route": 0.6138,
+  "rnf008": {
+    "material_goal": 0.85,
+    "route_goal": 0.95,
+    "material_met": false,
+    "route_met": false
+  },
+  "per_class": [
+    {
+      "material": "PLASTIC",
+      "support": 921,
+      "top1": 0.4397,
+      "route": 0.7058,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "PAPER",
+      "support": 500,
+      "top1": 0.502,
+      "route": 0.668,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "CARDBOARD",
+      "support": 461,
+      "top1": 0.3167,
+      "route": 0.6226,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "GLASS",
+      "support": 420,
+      "top1": 0.2786,
+      "route": 0.6738,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "METAL",
+      "support": 790,
+      "top1": 0.5861,
+      "route": 0.7304,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "ORGANIC",
+      "support": 847,
+      "top1": 0.3188,
+      "route": 0.3188,
+      "confundido_con": "PLASTIC"
+    },
+    {
+      "material": "TEXTILE",
+      "support": 318,
+      "top1": 0.5849,
+      "route": 0.7704,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "RESIDUAL",
+      "support": 495,
+      "top1": 0.3273,
+      "route": 0.5475,
+      "confundido_con": "TEXTILE"
+    }
+  ]
+}
