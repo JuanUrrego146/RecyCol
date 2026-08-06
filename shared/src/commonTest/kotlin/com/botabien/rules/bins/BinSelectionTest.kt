@@ -98,6 +98,35 @@ class BinSelectionTest {
     }
 
     @Test
+    fun losDestinosDeRecoleccionEspecialQuedanFueraDeLaSeleccion() {
+        val special = BinDefinition(
+            BinId("special"),
+            "Punto de recolección especial",
+            "#795548",
+            DisposalRoute.SPECIAL_COLLECTION,
+        )
+        val withSpecial = profile.copy(bins = profile.bins + special)
+
+        // No es una caneca del entorno (#54): ni se propone, ni se puede
+        // añadir a mano, ni entra al omitir el escaneo.
+        val fromScan = BinSelection.fromRecognized(
+            listOf(RecognizedBin(definition = special, confidence = 0.9f)),
+            withSpecial,
+        )
+        assertTrue(fromScan.selected.isEmpty())
+
+        val added = BinSelection(withSpecial, emptySet()).add(special.id)
+        assertTrue(added.selected.isEmpty())
+        assertTrue(BinSelection(withSpecial, emptySet()).addable.none { it.id == special.id })
+
+        assertEquals(
+            setOf(white.id, black.id, green.id),
+            BinSelection.allOf(withSpecial).selected,
+            "Omitir el escaneo asume solo las canecas físicas",
+        )
+    }
+
+    @Test
     fun laSeleccionEditadaSePersisteATravesDelCasoDeUso() = runTest {
         val repository = RecordingRepository()
         val useCase = ScanBinsUseCase(
