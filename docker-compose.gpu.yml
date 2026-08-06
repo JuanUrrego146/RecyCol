@@ -15,5 +15,8 @@ services:
     image: botabien/ml-gpu:1.0.0
     working_dir: /workspace/ml
     gpus: all
+    # Los workers del DataLoader comparten tensores por /dev/shm; los 64 MB
+    # por defecto de Docker los matan con "Bus error".
+    shm_size: "8gb"
     volumes:
       - .:/workspace

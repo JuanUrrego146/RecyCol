@@ -120,8 +120,8 @@ def stain_mask(size: tuple[int, int], object_mask: np.ndarray, rng: random.Rando
     blob = np.asarray(base.filter(ImageFilter.GaussianBlur(radius=min(spread_x, spread_y) * 0.35)),
                       dtype=np.float32) / 255.0
     noise = fractal_noise(size, rng)
-    stain = np.clip(blob * (0.45 + 0.9 * noise), 0.0, 1.0)
-    stain[stain < 0.18] = 0.0                # borde irregular, no degradado suave
+    stain = np.clip(blob * (0.55 + 0.9 * noise), 0.0, 1.0)
+    stain[stain < 0.12] = 0.0                # borde irregular, no degradado suave
     return stain * object_mask
 
 
@@ -133,9 +133,12 @@ def apply_stain(image: Image.Image, stain: np.ndarray, palette: list[tuple[int, 
     bands = np.clip((stain * (len(palette) - 1e-3)).astype(np.int32), 0, len(palette) - 1)
     for index, color in enumerate(palette):
         color_field[bands == index] = color
-    alpha = np.clip(stain * rng.uniform(0.65, 0.9), 0.0, 1.0)[..., np.newaxis]
-    # Mezcla multiplicativa: el líquido oscurece y tiñe sin borrar la textura.
-    stained = array * (1.0 - alpha) + (array / 255.0) * color_field * alpha
+    alpha = np.clip(stain * rng.uniform(0.8, 0.97), 0.0, 1.0)[..., np.newaxis]
+    # Mezcla multiplicativa (tiñe conservando textura) más una fracción de
+    # color directo: sin ella la mancha desaparece sobre superficies oscuras
+    # o metálicas (verificado en la revisión visual de la primera pasada).
+    tinted = (array / 255.0) * color_field
+    stained = array * (1.0 - alpha) + (0.55 * tinted + 0.45 * color_field) * alpha
     # Brillo especular leve en el núcleo de la mancha (líquido fresco).
     core = np.clip(stain - 0.75, 0.0, 1.0)[..., np.newaxis] * 90.0
     return Image.fromarray(np.clip(stained + core, 0, 255).astype(np.uint8))

@@ -171,6 +171,10 @@ def main() -> int:
     parser.add_argument("--variant", choices=VARIANTS, required=True)
     parser.add_argument("--phase1-epochs", type=int, default=3)
     parser.add_argument("--phase2-epochs", type=int, default=12)
+    parser.add_argument("--lr-phase1", type=float, default=1e-3)
+    parser.add_argument("--lr-phase2", type=float, default=1e-4)
+    parser.add_argument("--run-name", default=None,
+                        help="subdirectorio de runs/ (por defecto full/smoke)")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
@@ -201,7 +205,8 @@ def main() -> int:
     model = build_model(arch).to(device)
     scaler = torch.amp.GradScaler("cuda") if device == "cuda" else None
 
-    run_dir = RUNS / f"material_{args.variant}" / ("smoke" if args.smoke else "full")
+    run_name = args.run_name or ("smoke" if args.smoke else "full")
+    run_dir = RUNS / f"material_{args.variant}" / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     history = []
     best_route = 0.0
@@ -236,11 +241,13 @@ def main() -> int:
                 np.savetxt(run_dir / "confusion_val.csv", confusion, fmt="%d",
                            delimiter=",", header=",".join(MATERIALS))
 
-    train_phase("phase1_head", phase1, lr=1e-3, full_net=False)
-    train_phase("phase2_full", phase2, lr=1e-4, full_net=True)
+    train_phase("phase1_head", phase1, lr=args.lr_phase1, full_net=False)
+    train_phase("phase2_full", phase2, lr=args.lr_phase2, full_net=True)
 
     (run_dir / "metrics.json").write_text(
         json.dumps({"variant": args.variant, "arch": arch, "input": side,
+                    "lr_phase1": args.lr_phase1, "lr_phase2": args.lr_phase2,
+                    "batch_size": args.batch_size,
                     "materials": MATERIALS, "history": history,
                     "best_val_route": best_route}, indent=2),
         encoding="utf-8")
