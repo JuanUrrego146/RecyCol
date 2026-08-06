@@ -117,4 +117,27 @@ class ColombiaRuleEngineTest {
         assertEquals(DisposalRoute.NON_RECYCLABLE, disposal.route)
     }
 
+    @Test
+    fun elVasoDeCartonNoVerificadoVaALaNegraPorPrecaucion() {
+        val disposal = resolve(WasteMaterial.BEVERAGE_CARTON, ContaminationState.UNKNOWN)
+
+        assertEquals(black, disposal.bin.id, "Sin vista interior verificada el sistema no adivina")
+        assertTrue(disposal.degradedByContamination)
+    }
+
+    @Test
+    fun soloElCartonParaBebidasRequiereInspeccionEnColombia() {
+        val requiring = WasteMaterial.entries.filter { profile.requiresInspection(it) }
+
+        assertEquals(listOf(WasteMaterial.BEVERAGE_CARTON), requiring)
+
+        // Para el resto, el estado desconocido resuelve igual que limpio.
+        (WasteMaterial.entries - WasteMaterial.BEVERAGE_CARTON).forEach { material ->
+            assertEquals(
+                resolve(material, ContaminationState.CLEAN).bin.id,
+                resolve(material, ContaminationState.UNKNOWN).bin.id,
+                "Destino desconocido de $material",
+            )
+        }
+    }
 }

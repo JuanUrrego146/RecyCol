@@ -18,7 +18,12 @@ import com.botabien.domain.model.WasteMaterial
  * 2. Si el residuo está [ContaminationState.CONTAMINATED] y la regla declara
  *    caneca alternativa, la decisión se degrada a esa alternativa. Una regla
  *    sin alternativa significa que la contaminación no cambia el destino.
- * 3. La decisión se restringe a las canecas disponibles: un conjunto vacío
+ * 3. Si el perfil declara [regla de inspección][CountryProfile.inspectionRules]
+ *    para el material y el estado sigue [ContaminationState.UNKNOWN] —no se
+ *    pudo verificar el interior—, el sistema no adivina: aplica la misma
+ *    degradación conservadora que si estuviera contaminado (RF-019, RF-022).
+ *    Sin regla de inspección, el estado desconocido resuelve como limpio.
+ * 4. La decisión se restringe a las canecas disponibles: un conjunto vacío
  *    significa «sin restricción»; si la caneca ideal no está disponible se
  *    cae en la caneca conservadora del perfil.
  *
@@ -37,8 +42,10 @@ class DefaultRuleEngine : RuleEngine {
         val rule = profile.rules.firstOrNull { it.material == material }
             ?: return conservativeDisposal(profile)
 
-        val degraded = contamination == ContaminationState.CONTAMINATED &&
-            rule.contaminatedFallback != null
+        val unverifiedInspection = contamination == ContaminationState.UNKNOWN &&
+            profile.requiresInspection(material)
+        val degraded = rule.contaminatedFallback != null &&
+            (contamination == ContaminationState.CONTAMINATED || unverifiedInspection)
 
         val idealBin = if (degraded) rule.contaminatedFallback!! else rule.targetBin
         val resolvedBin = restrictToAvailable(idealBin, availableBins, profile)
