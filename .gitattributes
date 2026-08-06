@@ -1,0 +1,19 @@
+# Normalización de fin de línea: LF en el repositorio y en el árbol de trabajo.
+* text=auto eol=lf
+
+# Los scripts de shell rompen con CRLF (los heredocs quedan con \r).
+*.sh text eol=lf
+
+# Documentos de Word: binarios. GitHub no los previsualiza en línea, así que
+# se ofrecen para descarga en lugar de mostrarse como texto ilegible.
+# La versión legible dentro de GitHub es el archivo .md hermano.
+*.docx binary
+*.doc  binary
+*.pdf  binary
+*.xlsx binary
+*.pptx binary
+
+# Documentación: no cuenta para las estadísticas de lenguaje del repositorio.
+*.md            linguist-documentation=true
+docs/**         linguist-documentation=true
+plan/**         linguist-documentation=true

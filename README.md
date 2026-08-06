@@ -64,10 +64,21 @@ Kotlin Multiplatform permite compartir exactamente lo que debe compartirse — d
 
 ## Documentación
 
-- [Análisis y especificación de requerimientos](docs/F_Analisis_de_Requerimientos_V1,0_BotaBien.docx)
-- [Arquitectura y diagramas](docs/arquitectura.md)
-- [Plan de trabajo](plan/plan_de_trabajo.md)
-- [Contexto para vibe coding](context-for-vibe-coding.md)
+| Documento | Leer en GitHub | Formato de entrega |
+|---|---|---|
+| Análisis y especificación de requerimientos | [ver en línea](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.md) | [descargar .docx](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) |
+| Arquitectura y diagramas | [ver en línea](docs/arquitectura.md) | — |
+| Plan de trabajo | [ver en línea](plan/plan_de_trabajo.md) | — |
+| Contexto para vibe coding | [ver en línea](context-for-vibe-coding.md) | — |
+
+GitHub no puede previsualizar archivos de Word: al abrir un `.docx` en el navegador o en la app solo se ve el binario. Por eso el documento de requerimientos se publica además como Markdown, que sí se lee en línea y en el móvil. Ambas versiones se generan desde la misma fuente de datos (`tools/gen_doc_data.py`), así que no pueden divergir:
+
+```bash
+py -3 tools/gen_doc.py      # regenera el .docx
+py -3 tools/gen_doc_md.py   # regenera la vista .md
+```
+
+Los diagramas de `docs/arquitectura.md` están en notación Mermaid, que GitHub renderiza de forma nativa.
 
 ## Cómo empezar
 
