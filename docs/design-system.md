@@ -123,6 +123,15 @@ Regla de composición: **una sola acción `Filled` por pantalla**; el resto `Tin
 El ancho lo decide el llamador: `fillMaxWidth()` para la acción principal, contenido
 natural para botones de barra o fila.
 
+Acciones destructivas: `destructive = true` pasa el contenido al color de error, al estilo
+de las acciones rojas de iOS. Solo existe en `Tinted` y `Plain` (la variante rellena
+degradaría el contraste); una petición `Filled` destructiva se presenta como `Tinted`.
+
+### `BotaSelectionMark`
+
+Marca de verificación para listas de selección única (país, nivel de rendimiento).
+Acompáñala siempre de `contentDescription` («Seleccionado») para lectores de pantalla.
+
 ### `BotaCard`
 
 ```kotlin
