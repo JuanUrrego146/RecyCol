@@ -3,6 +3,7 @@ package com.botabien.rules.bins
 import com.botabien.domain.model.BinDefinition
 import com.botabien.domain.model.CountryProfile
 import com.botabien.domain.model.DetectedBin
+import com.botabien.domain.model.DisposalRoute
 
 /**
  * Resultado del emparejamiento entre los colores detectados por cámara y las
@@ -82,6 +83,11 @@ class BinColorMatcher(
         val unmatched = mutableListOf<UnmatchedDetection>()
         val matchedBins = mutableSetOf<BinDefinition>()
 
+        // Solo canecas físicas del entorno: un destino de recolección especial
+        // (punto posconsumo, punto limpio) no es escaneable ni debe proponerse
+        // como caneca disponible (#54).
+        val scannableBins = profile.bins.filterNot { it.route == DisposalRoute.SPECIAL_COLLECTION }
+
         detections.sortedByDescending { it.confidence }.forEach { detected ->
             if (detected.confidence < minConfidence) {
                 unmatched += UnmatchedDetection(detected, UnmatchedReason.LOW_CONFIDENCE)
@@ -89,7 +95,7 @@ class BinColorMatcher(
             }
 
             val detectedHsv = ColorSpace.fromHex(detected.colorHex)
-            val nearest = profile.bins
+            val nearest = scannableBins
                 .map { bin -> bin to ColorSpace.distance(detectedHsv, ColorSpace.fromHex(bin.colorHex)) }
                 .minByOrNull { (_, distance) -> distance }
 
