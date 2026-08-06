@@ -112,12 +112,15 @@ desde un recurso de cadenas; ningún componente trae texto propio.
 BotaButton(
     text = stringResource(R.string.action_classify),
     onClick = { /* ... */ },
+    modifier = Modifier.fillMaxWidth(), // la acción principal se extiende; inline, sin él
     style = BotaButtonStyle.Filled,   // Filled | Tinted | Plain, énfasis decreciente
     compact = false,                  // true → 44 dp para contextos densos
 )
 ```
 
 Regla de composición: **una sola acción `Filled` por pantalla**; el resto `Tinted` o `Plain`.
+El ancho lo decide el llamador: `fillMaxWidth()` para la acción principal, contenido
+natural para botones de barra o fila.
 
 ### `BotaCard`
 
