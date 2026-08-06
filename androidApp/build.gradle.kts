@@ -42,6 +42,10 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    // Provisional (modelo de trabajo M0: nadie espera a nadie): la UI se cablea
+    // sobre los fakes deterministas hasta que RULES (S30) y DATA (S36) publiquen
+    // sus implementaciones; entonces esta dependencia sale del APK.
+    implementation(project(":shared:testing"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
