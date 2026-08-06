@@ -1,0 +1,18 @@
+# Ámbitos exclusivos por agente. Escribir fuera del propio ámbito
+# requiere una issue de coordinación explícita.
+
+/gradle/                    @JuanUrrego146
+/shared/domain/port/        @JuanUrrego146
+/shared/testing/            @JuanUrrego146
+/androidApp/ui/             @JuanUrrego146
+/androidApp/camera/         @JuanUrrego146
+/androidApp/inference/      @JuanUrrego146
+/androidApp/inference/bins/ @JuanUrrego146
+/ml/                        @JuanUrrego146
+/shared/rules/              @JuanUrrego146
+/shared/resources/profiles/ @JuanUrrego146
+/shared/data/               @JuanUrrego146
+/benchmark/                 @JuanUrrego146
+/iosApp/                    @JuanUrrego146
+/docs/                      @JuanUrrego146
+/plan/                      @JuanUrrego146

@@ -1,0 +1,44 @@
+# Gradle
+.gradle/
+build/
+local.properties
+captures/
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# Kotlin Multiplatform / iOS
+xcuserdata/
+*.xcworkspace/xcuserdata/
+Pods/
+
+# Python (pipeline de modelos)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Datos y modelos: no se versionan, se reconstruyen con el pipeline
+ml/data/
+ml/runs/
+ml/checkpoints/
+*.tflite
+*.onnx
+*.pt
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Artefactos de los generadores locales
+tools/BotaBien/
