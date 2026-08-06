@@ -27,6 +27,7 @@ class ColombiaRuleEngineTest {
     private val white = BinId("white")
     private val black = BinId("black")
     private val green = BinId("green")
+    private val special = BinId("special")
 
     private val recyclables = listOf(
         WasteMaterial.PLASTIC,
@@ -54,8 +55,10 @@ class ColombiaRuleEngineTest {
             WasteMaterial.METAL to white,
             WasteMaterial.ORGANIC to green,
             WasteMaterial.TEXTILE to black,
-            WasteMaterial.BATTERY to black,
-            WasteMaterial.ELECTRONIC to black,
+            // Pilas y RAEE van al punto de recolección posconsumo, fuera del
+            // código de colores (decisión de v1, coordinación #54).
+            WasteMaterial.BATTERY to special,
+            WasteMaterial.ELECTRONIC to special,
             WasteMaterial.RESIDUAL to black,
         )
 
