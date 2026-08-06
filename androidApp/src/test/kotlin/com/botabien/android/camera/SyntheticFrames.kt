@@ -49,6 +49,29 @@ object SyntheticFrames {
     }
 
     /**
+     * Textura de bloques aleatorios con semilla fija: escena con estructura
+     * gruesa, cuyas medias por celda cambian con claridad al desplazarse.
+     */
+    fun blockNoise(
+        block: Int = 20,
+        seed: Int = 7,
+        width: Int = WIDTH,
+        height: Int = HEIGHT,
+    ): ByteArray {
+        val random = Random(seed)
+        val cols = (width + block - 1) / block
+        val rows = (height + block - 1) / block
+        val levels = IntArray(cols * rows) { random.nextInt(256) }
+        val luma = ByteArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                luma[y * width + x] = levels[(y / block) * cols + (x / block)].toByte()
+            }
+        }
+        return luma
+    }
+
+    /**
      * Desenfoque por caja aplicado [passes] veces: simula la pérdida de bordes
      * de un frame fuera de foco sin depender de ninguna librería de imagen.
      */
@@ -108,6 +131,47 @@ object SyntheticFrames {
             }
         }
         return luma
+    }
+
+    /**
+     * Pinta un objeto texturizado (ajedrez fino) sobre una copia de [scene]:
+     * el objeto pertenece a la escena y se desplaza con ella.
+     */
+    fun withTexturedObject(
+        scene: ByteArray,
+        centerXFraction: Float,
+        centerYFraction: Float,
+        sizeFraction: Float = 0.3f,
+        width: Int = WIDTH,
+        height: Int = HEIGHT,
+    ): ByteArray {
+        val luma = scene.copyOf()
+        val side = (minOf(width, height) * sizeFraction).toInt()
+        val left = ((width * centerXFraction).toInt() - side / 2).coerceIn(0, width - side)
+        val top = ((height * centerYFraction).toInt() - side / 2).coerceIn(0, height - side)
+        for (y in top until top + side) {
+            for (x in left until left + side) {
+                val isDark = ((x / 3) + (y / 3)) % 2 == 0
+                luma[y * width + x] = (if (isDark) 20 else 235).toByte()
+            }
+        }
+        return luma
+    }
+
+    /**
+     * Ruido de sensor determinista por frame: la pequeña variación de lectura
+     * que tiene cualquier cámara real incluso con la escena quieta.
+     */
+    fun withSensorNoise(
+        source: ByteArray,
+        frameIndex: Int,
+        amplitude: Int = 2,
+    ): ByteArray {
+        val random = Random(1_000 + frameIndex)
+        return ByteArray(source.size) { i ->
+            val value = (source[i].toInt() and 0xFF) + random.nextInt(-amplitude, amplitude + 1)
+            value.coerceIn(0, 255).toByte()
+        }
     }
 
     /**
