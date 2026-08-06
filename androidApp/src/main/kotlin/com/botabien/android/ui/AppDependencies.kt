@@ -12,9 +12,9 @@ import com.botabien.testing.TestProfiles
  * repositorios ni a inferencia directamente (invariante 4): todo pasa por
  * estos casos de uso de `shared/domain/usecase/`.
  *
- * @property selectCountry configuración de país y perfil (CUS-001).
- * @property scanBins escaneo y confirmación de canecas (CUS-002); aquí se usa
- *   para reiniciar el conjunto al cambiar de país (RF-003).
+ * @property selectCountry configuración de país y perfil (CUS-001); al cambiar
+ *   de país reinicia por sí solo las canecas confirmadas (coordinación #65).
+ * @property scanBins escaneo y confirmación de canecas (CUS-002).
  */
 class AppDependencies(
     val selectCountry: SelectCountryUseCase,
@@ -38,7 +38,10 @@ fun fakeAppDependencies(): AppDependencies {
     )
     val binAvailability = FakeBinAvailabilityRepository()
     return AppDependencies(
-        selectCountry = SelectCountryUseCase(profiles),
+        selectCountry = SelectCountryUseCase(
+            profiles = profiles,
+            binAvailability = binAvailability,
+        ),
         scanBins = ScanBinsUseCase(
             detector = FakeBinDetector(),
             profiles = profiles,
