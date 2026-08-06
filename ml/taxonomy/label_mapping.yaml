@@ -1,0 +1,190 @@
+# Mapeo de taxonomía — BotaBien ML (S21 · RNF-016, RNF-017)
+#
+# Traduce cada etiqueta de origen de los datasets inventariados en ml/DATASETS.md
+# a la taxonomía cerrada WasteMaterial del dominio. Regla del proyecto: ningún
+# dataset se mezcla sin pasar por este mapeo, y toda etiqueta de origen tiene
+# destino (map) o descarte justificado (discard). Valida con:
+#
+#   python taxonomy/validate_mapping.py
+#
+# Principio rector: el modelo predice MATERIALES, nunca canecas ni rutas.
+# Cuando una etiqueta de origen implica una ruta pero no un material claro
+# (multimaterial, multicapa metalizada, EPS sin clase propia), se descarta en
+# lugar de forzarla, porque contaminaría la clase receptora con ejemplares cuya
+# ruta real difiere y degradaría el acierto de ruta (la métrica que manda,
+# RNF-008).
+
+version: 1
+date: "2026-08-06"
+
+target_taxonomy:
+  # Debe coincidir con el enum del dominio; el validador compara contra el .kt
+  # si el archivo está presente en el árbol de trabajo.
+  source: shared/src/commonMain/kotlin/com/botabien/domain/model/WasteMaterial.kt
+  materials:
+    - PLASTIC
+    - PAPER
+    - CARDBOARD
+    - BEVERAGE_CARTON
+    - GLASS
+    - METAL
+    - ORGANIC
+    - TEXTILE
+    - BATTERY
+    - ELECTRONIC
+    - RESIDUAL
+
+datasets:
+
+  garbage_dataset_v2:
+    source: "https://www.kaggle.com/datasets/sumn2u/garbage-classification-v2"
+    label_kind: folder          # carpeta por clase
+    labels:
+      battery: BATTERY
+      biological: ORGANIC
+      cardboard: CARDBOARD
+      clothes: TEXTILE
+      glass: GLASS
+      metal: METAL
+      paper: PAPER
+      plastic: PLASTIC
+      # El calzado se agrupa con textil posconsumo: es lo más cercano en la
+      # taxonomía y la ruta final la decide el perfil normativo, no el modelo.
+      shoes: TEXTILE
+      trash: RESIDUAL
+    discards: {}
+
+  garbage_classification_12:
+    source: "https://www.kaggle.com/datasets/mostafaabla/garbage-classification"
+    label_kind: folder
+    labels:
+      battery: BATTERY
+      biological: ORGANIC
+      # La distinción por color del vidrio no aporta al dominio: todo colapsa
+      # a GLASS y la ruta la decide el perfil.
+      brown-glass: GLASS
+      green-glass: GLASS
+      white-glass: GLASS
+      cardboard: CARDBOARD
+      clothes: TEXTILE
+      metal: METAL
+      paper: PAPER
+      plastic: PLASTIC
+      shoes: TEXTILE
+      trash: RESIDUAL
+    discards: {}
+
+  realwaste:
+    source: "https://archive.ics.uci.edu/dataset/908/realwaste"
+    label_kind: folder
+    role_note: "Conjunto de control: este mapeo se usa solo en evaluación."
+    labels:
+      Cardboard: CARDBOARD
+      "Food Organics": ORGANIC
+      Glass: GLASS
+      Metal: METAL
+      "Miscellaneous Trash": RESIDUAL
+      Paper: PAPER
+      Plastic: PLASTIC
+      "Textile Trash": TEXTILE
+      Vegetation: ORGANIC
+    discards: {}
+
+  trashnet:
+    source: "https://github.com/garythung/trashnet"
+    label_kind: folder
+    labels:
+      cardboard: CARDBOARD
+      glass: GLASS
+      metal: METAL
+      paper: PAPER
+      plastic: PLASTIC
+      trash: RESIDUAL
+    discards: {}
+
+  taco:
+    source: "https://github.com/pedropro/TACO"
+    label_kind: coco_category   # anotaciones COCO; se entrena sobre recortes de bbox
+    # Nombres exactamente como aparecen en las anotaciones oficiales
+    # (detector/taco_config/map_1.csv del repo, verificado 06/08/2026).
+    labels:
+      Aerosol: METAL
+      "Aluminium foil": METAL
+      Battery: BATTERY
+      "Clear plastic bottle": PLASTIC
+      "Glass bottle": GLASS
+      "Other plastic bottle": PLASTIC
+      "Plastic bottle cap": PLASTIC
+      "Metal bottle cap": METAL
+      "Broken glass": GLASS
+      "Drink can": METAL
+      "Food Can": METAL
+      "Corrugated carton": CARDBOARD
+      # Única fuente de BEVERAGE_CARTON del inventario: cartón para bebidas con
+      # recubrimiento (Tetra Pak) y vaso de café. Cobertura vigilada (DATASETS.md).
+      "Drink carton": BEVERAGE_CARTON
+      "Paper cup": BEVERAGE_CARTON
+      "Egg carton": CARDBOARD
+      "Meal carton": CARDBOARD
+      "Other carton": CARDBOARD
+      "Pizza box": CARDBOARD
+      "Toilet tube": CARDBOARD
+      "Disposable plastic cup": PLASTIC
+      "Glass cup": GLASS
+      "Other plastic cup": PLASTIC
+      "Food waste": ORGANIC
+      "Plastic lid": PLASTIC
+      "Metal lid": METAL
+      "Magazine paper": PAPER
+      "Wrapping paper": PAPER
+      "Normal paper": PAPER
+      "Paper bag": PAPER
+      "Paper straw": PAPER
+      # Pañuelos y servilletas: papel sanitario no aprovechable en cualquier
+      # normativa; visual y normativamente pertenece al ordinario.
+      Tissues: RESIDUAL
+      "Garbage bag": PLASTIC
+      "Single-use carrier bag": PLASTIC
+      "Polypropylene bag": PLASTIC
+      "Produce bag": PLASTIC
+      "Cereal bag": PLASTIC
+      "Bread bag": PLASTIC
+      "Plastic film": PLASTIC
+      "Other plastic wrapper": PLASTIC
+      "Six pack rings": PLASTIC
+      "Spread tub": PLASTIC
+      Tupperware: PLASTIC
+      "Disposable food container": PLASTIC
+      "Other plastic container": PLASTIC
+      "Plastic utensils": PLASTIC
+      "Plastic straw": PLASTIC
+      "Other plastic": PLASTIC
+      "Pop tab": METAL
+      "Scrap metal": METAL
+      "Glass jar": GLASS
+      Shoe: TEXTILE
+      Cigarette: RESIDUAL
+    discards:
+      "Aluminium blister pack": "Multimaterial plástico+aluminio inseparable; ningún material de la taxonomía lo representa sin sesgar su ruta."
+      "Carded blister pack": "Multimaterial cartón+plástico+aluminio; misma razón."
+      "Plastified paper bag": "Multimaterial papel+plástico laminado; ni PAPER ni PLASTIC reflejan su ruta real."
+      "Crisp packet": "Multicapa metalizada (BOPP+aluminio): parece plástico o metal pero no es aprovechable como ninguno; forzarlo degradaría el acierto de ruta."
+      "Retort pouch": "Multicapa metalizada; misma razón que Crisp packet."
+      "Squeezable tube": "Tubo laminado multimaterial (p. ej. crema dental); material dominante indeterminable a la vista."
+      "Foam cup": "Poliestireno expandido: la taxonomía v1 no tiene clase para EPS y su ruta difiere de la del plástico rígido; incluirlo como PLASTIC contaminaría la clase."
+      "Foam food container": "EPS; misma razón que Foam cup."
+      "Styrofoam piece": "EPS; misma razón que Foam cup."
+      "Plastic glooves": "Elemento de higiene de un solo uso con ruta sanitaria no modelada; muestras escasas."
+      "Rope & strings": "Material indeterminado (fibra natural, sintética o mixta) a nivel visual."
+      "Unlabeled litter": "Sin etiqueta de material por definición."
+
+  zerowaste:
+    source: "https://ai.bu.edu/zerowaste/"
+    label_kind: segmentation_class   # se entrena sobre recortes, si S22 lo incorpora
+    role_note: "Incorporación condicionada al balance de clases medido en S22 (DATASETS.md)."
+    labels:
+      rigid_plastic: PLASTIC
+      soft_plastic: PLASTIC
+      cardboard: CARDBOARD
+      metal: METAL
+    discards: {}
