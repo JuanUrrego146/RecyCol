@@ -63,11 +63,6 @@ dependencies {
     // Fakes deterministas del contrato M0: las pruebas validan contra los puertos
     testImplementation(project(":shared:testing"))
 
-    // Pruebas unitarias contra los fakes deterministas del contrato M0 (agente QA)
-    testImplementation(libs.kotlin.test)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(project(":shared:testing"))
-
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
