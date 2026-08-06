@@ -3,6 +3,7 @@ package com.botabien.testing
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
 import com.botabien.domain.model.WasteMaterial
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,7 +51,7 @@ class FakeRuleEngineTest {
     @Test
     fun materialSinReglaCaeEnLaCanecaConservadora()  {
         val disposal = engine.resolve(
-            material = WasteMaterial.BATTERY,
+            material = WasteMaterial.TEXTILE,
             contamination = ContaminationState.UNKNOWN,
             availableBins = emptySet(),
             profile = profile,
@@ -84,5 +85,84 @@ class FakeRuleEngineTest {
         )
 
         assertEquals(TestProfiles.greenBin, disposal.bin)
+    }
+
+    @Test
+    fun electronicoVaAlPuntoDeRecoleccionEspecialAunqueNoEsteDisponible() {
+        val onlyBlackNearby = setOf(TestProfiles.blackBin.id)
+
+        val disposal = engine.resolve(
+            material = WasteMaterial.ELECTRONIC,
+            contamination = ContaminationState.UNKNOWN,
+            availableBins = onlyBlackNearby,
+            profile = profile,
+        )
+
+        assertEquals(TestProfiles.specialCollectionBin, disposal.bin, "La recolección especial no se degrada por disponibilidad (#54)")
+        assertEquals(FallbackReason.NONE, disposal.fallbackReason)
+    }
+
+    @Test
+    fun lasPilasRecibenElMismoTratoQueLosElectronicos() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.BATTERY,
+            contamination = ContaminationState.UNKNOWN,
+            availableBins = setOf(TestProfiles.whiteBin.id),
+            profile = profile,
+        )
+
+        assertEquals(TestProfiles.specialCollectionBin, disposal.bin)
+    }
+
+    @Test
+    fun laContaminacionSeReportaComoMotivoDelCambio() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.BEVERAGE_CARTON,
+            contamination = ContaminationState.CONTAMINATED,
+            availableBins = emptySet(),
+            profile = profile,
+        )
+
+        assertEquals(FallbackReason.CONTAMINATION, disposal.fallbackReason)
+    }
+
+    @Test
+    fun laCanecaAusenteSeReportaComoMotivoDelCambio() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.PLASTIC,
+            contamination = ContaminationState.CLEAN,
+            availableBins = setOf(TestProfiles.blackBin.id),
+            profile = profile,
+        )
+
+        assertEquals(TestProfiles.blackBin, disposal.bin)
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, disposal.fallbackReason)
+    }
+
+    @Test
+    fun elAvisoDeCanecaAusenteSeRellenaConLosNombresVisibles() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.PLASTIC,
+            contamination = ContaminationState.CLEAN,
+            availableBins = setOf(TestProfiles.blackBin.id),
+            profile = profile,
+        )
+
+        assertEquals(
+            "No hay Caneca blanca disponible; usa Caneca negra.",
+            disposal.unavailableBinNotice,
+        )
+    }
+
+    @Test
+    fun sinCambioDeCanecaNoHayAviso() {
+        val disposal = engine.resolve(
+            material = WasteMaterial.PLASTIC,
+            contamination = ContaminationState.CLEAN,
+            availableBins = emptySet(),
+            profile = profile,
+        )
+
+        assertEquals(null, disposal.unavailableBinNotice)
     }
 }
