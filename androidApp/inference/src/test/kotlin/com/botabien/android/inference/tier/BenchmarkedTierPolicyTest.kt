@@ -11,7 +11,10 @@ import kotlinx.coroutines.test.runTest
 
 class BenchmarkedTierPolicyTest {
 
-    private class InMemoryTierStore(private var tier: DeviceTier? = null) : TierStore {
+    private class InMemoryTierStore(
+        private var tier: DeviceTier? = null,
+        private var manual: DeviceTier? = null,
+    ) : TierStore {
         var writes = 0
         override fun read(): DeviceTier? = tier
         override fun write(tier: DeviceTier) {
@@ -20,6 +23,10 @@ class BenchmarkedTierPolicyTest {
         }
         override fun clear() {
             tier = null
+        }
+        override fun readManualOverride(): DeviceTier? = manual
+        override fun writeManualOverride(tier: DeviceTier?) {
+            manual = tier
         }
     }
 
@@ -122,5 +129,70 @@ class BenchmarkedTierPolicyTest {
         policy.invalidate()
 
         assertNull(store.read())
+    }
+
+    @Test
+    fun `el ajuste manual manda sobre la gama medida (RF-031)`() = runTest {
+        val store = InMemoryTierStore(DeviceTier.HIGH)
+        val policy = BenchmarkedTierPolicy(store, resolveTier = { DeviceTier.HIGH })
+        policy.ensureResolved()
+
+        policy.setManualOverride(DeviceTier.LOW)
+
+        assertEquals(DeviceTier.LOW, policy.tier)
+        assertFalse(policy.isEnabled(Feature.OBJECT_DETECTION))
+        assertEquals(DeviceTier.LOW, store.readManualOverride(), "la preferencia persiste")
+    }
+
+    @Test
+    fun `volver a automatico restaura la gama medida`() = runTest {
+        val store = InMemoryTierStore(DeviceTier.MID, manual = DeviceTier.LOW)
+        val policy = BenchmarkedTierPolicy(store, resolveTier = { DeviceTier.MID })
+        policy.ensureResolved()
+        assertEquals(DeviceTier.LOW, policy.tier, "arranca con la preferencia manual persistida")
+
+        policy.setManualOverride(null)
+
+        assertEquals(DeviceTier.MID, policy.tier)
+        assertNull(store.readManualOverride())
+    }
+
+    @Test
+    fun `con ajuste manual no hay degradacion automatica`() = runTest {
+        val store = InMemoryTierStore(DeviceTier.HIGH)
+        val policy = BenchmarkedTierPolicy(store, resolveTier = { DeviceTier.HIGH }, degradationWindow = 2)
+        policy.ensureResolved()
+        policy.setManualOverride(DeviceTier.HIGH)
+
+        repeat(6) { policy.reportObservedLatencyMillis(10_000) }
+
+        assertEquals(DeviceTier.HIGH, policy.tier, "la decisión explícita del usuario se respeta")
+        assertEquals(DeviceTier.HIGH, store.read())
+    }
+
+    @Test
+    fun `la matriz completa se respeta en las tres gamas (RF-030)`() = runTest {
+        val expectations = mapOf(
+            DeviceTier.LOW to emptySet(),
+            DeviceTier.MID to setOf(
+                Feature.CONTINUOUS_CLASSIFICATION,
+                Feature.OBJECT_DETECTION,
+                Feature.CONTINUOUS_BIN_SCAN,
+                Feature.FULL_FRAME_QUALITY_ANALYSIS,
+            ),
+            DeviceTier.HIGH to Feature.entries.toSet(),
+        )
+
+        expectations.forEach { (tier, enabled) ->
+            val policy = BenchmarkedTierPolicy(InMemoryTierStore(tier), resolveTier = { tier })
+            policy.ensureResolved()
+            Feature.entries.forEach { feature ->
+                assertEquals(
+                    feature in enabled,
+                    policy.isEnabled(feature),
+                    "función $feature en gama $tier",
+                )
+            }
+        }
     }
 }
