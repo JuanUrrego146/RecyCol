@@ -52,7 +52,7 @@
       "$ref": "#/$defs/binId"
     },
     "unavailableBinNotice": {
-      "description": "Opcional: plantilla del aviso que explica por qué no se recomendó la caneca ideal (RF-008), con los marcadores {ideal} y {assigned} que el motor rellena con los nombres visibles de las canecas. En el idioma del perfil.",
+      "description": "Plantilla del aviso al usuario cuando la caneca ideal no está disponible (RF-008). El motor sustituye {ideal} y {assigned} por los nombres visibles de las canecas. Opcional: sin declarar, no se muestra aviso.",
       "type": "string",
       "minLength": 1
     }
