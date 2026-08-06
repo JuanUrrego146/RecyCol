@@ -1,0 +1,19 @@
+# Overlay GPU del agente ML — archivo aparte para no tocar los servicios de
+# CORE en docker-compose.yml. Uso:
+#
+#   docker compose -f docker-compose.gpu.yml -p botabien-ml-gpu build ml-gpu
+#   docker compose -f docker-compose.gpu.yml -p botabien-ml-gpu run --rm ml-gpu \
+#       python train/train_material.py --variant low
+#
+# Requiere runtime NVIDIA (Docker Desktop + WSL2). Verificación rápida:
+#   docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+services:
+  ml-gpu:
+    build:
+      context: docker
+      dockerfile: ml-gpu.Dockerfile
+    image: botabien/ml-gpu:1.0.0
+    working_dir: /workspace/ml
+    gpus: all
+    volumes:
+      - .:/workspace

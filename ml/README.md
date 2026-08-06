@@ -17,10 +17,20 @@ docker compose run --rm ml bash
 | `taxonomy/validate_mapping.py` | Validador del mapeo: `python taxonomy/validate_mapping.py` |
 | `data/` | Datasets descargados localmente — ignorado por git |
 
-Las sesiones siguientes añaden: ingesta y particiones reproducibles (S22),
-augmentación de dominio móvil (S23), síntesis de contaminación (S24),
-entrenamiento (S25–S26), cuantización y export a LiteRT (S27) y el reporte de
-métricas de evaluación cruzada (S28, `REPORTE_METRICAS.md`).
+| `ingest/pipeline.py` | S22: extracción, normalización, dedup dHash y particiones deterministas (`python ingest/pipeline.py`) |
+| `augment/mobile_domain.py` | S23: augmentación de dominio móvil (`--preview N` genera hoja de contacto) |
+| `contaminate/synthesize.py` | S24: síntesis de contaminación con U²-Net (requiere `data/models/u2net.onnx`) |
+| `train/train_material.py` | S25: clasificador de material por gama (`--variant low\|mid\|high`, `--smoke`) |
+| `train/train_contamination.py` | S26: clasificador binario CLEAN/CONTAMINATED |
+| `export/export_litert.py` | S27: cuantización INT8 y export a los nombres del contrato EDGE |
+
+Verificación de reproducibilidad de S22 (dos corridas → manifiestos idénticos):
+
+```bash
+docker compose -p botabien-ml run --rm ml sh -c "python ingest/pipeline.py && cp -r data/manifests /tmp/run1 && python ingest/pipeline.py && diff -r /tmp/run1 data/manifests && echo REPRODUCIBLE"
+```
+
+S28 publica `REPORTE_METRICAS.md` con la evaluación cruzada sobre RealWaste.
 
 Reglas fijas del pipeline (de `context-for-vibe-coding.md`):
 

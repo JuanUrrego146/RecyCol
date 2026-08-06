@@ -92,12 +92,14 @@ class PairDataset(Dataset):
         return (tensor - mean) / std, label
 
 
-def contamination_scores(model: nn.Module, loader: DataLoader) -> tuple[np.ndarray, np.ndarray]:
+def contamination_scores(model: nn.Module, loader: DataLoader,
+                         device: str = "cpu") -> tuple[np.ndarray, np.ndarray]:
     model.eval()
     scores, labels = [], []
     with torch.no_grad():
         for batch, batch_labels in loader:
-            probabilities = torch.softmax(model(batch), dim=1)[:, 1]
+            logits = model(batch.to(device, non_blocking=True))
+            probabilities = torch.softmax(logits, dim=1)[:, 1].cpu()
             scores.extend(probabilities.tolist())
             labels.extend(batch_labels.tolist())
     return np.asarray(scores), np.asarray(labels)
@@ -134,7 +136,8 @@ def proxy_control(model: nn.Module, manifest: Path, limit: int, threshold: float
             std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
             return (tensor - mean) / std, 0
 
-    scores, _ = contamination_scores(model, DataLoader(Rows(), batch_size=32))
+    device = next(model.parameters()).device.type
+    scores, _ = contamination_scores(model, DataLoader(Rows(), batch_size=32), device)
     return float(np.mean(scores >= threshold))
 
 
@@ -147,18 +150,23 @@ def main() -> int:
     args = parser.parse_args()
 
     torch.manual_seed(TORCH_SEED)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    pin = device == "cuda"
     limit = 256 if args.smoke else None
     epochs = 1 if args.smoke else args.epochs
 
     train_ds = PairDataset("train", train=True, limit=limit)
     val_ds = PairDataset("val", train=False, limit=limit)
-    print(f"contaminación: train={len(train_ds)} val={len(val_ds)}")
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.workers)
+    print(f"contaminación: train={len(train_ds)} val={len(val_ds)} device={device}")
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.workers,
+                            pin_memory=pin)
 
     model = torchvision.models.mobilenet_v3_small(weights="DEFAULT")
     model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, len(CLASSES))
+    model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-4, weight_decay=1e-4)
+    scaler = torch.amp.GradScaler("cuda") if device == "cuda" else None
 
     run_dir = RUNS / "contamination" / ("smoke" if args.smoke else "full")
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -166,24 +174,32 @@ def main() -> int:
     for epoch in range(epochs):
         train_ds.epoch = epoch
         loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
-                            num_workers=args.workers,
+                            num_workers=args.workers, pin_memory=pin,
                             generator=torch.Generator().manual_seed(TORCH_SEED + epoch))
         model.train()
         start, total_loss = time.time(), 0.0
         for batch, labels in loader:
+            batch, labels = batch.to(device, non_blocking=True), labels.to(device)
             optimizer.zero_grad()
-            loss = criterion(model(batch), labels)
-            loss.backward()
-            optimizer.step()
+            if scaler is not None:
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    loss = criterion(model(batch), labels)
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss = criterion(model(batch), labels)
+                loss.backward()
+                optimizer.step()
             total_loss += loss.item() * len(labels)
-        scores, labels = contamination_scores(model, val_loader)
+        scores, labels = contamination_scores(model, val_loader, device)
         accuracy = float(np.mean((scores >= 0.5) == labels))
         history.append({"epoch": epoch, "loss": round(total_loss / max(len(train_ds), 1), 4),
                         "val_acc@0.5": round(accuracy, 4),
                         "seconds": round(time.time() - start, 1)})
         print(f"[e{epoch}] loss={history[-1]['loss']} acc@0.5={accuracy:.3f}")
 
-    scores, labels = contamination_scores(model, val_loader)
+    scores, labels = contamination_scores(model, val_loader, device)
     threshold = pick_threshold(scores, labels)
     control = {}
     for name, manifest in (("trashnet_like_clean", MANIFESTS / "val.csv"),

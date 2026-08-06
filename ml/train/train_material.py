@@ -123,12 +123,13 @@ def class_weights(rows: list[dict]) -> torch.Tensor:
     return torch.tensor(weights, dtype=torch.float32)
 
 
-def evaluate(model: nn.Module, loader: DataLoader, routes: dict[str, str]):
+def evaluate(model: nn.Module, loader: DataLoader, routes: dict[str, str],
+             device: str = "cpu"):
     model.eval()
     confusion = np.zeros((len(MATERIALS), len(MATERIALS)), dtype=np.int64)
     with torch.no_grad():
         for batch, labels in loader:
-            predictions = model(batch).argmax(dim=1)
+            predictions = model(batch.to(device, non_blocking=True)).argmax(dim=1).cpu()
             for true, pred in zip(labels.tolist(), predictions.tolist()):
                 confusion[true, pred] += 1
     total = confusion.sum()
@@ -142,14 +143,25 @@ def evaluate(model: nn.Module, loader: DataLoader, routes: dict[str, str]):
     return top1, route_hits / max(total, 1), confusion
 
 
-def run_epoch(model, loader, optimizer, criterion) -> float:
+def run_epoch(model, loader, optimizer, criterion, device, scaler=None) -> float:
     model.train()
     total_loss = 0.0
     for batch, labels in loader:
+        batch = batch.to(device, non_blocking=True)
+        labels = labels.to(device)
         optimizer.zero_grad()
-        loss = criterion(model(batch), labels)
-        loss.backward()
-        optimizer.step()
+        if scaler is not None:
+            # Precisión mixta (AMP): en Ampere acelera y reduce VRAM, clave
+            # para los 8 GB de la 3060 Ti.
+            with torch.autocast(device_type="cuda", dtype=torch.float16):
+                loss = criterion(model(batch), labels)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss = criterion(model(batch), labels)
+            loss.backward()
+            optimizer.step()
         total_loss += loss.item() * len(labels)
     return total_loss / max(len(loader.dataset), 1)
 
@@ -159,13 +171,19 @@ def main() -> int:
     parser.add_argument("--variant", choices=VARIANTS, required=True)
     parser.add_argument("--phase1-epochs", type=int, default=3)
     parser.add_argument("--phase2-epochs", type=int, default=12)
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--smoke", action="store_true",
                         help="1+1 épocas sobre un subset: valida el circuito, no entrena de verdad")
     args = parser.parse_args()
 
     torch.manual_seed(TORCH_SEED)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.batch_size is None:
+        args.batch_size = 64 if device == "cuda" else 32
+    pin = device == "cuda"
+    print(f"device={device}" + (f" ({torch.cuda.get_device_name(0)})" if pin else ""))
     arch, side = VARIANTS[args.variant]
     routes = route_by_material()
     limit = 512 if args.smoke else None
@@ -177,9 +195,11 @@ def main() -> int:
     print(f"variant={args.variant} arch={arch} input={side} "
           f"train={len(train_ds)} val={len(val_ds)}")
 
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.workers)
-    criterion = nn.CrossEntropyLoss(weight=class_weights(train_ds.rows))
-    model = build_model(arch)
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, num_workers=args.workers,
+                            pin_memory=pin)
+    criterion = nn.CrossEntropyLoss(weight=class_weights(train_ds.rows).to(device))
+    model = build_model(arch).to(device)
+    scaler = torch.amp.GradScaler("cuda") if device == "cuda" else None
 
     run_dir = RUNS / f"material_{args.variant}" / ("smoke" if args.smoke else "full")
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -199,11 +219,11 @@ def main() -> int:
         for epoch in range(epochs):
             train_ds.epoch = hash((name, epoch)) & 0xFFFF  # varía la augmentación
             loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
-                                num_workers=args.workers,
+                                num_workers=args.workers, pin_memory=pin,
                                 generator=torch.Generator().manual_seed(TORCH_SEED + epoch))
             start = time.time()
-            loss = run_epoch(model, loader, optimizer, criterion)
-            top1, route_acc, confusion = evaluate(model, val_loader, routes)
+            loss = run_epoch(model, loader, optimizer, criterion, device, scaler)
+            top1, route_acc, confusion = evaluate(model, val_loader, routes, device)
             history.append({"phase": name, "epoch": epoch, "loss": round(loss, 4),
                             "val_top1": round(float(top1), 4),
                             "val_route": round(float(route_acc), 4),

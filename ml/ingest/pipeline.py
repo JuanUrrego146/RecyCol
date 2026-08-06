@@ -114,8 +114,13 @@ def ensure_extracted(zip_path: Path, target: Path) -> bool:
 
 def iter_images(root: Path):
     for path in sorted(root.rglob("*")):
-        if path.suffix.lower() in IMAGE_EXTENSIONS and path.is_file():
-            yield path
+        if path.suffix.lower() not in IMAGE_EXTENSIONS or not path.is_file():
+            continue
+        # Basura de macOS empaquetada en algunos zips: __MACOSX/ y archivos
+        # AppleDouble ._*.jpg que no son imágenes reales.
+        if "__MACOSX" in path.parts or path.name.startswith("._"):
+            continue
+        yield path
 
 
 # ---------------------------------------------------------------------------
