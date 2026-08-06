@@ -57,10 +57,12 @@ class LiteRtWasteClassifier(
     private val contaminationRoi: RoiStrategy = GuideFrameRoi(),
     private val preprocessor: FramePreprocessor = FramePreprocessor(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val onMaterialLatencyMillis: ((Long) -> Unit)? = null,
-) : WasteClassifier {
+    private val onClassifyLatencyMillis: ((Long) -> Unit)? = null,
+    /** Inyectable en pruebas; mide la clasificación completa (ROI incluida). */
+    val classifyLatency: LatencyMeter = LatencyMeter(),
+) : WasteClassifier, AutoCloseable {
 
-    /** Latencia de la etapa 1 (preprocesado + inferencia de material). */
+    /** Latencia de la etapa 1 (preprocesado + inferencia de material, sin ROI). */
     val materialLatency = LatencyMeter()
 
     /** Latencia de la etapa 2 (preprocesado + inferencia de contaminación). */
@@ -69,6 +71,7 @@ class LiteRtWasteClassifier(
     override suspend fun classify(frame: ImageFrame): ClassificationResult =
         withContext(dispatcher) {
             val pixelFrame = frame.requirePixelAccess()
+            val start = classifyLatency.startSample()
             val region = roiStrategy.findRegion(pixelFrame)
             val probabilities = materialLatency.measure {
                 val input = preprocessor.preprocess(pixelFrame, materialSpec, region)
@@ -77,9 +80,10 @@ class LiteRtWasteClassifier(
                     materialSpec.outputsProbabilities,
                 )
             }
-            // Señal para la degradación de gama en uso (S17): la etapa de
-            // material domina el presupuesto de latencia de la clasificación.
-            materialLatency.lastMillis?.let { onMaterialLatencyMillis?.invoke(it) }
+            // Señal extremo a extremo dentro de la inferencia (ROI + preprocesado
+            // + inferencia, coordinación #103): alimenta la degradación de gama.
+            val total = classifyLatency.finishSample(start)
+            onClassifyLatencyMillis?.invoke(total)
             val materials = ModelOutputOrder.MATERIALS
             if (probabilities.size != materials.size) {
                 throw InferenceException(
@@ -94,6 +98,14 @@ class LiteRtWasteClassifier(
                 confidence = probabilities[winner].coerceIn(0f, 1f),
             )
         }
+
+    /** Libera intérpretes y delegados de ambas etapas y del detector de ROI. */
+    override fun close() {
+        runCatching { materialEngine.close() }
+        runCatching { contaminationEngine?.close() }
+        runCatching { (roiStrategy as? AutoCloseable)?.close() }
+        runCatching { (contaminationRoi as? AutoCloseable)?.close() }
+    }
 
     override suspend fun inspectContamination(frame: ImageFrame): ContaminationResult =
         withContext(dispatcher) {

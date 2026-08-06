@@ -19,6 +19,12 @@ import org.koin.dsl.module
  * llamar una vez a [BenchmarkedTierPolicy.ensureResolved] fuera del hilo
  * principal para correr el micro-benchmark y fijar la gama real (RF-029);
  * hasta entonces todo funciona en modo conservador (invariante 5).
+ *
+ * El `WasteClassifier` expuesto es el adaptador consciente de gama
+ * (coordinación #102): aunque sea un singleton y se inyecte antes de que
+ * `ensureResolved` termine, cada clasificación consulta la política y
+ * recambia modelo y ROI si la gama cambió (resolución tardía, degradación
+ * en uso o ajuste manual). No hace falta re-crear el grafo de Koin.
  */
 val inferenceModule = module {
     single<DeviceTierPolicy> { TierPolicyFactory.create(androidContext()) }

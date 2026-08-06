@@ -7,6 +7,7 @@ import com.botabien.android.inference.frame.PixelAccessFrame
 import com.botabien.android.inference.model.ModelCatalog
 import com.botabien.android.inference.model.ModelOutputOrder
 import com.botabien.android.inference.roi.CropRegion
+import com.botabien.android.inference.roi.LatencyMeter
 import com.botabien.android.inference.roi.RoiStrategy
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.ImageFrame
@@ -125,14 +126,23 @@ class LiteRtWasteClassifierTest {
     }
 
     @Test
-    fun `la latencia de material se reporta al oyente para la degradacion de gama (S20)`() = runTest {
+    fun `la latencia extremo a extremo incluye la ROI y se reporta al oyente (#103)`() = runTest {
+        var now = 0L
         val reported = mutableListOf<Long>()
+        val slowRoi = object : RoiStrategy {
+            override suspend fun findRegion(frame: PixelAccessFrame): CropRegion {
+                now += 40 // la ROI cuesta 40 ms del presupuesto extremo a extremo
+                return CropRegion.centeredSquare(frame.width, frame.height)
+            }
+        }
         val subject = LiteRtWasteClassifier(
             materialEngine = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
             materialSpec = ModelCatalog.MATERIAL_LOW,
             contaminationEngine = ScriptedEngine(floatArrayOf(0.8f, 0.2f)),
             contaminationSpec = ModelCatalog.CONTAMINATION,
-            onMaterialLatencyMillis = { reported += it },
+            roiStrategy = slowRoi,
+            onClassifyLatencyMillis = { reported += it },
+            classifyLatency = LatencyMeter(clock = { now }),
         )
 
         subject.classify(frame)
@@ -140,6 +150,7 @@ class LiteRtWasteClassifierTest {
         subject.inspectContamination(frame)
 
         assertEquals(2, reported.size, "clasificar reporta; la inspección no")
+        assertEquals(40L, reported[0], "la señal reportada incluye el coste de la ROI")
     }
 
     @Test

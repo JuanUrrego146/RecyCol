@@ -29,13 +29,18 @@ class DetectorRoi(
     private val preprocessor: FramePreprocessor = FramePreprocessor(),
     private val fallback: RoiStrategy = GuideFrameRoi(),
     val latency: LatencyMeter = LatencyMeter(),
-) : RoiStrategy {
+) : RoiStrategy, AutoCloseable {
 
     override suspend fun findRegion(frame: PixelAccessFrame): CropRegion = try {
         latency.measure { detect(frame) } ?: fallback.findRegion(frame)
     } catch (_: Exception) {
         // El detector nunca tumba la clasificación (criterio de S16).
         fallback.findRegion(frame)
+    }
+
+    /** Libera el motor del detector (lo invoca el recambio de gama, #102). */
+    override fun close() {
+        engine.close()
     }
 
     private fun detect(frame: PixelAccessFrame): CropRegion? {
