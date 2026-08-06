@@ -44,6 +44,7 @@ import com.botabien.android.ui.AppDependencies
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
+import com.botabien.domain.model.ClassificationOutcome
 import com.botabien.domain.model.Disposal
 import com.botabien.domain.model.WasteMaterial
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +65,7 @@ fun ClassifyScreen(
     frames: Flow<ImageFrame>,
     viewfinder: @Composable (Modifier) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenResultDetail: (ClassificationOutcome) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -101,6 +103,7 @@ fun ClassifyScreen(
         ResultOverlay(
             disposal = state.outcome?.disposal,
             material = state.outcome?.classification?.material,
+            onClick = { state.outcome?.let(onOpenResultDetail) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -153,11 +156,15 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
     }
 }
 
-/** Tarjeta de decisión: caneca, color y categoría sobre velo translúcido. */
+/**
+ * Tarjeta de decisión: caneca, color y categoría sobre velo translúcido.
+ * Pulsarla abre el detalle con la justificación normativa (CUS-007).
+ */
 @Composable
 private fun ResultOverlay(
     disposal: Disposal?,
     material: WasteMaterial?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -169,12 +176,19 @@ private fun ResultOverlay(
         var lastDisposal by remember { mutableStateOf(disposal) }
         if (disposal != null) lastDisposal = disposal
 
+        val interactionSource = remember { MutableInteractionSource() }
         lastDisposal?.let { current ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(BotaTheme.shapes.large)
                     .background(BotaTheme.colors.scrim)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
                     .padding(BotaTheme.spacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

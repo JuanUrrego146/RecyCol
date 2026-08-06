@@ -18,6 +18,7 @@ import com.botabien.android.ui.country.CountrySelectionScreen
 import com.botabien.android.ui.navigation.AppDestination
 import com.botabien.android.ui.navigation.AppNavHost
 import com.botabien.android.ui.navigation.AppNavState
+import com.botabien.android.ui.result.ResultDetailScreen
 import com.botabien.android.ui.settings.SettingsScreen
 import com.botabien.android.ui.theme.BotaTheme
 
@@ -65,6 +66,9 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             frames = frames,
                             viewfinder = { PlaceholderViewfinder(it) },
                             onOpenSettings = { navState.push(AppDestination.Settings) },
+                            onOpenResultDetail = { outcome ->
+                                navState.push(AppDestination.ResultDetail(outcome))
+                            },
                         )
 
                         AppDestination.Settings -> SettingsScreen(
@@ -77,6 +81,13 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             dependencies = dependencies,
                             isOnboarding = false,
                             onCountryApplied = { navState.pop() },
+                        )
+
+                        is AppDestination.ResultDetail -> ResultDetailScreen(
+                            dependencies = dependencies,
+                            outcome = destination.outcome,
+                            isManualSelection = destination.isManualSelection,
+                            onBack = { navState.pop() },
                         )
                     }
                 }

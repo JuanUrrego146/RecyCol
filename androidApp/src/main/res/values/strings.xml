@@ -27,6 +27,22 @@
     <!-- Resultado de clasificación (RF-013 · CUS-003) -->
     <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>
 
+    <!-- Detalle del resultado (RF-026, RF-027, RF-028 · CUS-007) -->
+    <string name="result_detail_title">Resultado</string>
+    <string name="result_manual_selection">Selección manual</string>
+    <string name="result_section_material">Material identificado</string>
+    <string name="result_section_rule">Regla aplicada</string>
+    <string name="result_section_regulation">Norma citada</string>
+    <string name="result_confidence_format">Confianza del %1$d %%</string>
+    <string name="result_orientative_notice">Esta recomendación es orientativa y no sustituye la normativa local vigente ni las indicaciones de tu operador de aseo.</string>
+
+    <!-- Rutas de disposición (RNF-011) -->
+    <string name="route_recyclable">Aprovechable</string>
+    <string name="route_non_recyclable">No aprovechable</string>
+    <string name="route_organic">Orgánico</string>
+    <string name="route_hazardous">Peligroso</string>
+    <string name="route_special_collection">Recolección especial</string>
+
     <!-- Materiales (RNF-011) -->
     <string name="material_plastic">Plástico</string>
     <string name="material_paper">Papel</string>
