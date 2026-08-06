@@ -1,8 +1,11 @@
-# Integración continua de BotaBien (S01).
-# Compila la app, ejecuta las pruebas multiplataforma de shared y verifica el
-# aislamiento de plataforma (ningún import android.* dentro de shared/).
-# Las versiones de JDK, Gradle (wrapper) y dependencias (version catalog) están
-# fijadas: CI y el contenedor docker/android-build.Dockerfile usan las mismas.
+# Integración continua de BotaBien (S01; runner propio desde el 06/08/2026, QA).
+# Compila la app, ejecuta las pruebas multiplataforma de shared, las pruebas
+# unitarias de androidApp e inference, y verifica el aislamiento de plataforma.
+#
+# Corre en los runners self-hosted del proyecto (.github/runner/): la imagen es
+# la misma botabien/android-build de docker/, así que JDK, Gradle y Android SDK
+# vienen fijados por la imagen y no se instalan aquí. Si los runners propios
+# están caídos, el respaldo hospedado es ci-respaldo.yml (mismo check).
 name: CI
 
 on:
@@ -12,25 +15,16 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
     name: Compilar y probar
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: [self-hosted, linux, docker]
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: JDK 17 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Pruebas de shared (multiplataforma)
         run: ./gradlew :shared:allTests :shared:testing:allTests --stacktrace
@@ -38,8 +32,8 @@ jobs:
       - name: Verificar aislamiento de plataforma en shared
         run: ./gradlew :shared:verifyPlatformIsolation --stacktrace
 
-      - name: Pruebas del runtime de inferencia (S15)
-        run: ./gradlew :androidApp:inference:testDebugUnitTest --stacktrace
+      - name: Pruebas unitarias de androidApp e inference
+        run: ./gradlew :androidApp:testDebugUnitTest :androidApp:inference:testDebugUnitTest --stacktrace
 
       - name: Compilar androidApp (debug)
         run: ./gradlew :androidApp:assembleDebug --stacktrace
