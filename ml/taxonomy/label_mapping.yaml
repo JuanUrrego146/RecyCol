@@ -15,10 +15,10 @@
 # RNF-008).
 
 # Criterio comercial (06/08/2026): solo entrenan datasets con veredicto APTO en
-# ml/DATA_LICENSES.md. Los NO APTOS/AMBIGUOS conservan su mapeo con
-# enabled: false por si su situación legal cambiara; la ingesta (S22) los ignora.
+# ml/DATA_LICENSES.md. Los NO APTOS conservan su mapeo con enabled: false por si
+# su situación legal cambiara; la ingesta (S22) los ignora.
 
-version: 2
+version: 3
 date: "2026-08-06"
 
 target_taxonomy:
@@ -43,7 +43,10 @@ datasets:
   garbage_dataset_v2:
     source: "https://www.kaggle.com/datasets/sumn2u/garbage-classification-v2"
     label_kind: folder          # carpeta por clase
-    enabled: false              # AMBIGUO comercial: suspendido hasta decisión (DATA_LICENSES.md)
+    # Habilitado por decisión de Juan (06/08/2026) con RIESGO LEGAL ABIERTO:
+    # revisión legal pendiente antes del lanzamiento comercial. Ver el bloque
+    # CAUTION de ml/DATA_LICENSES.md y la issue etiquetada riesgo-legal.
+    enabled: true
     labels:
       battery: BATTERY
       biological: ORGANIC
@@ -196,4 +199,49 @@ datasets:
       soft_plastic: PLASTIC
       cardboard: CARDBOARD
       metal: METAL
+    discards: {}
+
+  # ---- Fuentes añadidas en la auditoría comercial para clases débiles ----
+
+  clothing_dataset:
+    source: "https://github.com/alexeygrigorev/clothing-dataset"   # CC0 1.0
+    label_kind: folder
+    # Las 20 clases de ropa colapsan a TEXTILE: el material es el mismo y la
+    # ruta la decide el perfil. El dominio (ropa en uso, no desechada) se
+    # compensa con la augmentación de S23.
+    collapse_all_to: TEXTILE
+    labels: {}
+    discards: {}
+
+  mendeley_rotten_fruits:
+    source: "https://data.mendeley.com/datasets/bdd69gyhv8/1"      # CC BY 4.0
+    label_kind: folder
+    # Solo las 3 200 imágenes originales; sus variantes augmentadas se excluyen
+    # porque la augmentación la hace el propio pipeline (S23).
+    labels:
+      # Fresco o podrido, el material sigue siendo residuo orgánico; ambos
+      # estados aportan (cáscaras y fruta entera aparecen ante la caneca).
+      fresh: ORGANIC
+      rotten: ORGANIC
+    discards:
+      augmented: "Variantes augmentadas del propio dataset: la augmentación se hace en S23 con parámetros del dominio móvil."
+
+  open_images_v7:
+    source: "https://storage.googleapis.com/openimages/web/factsfigures_v7.html"
+    label_kind: openimages_class   # recortes de bbox del subset dirigido
+    # Anotaciones CC BY 4.0; imágenes listadas CC BY 2.0 con verificación por
+    # imagen en la ingesta (mismo mecanismo license_filter que TACO).
+    license_filter: commercial_per_image
+    labels:
+      "Mobile phone": ELECTRONIC
+      "Laptop": ELECTRONIC
+      "Remote control": ELECTRONIC
+      "Calculator": ELECTRONIC
+      "Camera": ELECTRONIC
+      "Headphones": ELECTRONIC
+      "Corded phone": ELECTRONIC
+      "Tin can": METAL
+      # Mezcla vasos desechables con tazas de cerámica: curación manual por
+      # muestreo obligatoria en la ingesta (DATA_LICENSES.md).
+      "Coffee cup": BEVERAGE_CARTON
     discards: {}

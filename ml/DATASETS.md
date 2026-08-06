@@ -26,7 +26,10 @@ gitignore).
 | RealWaste | UCI #908 (2023) | 4 752 | 9 | APTO (CC BY 4.0) | **Control — nunca entrena** |
 | TrashNet | 2016 | 2 527 | 6 | APTO (MIT, fotos propias de los autores) | Entrenamiento |
 | TACO | Zenodo 3587843 (2019) | 1 500 (4 784 anotaciones) | 60+ categorías | APTO SOLO FILTRADO por licencia de imagen | Entrenamiento (recortes de bbox del subconjunto comercial) |
-| Garbage Dataset v2 | actual en Kaggle (act. 2026) | 13 348 | 10 | **AMBIGUO** — suspendido hasta decisión de Juan | No entrena mientras tanto |
+| Garbage Dataset v2 | actual en Kaggle (act. 2026) | 13 348 | 10 | **APTO CONDICIONAL — riesgo legal abierto** (bloque CAUTION en `DATA_LICENSES.md`) | Entrenamiento principal por decisión de Juan; revisión legal antes de comercializar |
+| Clothing Dataset (Grigorev) | 2020 | 5 000+ | 20 → `TEXTILE` | APTO (CC0 1.0) | Entrenamiento (refuerzo de textil) |
+| Fresh & Rotten Fruits (Mendeley) | 2022 | 3 200 originales | 16 → `ORGANIC` | APTO (CC BY 4.0) | Entrenamiento (refuerzo de orgánico) |
+| Open Images V7 (subset dirigido) | V7 | recortes de 9 clases | → `ELECTRONIC`, `METAL`, `BEVERAGE_CARTON` | APTO CON FILTRADO por imagen | Entrenamiento (única fuente de `ELECTRONIC`) |
 | Garbage Classification 12c | 2021 | 15 150 | 12 | **NO APTO** (imágenes © autores originales) | **Excluido** |
 | ZeroWaste | CVPR 2022 | 12 125 (3 variantes) | 4 | **NO APTO** (CC BY-NC 4.0) | **Excluido** |
 
@@ -50,12 +53,14 @@ con `enabled: false` por si su situación legal cambiara.
   Segregation*.
 - **Descarga:** `kaggle datasets download -d sumn2u/garbage-classification-v2`
   (requiere token de la API de Kaggle; la CLI se añade fijada en S22).
-- **Rol:** **SUSPENDIDO (veredicto AMBIGUO en `DATA_LICENSES.md`).** La licencia
-  declarada es MIT, pero es un agregado curado cuyo linaje incluye datasets
-  previos e imágenes de origen web sin cadena de derechos acreditada; bajo el
-  criterio comercial no entrena hasta decisión expresa de Juan. Era la columna
-  vertebral prevista del entrenamiento: su caída es el mayor impacto del giro
-  comercial (ver «Brechas»).
+- **Rol:** entrenamiento principal, **en uso condicional con riesgo legal
+  abierto** por decisión de Juan (06/08/2026). El paper del dataset (*The
+  Garbage Dataset (GD)*, arXiv 2602.10500) declara CC BY 4.0, describe captura
+  propia vía la app DWaste + web curada con verificación de copyright, y niega
+  incorporar datasets previos; aun así la parte de origen web no tiene cadena
+  de derechos imagen a imagen. **Revisión legal pendiente antes del lanzamiento
+  comercial** — ver el bloque CAUTION y el análisis de linaje completo en
+  `DATA_LICENSES.md`, y la issue etiquetada `riesgo-legal`.
 - **Nota:** el plan de trabajo lo estimaba en ~19,7k imágenes; la versión vigente
   publica 13 348. El conteo real se registra en la ingesta (S22).
 
@@ -152,6 +157,15 @@ con `enabled: false` por si su situación legal cambiara.
   la restricción NC lo saca del pipeline con independencia de esa discusión.
   Mapeo conservado deshabilitado.
 
+## 7–9. Fuentes añadidas en la auditoría comercial
+
+Clothing Dataset (CC0, → `TEXTILE`), Fresh & Rotten Fruits de Mendeley
+(CC BY 4.0, → `ORGANIC`) y el subset dirigido de Open Images V7 (filtrado por
+licencia de imagen, → `ELECTRONIC`/`METAL`/`BEVERAGE_CARTON`). Detalle,
+evidencia y condiciones de cada una en
+[`DATA_LICENSES.md`](DATA_LICENSES.md) § «Fuentes nuevas para clases débiles»;
+mapeo en `taxonomy/label_mapping.yaml` (versión 3).
+
 ---
 
 ## Solapamiento entre fuentes y reglas de higiene
@@ -164,24 +178,22 @@ con `enabled: false` por si su situación legal cambiara.
 3. **RealWaste no participa** ni del entrenamiento ni de la deduplicación de
    train (solo se verifica que ninguna imagen de train colisione con él).
 
-## Brechas de cobertura de la taxonomía (bajo criterio comercial)
+## Brechas de cobertura de la taxonomía (tras la auditoría del 06/08/2026)
 
-Con el pool activo actual (TrashNet + TACO filtrado para entrenar; RealWaste
-solo control) la cobertura queda así:
+Pool activo: Garbage v2 (condicional) + TrashNet + TACO filtrado + Clothing +
+Rotten Fruits + Open Images filtrado; RealWaste solo control.
 
 | Material | Situación | Acción |
 |---|---|---|
-| `ELECTRONIC` | **Sin fuente** en las seis candidatas originales | Issue #54: incorporar fuente de e-waste **apta para uso comercial** o declarar que el modelo v1 no predice `ELECTRONIC` |
-| `BEVERAGE_CARTON` | Crítico: solo TACO (Drink carton + Paper cup, decenas de instancias), reducido además por el filtrado de licencia | S22 mide el conteo real tras recorte+filtro; S23 augmentación agresiva; S24 evalúa síntesis dedicada. Es la clase del caso estrella (vaso de café) |
-| `ORGANIC` | Sin fuente de entrenamiento sólida: TrashNet no la tiene y en TACO es marginal (Food waste) | Depende de la decisión sobre Garbage v2 o de una fuente nueva apta |
-| `TEXTILE` | Sin fuente de entrenamiento efectiva: solo TACO Shoe (marginal); RealWaste la tiene pero es control | Ídem |
-| `BATTERY` | Solo TACO Battery (instancias escasas) | Ídem |
-| `PLASTIC`, `PAPER`, `CARDBOARD`, `GLASS`, `METAL`, `RESIDUAL` | Cubiertos por TrashNet + TACO, con volumen justo | La suficiencia real se mide en S22; el objetivo RNF-008 exige probablemente ampliar el pool |
+| `BEVERAGE_CARTON` | **Sigue siendo la clase más débil**: TACO filtrado (decenas de instancias) + Open Images «Coffee cup» (requiere curación manual: mezcla tazas de cerámica) | S22 mide conteos reales; S23 augmentación agresiva; S24 evalúa síntesis. **Recomendada la captura propia quirúrgica (300–500 fotos, 3–5 h)** registrada en `DATA_LICENSES.md` |
+| `ELECTRONIC` | Entra en v1 (decisión de Juan) con una sola fuente: recortes de Open Images (objetos en uso, no desechados — brecha de dominio) | Augmentación fuerte en S23; candidatos e-waste de Roboflow/Kaggle en reserva pendientes de verificar licencia (#54) |
+| `BATTERY` | Garbage v2 (756) + TACO marginal; depende del dataset condicional | Si Garbage v2 cae en la revisión legal, esta clase pierde su fuente principal |
+| `ORGANIC`, `TEXTILE` | Cubiertas con las fuentes nuevas + Garbage v2; brecha de dominio en Clothing/Fruits (objetos no desechados) | Augmentación S23; RealWaste mide la transferencia |
+| `PLASTIC`, `PAPER`, `CARDBOARD`, `GLASS`, `METAL`, `RESIDUAL` | Cubiertas por 3+ fuentes | Balance real se mide en S22 |
 
-**Conclusión registrada:** el pool comercialmente limpio actual es insuficiente
-para RNF-008 (≥85 % top-1, ≥95 % ruta). Se necesita (a) decisión sobre Garbage
-Dataset v2 y/o (b) una tarea de búsqueda de fuentes aptas para uso comercial
-(CC0/CC BY) que cubra ORGANIC, TEXTILE, BATTERY y refuerce BEVERAGE_CARTON.
+**Dependencia registrada:** ~70 % del pool de entrenamiento es Garbage v2, que
+está en uso condicional con riesgo legal abierto. La suerte de RNF-008 depende
+de esa revisión o del dataset propio.
 
 ## Qué NO contiene este inventario
 

@@ -28,6 +28,25 @@ MAPPING_PATH = Path(__file__).resolve().parent / "label_mapping.yaml"
 KOTLIN_ENUM_ENTRY = re.compile(r"^\s*([A-Z][A-Z0-9_]*),\s*$")
 
 
+class StrictLoader(yaml.SafeLoader):
+    """SafeLoader que rechaza claves duplicadas en vez de quedarse la última."""
+
+
+def _no_duplicates(loader: StrictLoader, node: yaml.MappingNode) -> dict:
+    seen = set()
+    for key_node, _ in node.value:
+        key = loader.construct_object(key_node)
+        if key in seen:
+            raise yaml.YAMLError(f"Clave duplicada en el YAML: '{key}' (línea {key_node.start_mark.line + 1})")
+        seen.add(key)
+    return loader.construct_mapping(node)
+
+
+StrictLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicates
+)
+
+
 def load_kotlin_taxonomy(source_rel: str) -> set[str] | None:
     """Extrae las constantes del enum Kotlin, o None si el archivo no está."""
     kt_path = REPO_ROOT / source_rel
@@ -52,7 +71,7 @@ def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
 
-    mapping = yaml.safe_load(MAPPING_PATH.read_text(encoding="utf-8"))
+    mapping = yaml.load(MAPPING_PATH.read_text(encoding="utf-8"), Loader=StrictLoader)
 
     declared = mapping["target_taxonomy"]["materials"]
     taxonomy = set(declared)
@@ -79,8 +98,14 @@ def main() -> int:
         enabled = dataset.get("enabled", True)
         labels: dict[str, str] = dataset.get("labels") or {}
         discards: dict[str, str] = dataset.get("discards") or {}
+        collapse = dataset.get("collapse_all_to")
 
-        if not labels and not discards:
+        if collapse is not None:
+            if collapse not in taxonomy:
+                errors.append(f"[{name}] collapse_all_to apunta a '{collapse}', que no está en la taxonomía.")
+            elif enabled:
+                coverage[collapse].add(name)
+        if not labels and not discards and collapse is None:
             errors.append(f"[{name}] no declara ninguna etiqueta.")
         overlap = labels.keys() & discards.keys()
         if overlap:
