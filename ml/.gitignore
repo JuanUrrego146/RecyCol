@@ -1,0 +1,9 @@
+# Los datasets nunca entran al repositorio: se descargan de su fuente original
+# (ver DATASETS.md). Tampoco los artefactos de entrenamiento.
+data/
+runs/
+*.tflite
+*.onnx
+*.pt
+*.pth
+__pycache__/
