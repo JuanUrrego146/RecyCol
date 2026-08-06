@@ -3,7 +3,7 @@ package com.botabien.rules.bins
 import com.botabien.domain.model.BinDefinition
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.CountryProfile
-import com.botabien.domain.port.BinAvailabilityRepository
+import com.botabien.domain.usecase.RecognizedBin
 
 /**
  * Selección de canecas del entorno durante la confirmación del escaneo
@@ -13,6 +13,10 @@ import com.botabien.domain.port.BinAvailabilityRepository
  * como estado de un `ViewModel`. Las canecas siempre provienen del perfil
  * activo; un identificador ajeno al perfil se ignora en silencio porque la UI
  * solo puede ofrecer lo que [addable] enumera.
+ *
+ * La persistencia de la selección confirmada no ocurre aquí: la UI pasa
+ * [selected] a `ScanBinsUseCase.confirm` (#49), nunca directamente al
+ * repositorio (invariante 4 de la arquitectura).
  *
  * @property profile perfil normativo activo.
  * @property selected identificadores de las canecas seleccionadas.
@@ -34,7 +38,8 @@ data class BinSelection(
      * `false` si no hay ninguna caneca seleccionada — no se reconoció ninguna
      * y el usuario no añadió manualmente—. En ese caso la UI ofrece reintentar
      * el escaneo, añadir a mano u [omitir][allOf]; nunca confirma un conjunto
-     * vacío, porque para el repositorio el vacío significa «sin restricción».
+     * vacío: para el repositorio de disponibilidad el vacío significa «sin
+     * restricción», que es lo contrario de lo que el usuario está viendo.
      */
     val canConfirm: Boolean
         get() = selected.isNotEmpty()
@@ -48,7 +53,14 @@ data class BinSelection(
 
     companion object {
 
-        /** Propuesta inicial a partir de las canecas reconocidas por el escaneo. */
+        /**
+         * Propuesta inicial a partir de las canecas reconocidas por
+         * `ScanBinsUseCase.scan` (#49).
+         */
+        fun fromRecognized(recognized: List<RecognizedBin>, profile: CountryProfile): BinSelection =
+            BinSelection(profile, recognized.map { it.definition.id }.toSet())
+
+        /** Propuesta inicial a partir del resultado del emparejamiento por color. */
         fun fromScan(scan: BinScanResult, profile: CountryProfile): BinSelection =
             BinSelection(profile, scan.matches.map { it.bin.id }.toSet())
 
@@ -56,18 +68,4 @@ data class BinSelection(
         fun allOf(profile: CountryProfile): BinSelection =
             BinSelection(profile, profile.bins.map { it.id }.toSet())
     }
-}
-
-/**
- * Persiste la selección confirmada en el repositorio de disponibilidad
- * (implementación del agente DATA). Exige una selección no vacía: el conjunto
- * vacío está reservado en el contrato del repositorio para «sin restricción»
- * y confirmarlo sería silenciosamente lo contrario de lo que el usuario ve.
- */
-suspend fun BinSelection.persistTo(repository: BinAvailabilityRepository) {
-    require(canConfirm) {
-        "No se puede confirmar una selección vacía de canecas: reintenta el escaneo, " +
-            "añade manualmente u omite el escaneo para asumir todas las del perfil"
-    }
-    repository.saveAvailableBins(selected)
 }

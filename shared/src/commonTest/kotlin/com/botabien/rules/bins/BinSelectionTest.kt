@@ -5,19 +5,23 @@ import com.botabien.domain.model.BinId
 import com.botabien.domain.model.CountryProfile
 import com.botabien.domain.model.DetectedBin
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.ImageFrame
 import com.botabien.domain.port.BinAvailabilityRepository
+import com.botabien.domain.port.BinDetector
+import com.botabien.domain.port.ProfileRepository
+import com.botabien.domain.usecase.RecognizedBin
+import com.botabien.domain.usecase.ScanBinsUseCase
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * Confirmación y edición manual de la selección de canecas (S35, RF-007,
- * CUS-002): la propuesta sale del escaneo, el usuario decide, la selección
- * confirmada se persiste y omitir el escaneo asume todas las del perfil.
+ * CUS-002): la propuesta sale del reconocimiento, el usuario decide y la
+ * selección confirmada se persiste a través de `ScanBinsUseCase.confirm`
+ * (#49), nunca directo al repositorio.
  */
 class BinSelectionTest {
 
@@ -35,26 +39,12 @@ class BinSelectionTest {
         conservativeBin = black.id,
     )
 
-    private fun scanWith(vararg bins: BinDefinition) = BinScanResult(
-        matches = bins.map { bin ->
-            BinMatch(DetectedBin(bin.colorHex, 0.9f), bin, colorDistance = 0.02f)
-        },
-        unmatched = emptyList(),
-    )
-
-    private class RecordingRepository : BinAvailabilityRepository {
-        var saved: Set<BinId>? = null
-
-        override suspend fun availableBins(): Set<BinId> = saved.orEmpty()
-
-        override suspend fun saveAvailableBins(bins: Set<BinId>) {
-            saved = bins
-        }
-    }
+    private fun recognized(vararg bins: BinDefinition): List<RecognizedBin> =
+        bins.map { RecognizedBin(definition = it, confidence = 0.9f) }
 
     @Test
-    fun elEscaneoProponeLasCanecasReconocidas() {
-        val selection = BinSelection.fromScan(scanWith(white, green), profile)
+    fun elReconocimientoProponeLasCanecasEmparejadas() {
+        val selection = BinSelection.fromRecognized(recognized(white, green), profile)
 
         assertEquals(setOf(white.id, green.id), selection.selected)
         assertEquals(listOf(white, green), selection.selectedBins, "En el orden del perfil")
@@ -62,8 +52,20 @@ class BinSelectionTest {
     }
 
     @Test
+    fun elResultadoDelEmparejamientoPorColorTambienSirveDePropuesta() {
+        val scan = BinScanResult(
+            matches = listOf(BinMatch(DetectedBin(white.colorHex, 0.9f), white, colorDistance = 0.02f)),
+            unmatched = emptyList(),
+        )
+
+        val selection = BinSelection.fromScan(scan, profile)
+
+        assertEquals(setOf(white.id), selection.selected)
+    }
+
+    @Test
     fun elUsuarioAgregaYEliminaCanecasManualmenteDesdeElPerfil() {
-        val selection = BinSelection.fromScan(scanWith(white), profile)
+        val selection = BinSelection.fromRecognized(recognized(white), profile)
             .add(black.id)
             .remove(white.id)
 
@@ -73,17 +75,17 @@ class BinSelectionTest {
 
     @Test
     fun unIdentificadorAjenoAlPerfilSeIgnora() {
-        val selection = BinSelection.fromScan(scanWith(white), profile).add(BinId("blue"))
+        val selection = BinSelection.fromRecognized(recognized(white), profile).add(BinId("blue"))
 
         assertEquals(setOf(white.id), selection.selected)
     }
 
     @Test
     fun sinCanecasReconocidasLaPropuestaEstaVaciaYNoConfirmable() {
-        val selection = BinSelection.fromScan(scanWith(), profile)
+        val selection = BinSelection.fromRecognized(emptyList(), profile)
 
         assertTrue(selection.selected.isEmpty())
-        assertFalse(selection.canConfirm)
+        assertFalse(selection.canConfirm, "El conjunto vacío está reservado para «sin restricción»")
         assertEquals(profile.bins, selection.addable, "Todas quedan disponibles para añadir a mano")
     }
 
@@ -96,22 +98,41 @@ class BinSelectionTest {
     }
 
     @Test
-    fun laSeleccionConfirmadaSePersisteEnElRepositorio() = runTest {
+    fun laSeleccionEditadaSePersisteATravesDelCasoDeUso() = runTest {
         val repository = RecordingRepository()
-        val selection = BinSelection.fromScan(scanWith(white, green), profile).add(black.id)
+        val useCase = ScanBinsUseCase(
+            detector = NoOpDetector,
+            profiles = FixedProfileRepository(profile),
+            binAvailability = repository,
+        )
+        val selection = BinSelection.fromRecognized(recognized(white, green), profile)
+            .add(black.id)
+            .remove(green.id)
 
-        selection.persistTo(repository)
+        useCase.confirm(selection.selected)
 
-        assertEquals(setOf(white.id, green.id, black.id), repository.saved)
-        assertEquals(selection.selected, repository.availableBins())
+        assertEquals(setOf(white.id, black.id), repository.saved)
     }
 
-    @Test
-    fun confirmarUnaSeleccionVaciaEsUnErrorExplicitoYNoPersisteNada() = runTest {
-        val repository = RecordingRepository()
-        val selection = BinSelection.fromScan(scanWith(), profile)
+    private class RecordingRepository : BinAvailabilityRepository {
+        var saved: Set<BinId>? = null
 
-        assertFailsWith<IllegalArgumentException> { selection.persistTo(repository) }
-        assertNull(repository.saved, "El conjunto vacío está reservado para «sin restricción»")
+        override suspend fun availableBins(): Set<BinId> = saved.orEmpty()
+
+        override suspend fun saveAvailableBins(bins: Set<BinId>) {
+            saved = bins
+        }
+    }
+
+    private class FixedProfileRepository(private val profile: CountryProfile) : ProfileRepository {
+        override suspend fun availableProfiles(): List<CountryProfile> = listOf(profile)
+
+        override suspend fun activeProfileOrNull(): CountryProfile = profile
+
+        override suspend fun setActiveProfile(isoCode: String) = Unit
+    }
+
+    private object NoOpDetector : BinDetector {
+        override suspend fun detectBins(frame: ImageFrame): List<DetectedBin> = emptyList()
     }
 }
