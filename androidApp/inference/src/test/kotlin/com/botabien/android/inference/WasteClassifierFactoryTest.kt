@@ -79,13 +79,4 @@ class WasteClassifierFactoryTest {
         assertIs<GuideFrameRoi>(strategy)
     }
 
-    @Test
-    fun `la politica conservadora provisional asume gama baja sin funciones costosas`() {
-        assertIs<GuideFrameRoi>(
-            WasteClassifierFactory.roiStrategyFor(
-                provider = FakeModelProvider(available = setOf(ModelCatalog.DETECTOR.assetFileName)),
-                policy = ConservativeTierPolicy,
-            )
-        )
-    }
 }

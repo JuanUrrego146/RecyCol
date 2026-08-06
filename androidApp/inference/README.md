@@ -53,7 +53,16 @@ Reglas del contrato:
   geometría del marco guía es `GuideFrameRoi.GUIDE_FRACTION` del lado menor,
   centrada: la pantalla de cámara (FRONT) debe dibujar el marco con esa misma
   geometría. `LatencyMeter` registra el coste del detector (lo consume S20).
-- `di/` — módulo Koin que expone el puerto `WasteClassifier`.
+- `tier/` — política de gama real (CUS-008, RF-029): sondeo de capacidades,
+  `WarmupBenchmark` (mediana de latencia sobre el modelo de gama baja, con
+  presupuesto duro para el criterio de los 2 s), `TierResolver` (las
+  capacidades ponen el techo, el benchmark manda), caché en `SharedPreferences`
+  invalidada por fingerprint del sistema, y degradación en uso: con la ventana
+  de latencias observadas sostenidamente sobre el umbral, la gama baja un
+  escalón y se re-cachea. **Integración pendiente con `androidApp/di/`**: el
+  arranque debe llamar una vez a `BenchmarkedTierPolicy.ensureResolved()`
+  fuera del hilo principal.
+- `di/` — módulo Koin que expone los puertos `DeviceTierPolicy` y `WasteClassifier`.
 
 ## Decisiones
 
