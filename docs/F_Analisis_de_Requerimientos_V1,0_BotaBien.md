@@ -31,7 +31,7 @@
   - [6.1.7 CUS-007: Consultar la justificación normativa del resultado](#617-cus-007-consultar-la-justificación-normativa-del-resultado)
   - [6.1.8 CUS-008: Ajustar capacidades según la gama del dispositivo](#618-cus-008-ajustar-capacidades-según-la-gama-del-dispositivo)
   - [6.1.9 CUS-009: Consultar el historial local de clasificaciones](#619-cus-009-consultar-el-historial-local-de-clasificaciones)
-  - [6.1.10 CUS-010: Iniciar sesión — módulo preparado para versión futura](#6110-cus-010-iniciar-sesión-módulo-preparado-para-versión-futura)
+  - [6.1.10 CUS-010: Iniciar sesión — módulo preparado para versión futura](#6110-cus-010-iniciar-sesión--módulo-preparado-para-versión-futura)
 - [7. Requerimientos](#7-requerimientos)
   - [7.1 Requerimientos funcionales](#71-requerimientos-funcionales)
     - [7.1.1 Lista de requerimientos funcionales](#711-lista-de-requerimientos-funcionales)

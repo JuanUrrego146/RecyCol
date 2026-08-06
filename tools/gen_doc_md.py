@@ -41,10 +41,15 @@ def cell(text):
 
 
 def slug(text):
-    """Replica el anclado de encabezados de GitHub."""
+    """Replica el anclado de encabezados de GitHub.
+
+    GitHub elimina la puntuación y luego sustituye cada espacio por un guion,
+    sin colapsar los espacios consecutivos: un guion largo entre dos espacios
+    deja dos guiones en el ancla. Colapsarlos aquí generaría enlaces rotos.
+    """
     s = text.strip().lower()
     s = re.sub(r"[^\w\s-]", "", s, flags=re.UNICODE)
-    return re.sub(r"\s+", "-", s)
+    return re.sub(r"\s", "-", s)
 
 
 OUTBUF = []
