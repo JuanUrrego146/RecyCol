@@ -11,7 +11,8 @@ docker compose run --rm ml bash
 
 | Ruta | Contenido |
 |---|---|
-| `DATASETS.md` | Inventario de fuentes públicas, licencias verificadas, roles y riesgos (S21) |
+| `DATA_LICENSES.md` | **Registro legal de procedencia**: licencia, evidencia y veredicto comercial de cada dataset, peso preentrenado y herramienta — manda sobre el resto |
+| `DATASETS.md` | Inventario de fuentes públicas, roles y riesgos (S21) |
 | `taxonomy/label_mapping.yaml` | Mapeo versionado etiqueta de origen → `WasteMaterial` (S21) |
 | `taxonomy/validate_mapping.py` | Validador del mapeo: `python taxonomy/validate_mapping.py` |
 | `data/` | Datasets descargados localmente — ignorado por git |

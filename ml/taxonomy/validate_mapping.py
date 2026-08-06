@@ -76,6 +76,7 @@ def main() -> int:
     coverage: dict[str, set[str]] = {material: set() for material in taxonomy}
 
     for name, dataset in mapping["datasets"].items():
+        enabled = dataset.get("enabled", True)
         labels: dict[str, str] = dataset.get("labels") or {}
         discards: dict[str, str] = dataset.get("discards") or {}
 
@@ -88,7 +89,9 @@ def main() -> int:
         for label, material in labels.items():
             if material not in taxonomy:
                 errors.append(f"[{name}] '{label}' apunta a '{material}', que no está en la taxonomía.")
-            else:
+            elif enabled:
+                # Solo los datasets habilitados (aptos para uso comercial,
+                # ver ml/DATA_LICENSES.md) cuentan como cobertura real.
                 coverage[material].add(name)
 
         for label, reason in discards.items():
@@ -98,8 +101,8 @@ def main() -> int:
     for material in sorted(taxonomy):
         if not coverage.get(material):
             warnings.append(
-                f"'{material}' no recibe datos de ninguna fuente "
-                "(brecha registrada en ml/DATASETS.md)."
+                f"'{material}' no recibe datos de ninguna fuente habilitada "
+                "(brechas registradas en ml/DATASETS.md)."
             )
 
     print(f"Mapeo: {MAPPING_PATH.relative_to(REPO_ROOT)} (versión {mapping['version']})")

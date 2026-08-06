@@ -9,32 +9,32 @@ entra al pipeline sin estar inventariado aquí y sin mapeo en
 
 ## Criterio de compatibilidad de licencias
 
-BotaBien es un proyecto académico sin fines comerciales. Se aceptan licencias que
-permitan uso, modificación y trabajo derivado con atribución (MIT, CC BY 4.0) y,
-**condicionado al carácter no comercial del proyecto**, licencias NC (CC BY-NC 4.0).
-Las imágenes de los datasets **nunca se redistribuyen** desde este repositorio: el
-repo solo contiene scripts, mapeos y métricas; los datos se descargan de la fuente
-original en la máquina de quien ejecuta el pipeline (`ml/data/` está en gitignore).
-
-> **Condición registrada:** si el proyecto llegara a comercializarse, ZeroWaste
-> (CC BY-NC) y Garbage Classification 12c (contenido © autores originales) deben
-> retirarse del pipeline y reentrenarse los modelos sin ellos. El pipeline de S22
-> permite excluir un dataset por configuración precisamente por esto.
+**La app se comercializará: solo entran activos aptos para uso comercial.** El
+registro legal de procedencia, con evidencia y veredicto por activo (datasets,
+pesos preentrenados y herramientas del pipeline), es
+[`DATA_LICENSES.md`](DATA_LICENSES.md) — ese archivo manda sobre este. Un
+dataset NO APTO o AMBIGUO no se usa en ninguna etapa aunque mejore las métricas.
+Las imágenes de los datasets **nunca se redistribuyen** desde este repositorio:
+el repo solo contiene scripts, mapeos y métricas; los datos se descargan de la
+fuente original en la máquina de quien ejecuta el pipeline (`ml/data/` está en
+gitignore).
 
 ## Resumen
 
-| Dataset | Versión/fecha | Imágenes | Clases | Licencia verificada | Rol en el pipeline |
+| Dataset | Versión/fecha | Imágenes | Clases | Veredicto comercial | Rol en el pipeline |
 |---|---|---|---|---|---|
-| Garbage Dataset v2 | actual en Kaggle (act. 2026) | 13 348 | 10 | MIT | Entrenamiento (principal) |
-| Garbage Classification 12c | 2021 | 15 150 | 12 | BD: ODbL · imágenes: © autores originales | Entrenamiento (con advertencia) |
-| RealWaste | UCI #908 (2023) | 4 752 | 9 | CC BY 4.0 | **Control — nunca entrena** |
-| TrashNet | 2016 | 2 527 | 6 | MIT | Entrenamiento (complemento) |
-| TACO | Zenodo 3587843 (2019) | 1 500 (4 784 anotaciones) | 60+ categorías | CC BY 4.0 (Zenodo) · código MIT | Entrenamiento (recortes de bbox) |
-| ZeroWaste | CVPR 2022 | 12 125 (3 variantes) | 4 | CC BY-NC 4.0 | Robustez opcional (recortes) — decidir en S22 |
+| RealWaste | UCI #908 (2023) | 4 752 | 9 | APTO (CC BY 4.0) | **Control — nunca entrena** |
+| TrashNet | 2016 | 2 527 | 6 | APTO (MIT, fotos propias de los autores) | Entrenamiento |
+| TACO | Zenodo 3587843 (2019) | 1 500 (4 784 anotaciones) | 60+ categorías | APTO SOLO FILTRADO por licencia de imagen | Entrenamiento (recortes de bbox del subconjunto comercial) |
+| Garbage Dataset v2 | actual en Kaggle (act. 2026) | 13 348 | 10 | **AMBIGUO** — suspendido hasta decisión de Juan | No entrena mientras tanto |
+| Garbage Classification 12c | 2021 | 15 150 | 12 | **NO APTO** (imágenes © autores originales) | **Excluido** |
+| ZeroWaste | CVPR 2022 | 12 125 (3 variantes) | 4 | **NO APTO** (CC BY-NC 4.0) | **Excluido** |
 
-Ningún dataset se descarta por licencia. Los descartes a nivel de **etiqueta**
+Veredictos, evidencia y justificación por activo en
+[`DATA_LICENSES.md`](DATA_LICENSES.md). Los descartes a nivel de **etiqueta**
 (clases multimaterial, ambiguas o sin material definido) están justificados uno a
-uno en `taxonomy/label_mapping.yaml`.
+uno en `taxonomy/label_mapping.yaml`; los datasets excluidos conservan su mapeo
+con `enabled: false` por si su situación legal cambiara.
 
 ---
 
@@ -50,8 +50,12 @@ uno en `taxonomy/label_mapping.yaml`.
   Segregation*.
 - **Descarga:** `kaggle datasets download -d sumn2u/garbage-classification-v2`
   (requiere token de la API de Kaggle; la CLI se añade fijada en S22).
-- **Rol:** columna vertebral del entrenamiento: es el conjunto curado más grande
-  con las clases alineadas a la taxonomía.
+- **Rol:** **SUSPENDIDO (veredicto AMBIGUO en `DATA_LICENSES.md`).** La licencia
+  declarada es MIT, pero es un agregado curado cuyo linaje incluye datasets
+  previos e imágenes de origen web sin cadena de derechos acreditada; bajo el
+  criterio comercial no entrena hasta decisión expresa de Juan. Era la columna
+  vertebral prevista del entrenamiento: su caída es el mayor impacto del giro
+  comercial (ver «Brechas»).
 - **Nota:** el plan de trabajo lo estimaba en ~19,7k imágenes; la versión vigente
   publica 13 348. El conteo real se registra en la ingesta (S22).
 
@@ -68,13 +72,11 @@ uno en `taxonomy/label_mapping.yaml`.
   *Clothing dataset* (Kaggle); ~29 % de las otras 9 clases proviene del *Garbage
   Classification* de asdasdasasdas; el resto es scraping.
 - **Descarga:** `kaggle datasets download -d mostafaabla/garbage-classification`.
-- **Rol:** entrenamiento; aporta la separación de vidrio por color (se colapsa a
-  `GLASS`) y volumen en textil.
-- **Riesgo registrado:** (a) licencia de las imágenes no uniforme — aceptable solo
-  bajo el criterio académico de arriba; (b) **solapamiento probable** con Garbage
-  Dataset v2 (ecosistema común de datasets de basura en Kaggle). Mitigación
-  obligatoria en S22: deduplicación perceptual (pHash) entre todas las fuentes de
-  entrenamiento, y jamás usar este par como train/control mutuo.
+- **Rol:** **EXCLUIDO por licencia (NO APTO comercial).** Las imágenes son
+  © de sus autores originales, obtenidas por web scraping, con declaración
+  expresa de uso sin lucro. Incompatible con la comercialización de la app.
+  Su mapeo se conserva deshabilitado (`enabled: false`) por si su situación
+  legal cambiara.
 
 ## 3. RealWaste (UCI Machine Learning Repository #908)
 
@@ -128,6 +130,10 @@ uno en `taxonomy/label_mapping.yaml`.
   mapeo por categoría. Aporta el dominio más parecido al de la app (objetos en
   contexto real, fondos sucios) y es la **única fuente de `BEVERAGE_CARTON`**
   (categorías Drink carton y Paper cup).
+- **Restricción comercial:** las imágenes heredan la licencia individual de
+  Flickr registrada en las anotaciones. La ingesta de S22 **solo admite las de
+  licencia apta para uso comercial** (CC0, CC BY, CC BY-SA) y excluye NC/ND,
+  registrando cuántas se pierden por clase.
 
 ## 6. ZeroWaste (Boston University, CVPR 2022)
 
@@ -141,32 +147,41 @@ uno en `taxonomy/label_mapping.yaml`.
   Object Segmentation in Cluttered Scenes*. CVPR 2022.
 - **Descarga:** ZIPs de Zenodo enlazados desde la página del proyecto (7,0 GB +
   9,9 GB + 3,0 GB).
-- **Rol:** **opcional, pendiente de decisión en S22.** Su dominio (vista cenital
-  de banda transportadora, objetos aplastados y solapados) está muy lejos del móvil
-  en mano; su valor es robustez extra en plástico deformado, cartón y metal vía
-  recortes. Se incorpora solo si el balance de clases de S22 lo justifica; si no,
-  se descarta por desalineación de dominio (no por licencia) y se registra aquí.
+- **Rol:** **EXCLUIDO por licencia (NO APTO comercial: CC BY-NC 4.0).** Era
+  opcional por desalineación de dominio (vista cenital de banda transportadora);
+  la restricción NC lo saca del pipeline con independencia de esa discusión.
+  Mapeo conservado deshabilitado.
 
 ---
 
 ## Solapamiento entre fuentes y reglas de higiene
 
-1. **Garbage v2 ↔ Garbage 12c:** comparten ecosistema y posiblemente miles de
-   imágenes (ambos beben de datasets previos de Kaggle). S22 aplica deduplicación
-   perceptual (pHash con umbral por distancia de Hamming) sobre la unión de todas
-   las fuentes de entrenamiento antes de particionar.
-2. **TrashNet:** es ancestro frecuente de datasets de Kaggle; se deduplica igual.
-3. **Las particiones train/val se hacen después de deduplicar**, con semilla fija.
-4. **RealWaste no participa** ni del entrenamiento ni de la deduplicación de
+1. S22 aplica deduplicación perceptual (pHash con umbral por distancia de
+   Hamming) sobre la unión de todas las fuentes de entrenamiento activas antes
+   de particionar. Si Garbage v2 se rehabilita, la deduplicación contra TrashNet
+   es obligatoria (TrashNet es ancestro frecuente de los agregados de Kaggle).
+2. **Las particiones train/val se hacen después de deduplicar**, con semilla fija.
+3. **RealWaste no participa** ni del entrenamiento ni de la deduplicación de
    train (solo se verifica que ninguna imagen de train colisione con él).
 
-## Brechas de cobertura de la taxonomía
+## Brechas de cobertura de la taxonomía (bajo criterio comercial)
+
+Con el pool activo actual (TrashNet + TACO filtrado para entrenar; RealWaste
+solo control) la cobertura queda así:
 
 | Material | Situación | Acción |
 |---|---|---|
-| `ELECTRONIC` | **Sin fuente**: ninguno de los seis datasets tiene clase de aparatos eléctricos/electrónicos | Registrada issue de coordinación: decidir entre incorporar una fuente de e-waste con licencia compatible o declarar que el modelo v1 no predice `ELECTRONIC` (el contrato lo tolera: el enum es cerrado pero el modelo puede cubrir un subconjunto) |
-| `BEVERAGE_CARTON` | Crítico y escaso: solo TACO (Drink carton + Paper cup, decenas de instancias) | S22 mide el conteo real tras recortes; S23 compensa con augmentación agresiva de esa clase; si sigue siendo insuficiente se evalúa síntesis dedicada en S24. Es la clase del caso de uso estrella (vaso de café) y su cobertura se monitorea en cada sesión |
-| Resto (9) | Cubiertos por 2+ fuentes independientes | — |
+| `ELECTRONIC` | **Sin fuente** en las seis candidatas originales | Issue #54: incorporar fuente de e-waste **apta para uso comercial** o declarar que el modelo v1 no predice `ELECTRONIC` |
+| `BEVERAGE_CARTON` | Crítico: solo TACO (Drink carton + Paper cup, decenas de instancias), reducido además por el filtrado de licencia | S22 mide el conteo real tras recorte+filtro; S23 augmentación agresiva; S24 evalúa síntesis dedicada. Es la clase del caso estrella (vaso de café) |
+| `ORGANIC` | Sin fuente de entrenamiento sólida: TrashNet no la tiene y en TACO es marginal (Food waste) | Depende de la decisión sobre Garbage v2 o de una fuente nueva apta |
+| `TEXTILE` | Sin fuente de entrenamiento efectiva: solo TACO Shoe (marginal); RealWaste la tiene pero es control | Ídem |
+| `BATTERY` | Solo TACO Battery (instancias escasas) | Ídem |
+| `PLASTIC`, `PAPER`, `CARDBOARD`, `GLASS`, `METAL`, `RESIDUAL` | Cubiertos por TrashNet + TACO, con volumen justo | La suficiencia real se mide en S22; el objetivo RNF-008 exige probablemente ampliar el pool |
+
+**Conclusión registrada:** el pool comercialmente limpio actual es insuficiente
+para RNF-008 (≥85 % top-1, ≥95 % ruta). Se necesita (a) decisión sobre Garbage
+Dataset v2 y/o (b) una tarea de búsqueda de fuentes aptas para uso comercial
+(CC0/CC BY) que cubra ORGANIC, TEXTILE, BATTERY y refuerce BEVERAGE_CARTON.
 
 ## Qué NO contiene este inventario
 
