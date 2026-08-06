@@ -50,6 +50,11 @@
     "conservativeBin": {
       "description": "Ruta conservadora: caneca por defecto para materiales sin regla o cuando la caneca ideal no está disponible. Ante la duda no se contamina la corriente aprovechable.",
       "$ref": "#/$defs/binId"
+    },
+    "unavailableBinNotice": {
+      "description": "Opcional: plantilla del aviso que explica por qué no se recomendó la caneca ideal (RF-008), con los marcadores {ideal} y {assigned} que el motor rellena con los nombres visibles de las canecas. En el idioma del perfil.",
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {

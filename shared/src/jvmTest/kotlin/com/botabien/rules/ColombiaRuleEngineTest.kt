@@ -118,6 +118,16 @@ class ColombiaRuleEngineTest {
     }
 
     @Test
+    fun elAvisoExplicaPorQueNoSeRecomendoLaCanecaIdeal() {
+        val restricted = resolve(WasteMaterial.PLASTIC, availableBins = setOf(black, green))
+        val unrestricted = resolve(WasteMaterial.PLASTIC)
+
+        assertTrue(restricted.justification.startsWith(unrestricted.justification), "La regla citada se conserva")
+        assertTrue("Caneca blanca" in restricted.justification, "El aviso nombra la caneca ideal")
+        assertTrue("Caneca negra" in restricted.justification, "El aviso nombra la caneca asignada")
+    }
+
+    @Test
     fun elVasoDeCartonNoVerificadoVaALaNegraPorPrecaucion() {
         val disposal = resolve(WasteMaterial.BEVERAGE_CARTON, ContaminationState.UNKNOWN)
 

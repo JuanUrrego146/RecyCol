@@ -59,6 +59,9 @@ object ProfileParser {
         if (document.conservativeBin !in binIds) {
             problems += "conservativeBin «${document.conservativeBin}» no está definida en bins"
         }
+        if (document.unavailableBinNotice != null && document.unavailableBinNotice.isBlank()) {
+            problems += "unavailableBinNotice está declarado pero vacío; omítelo si el perfil no da aviso"
+        }
 
         if (problems.isNotEmpty()) throw ProfileValidationException(sourceName, problems)
 
@@ -90,6 +93,7 @@ object ProfileParser {
                 )
             },
             conservativeBin = BinId(document.conservativeBin),
+            unavailableBinNotice = document.unavailableBinNotice.orEmpty(),
         )
     }
 
@@ -234,6 +238,7 @@ private data class ProfileDocument(
     val rules: List<MaterialRuleDocument>,
     val inspectionRules: List<InspectionRuleDocument>,
     val conservativeBin: String,
+    val unavailableBinNotice: String? = null,
 )
 
 @Serializable

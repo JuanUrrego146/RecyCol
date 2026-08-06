@@ -5,6 +5,7 @@ import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.CountryProfile
 import com.botabien.domain.model.Disposal
+import com.botabien.domain.model.DisposalRoute
 import com.botabien.domain.model.WasteMaterial
 
 /**
@@ -23,9 +24,11 @@ import com.botabien.domain.model.WasteMaterial
  *    pudo verificar el interior—, el sistema no adivina: aplica la misma
  *    degradación conservadora que si estuviera contaminado (RF-019, RF-022).
  *    Sin regla de inspección, el estado desconocido resuelve como limpio.
- * 4. La decisión se restringe a las canecas disponibles: un conjunto vacío
- *    significa «sin restricción»; si la caneca ideal no está disponible se
- *    cae en la caneca conservadora del perfil.
+ * 4. La decisión se restringe a las canecas disponibles (RF-008): un conjunto
+ *    vacío significa «sin restricción». Si la caneca ideal no está disponible
+ *    se propone la conservadora del perfil y, si tampoco está, la disponible
+ *    de ruta más conservadora; la justificación incorpora entonces el aviso
+ *    [CountryProfile.unavailableBinNotice] que explica el motivo.
  *
  * La justificación de cada decisión es la de la regla aplicada: dato citable
  * del perfil, nunca un literal de código (RNF-011). Para un material sin regla
@@ -40,48 +43,90 @@ class DefaultRuleEngine : RuleEngine {
         profile: CountryProfile,
     ): Disposal {
         val rule = profile.rules.firstOrNull { it.material == material }
-            ?: return conservativeDisposal(profile)
+            ?: return conservativeDisposal(profile, availableBins)
 
         val unverifiedInspection = contamination == ContaminationState.UNKNOWN &&
             profile.requiresInspection(material)
         val degraded = rule.contaminatedFallback != null &&
             (contamination == ContaminationState.CONTAMINATED || unverifiedInspection)
 
-        val idealBin = if (degraded) rule.contaminatedFallback!! else rule.targetBin
-        val resolvedBin = restrictToAvailable(idealBin, availableBins, profile)
+        val ideal = profile.requireBin(if (degraded) rule.contaminatedFallback!! else rule.targetBin)
+        val assigned = restrictToAvailable(ideal, availableBins, profile)
 
-        val bin = profile.requireBin(resolvedBin)
         return Disposal(
-            bin = bin,
-            route = bin.route,
-            justification = rule.justification,
+            bin = assigned,
+            route = assigned.route,
+            justification = justifyAssignment(rule.justification, ideal, assigned, profile),
             degradedByContamination = degraded,
         )
     }
 
     /** Decisión para un material que el perfil no contempla: ante la duda, la caneca conservadora. */
-    private fun conservativeDisposal(profile: CountryProfile): Disposal {
-        val bin = profile.requireBin(profile.conservativeBin)
+    private fun conservativeDisposal(profile: CountryProfile, availableBins: Set<BinId>): Disposal {
+        val ideal = profile.requireBin(profile.conservativeBin)
+        val assigned = restrictToAvailable(ideal, availableBins, profile)
         return Disposal(
-            bin = bin,
-            route = bin.route,
-            justification = profile.regulationReference,
+            bin = assigned,
+            route = assigned.route,
+            justification = justifyAssignment(profile.regulationReference, ideal, assigned, profile),
             degradedByContamination = false,
         )
     }
 
     /**
-     * Restringe la caneca ideal al conjunto realmente disponible en el entorno.
-     * Un conjunto vacío significa «sin restricción» (contrato de [RuleEngine]).
+     * Restringe la caneca ideal al conjunto realmente disponible en el entorno
+     * (RF-008). Un conjunto vacío significa «sin restricción» (contrato de
+     * [RuleEngine]); un conjunto que no contiene ninguna caneca del perfil se
+     * trata igual, porque no describe ningún entorno utilizable. Si la ideal
+     * no está disponible se prefiere la caneca conservadora del perfil y, en
+     * su ausencia, la disponible de ruta más conservadora.
      */
     private fun restrictToAvailable(
-        ideal: BinId,
+        ideal: BinDefinition,
         availableBins: Set<BinId>,
         profile: CountryProfile,
-    ): BinId = if (availableBins.isEmpty() || ideal in availableBins) {
-        ideal
-    } else {
-        profile.conservativeBin
+    ): BinDefinition {
+        if (availableBins.isEmpty() || ideal.id in availableBins) return ideal
+
+        val usable = profile.bins.filter { it.id in availableBins }
+        if (usable.isEmpty()) return ideal
+
+        return usable.firstOrNull { it.id == profile.conservativeBin }
+            ?: usable.minBy { conservatismRank(it.route) }
+    }
+
+    /**
+     * Orden de conservadurismo entre rutas cuando ni la caneca ideal ni la
+     * conservadora del perfil están disponibles: primero las corrientes que
+     * no contaminan ninguna corriente de aprovechamiento y las que pasan por
+     * clasificación posterior controlada; de último la orgánica, cuya calidad
+     * de compostaje es la más sensible a un residuo mal ubicado. El desempate
+     * lo da el orden de declaración de las canecas en el perfil.
+     */
+    private fun conservatismRank(route: DisposalRoute): Int = when (route) {
+        DisposalRoute.NON_RECYCLABLE -> 0
+        DisposalRoute.SPECIAL_COLLECTION -> 1
+        DisposalRoute.HAZARDOUS -> 2
+        DisposalRoute.RECYCLABLE -> 3
+        DisposalRoute.ORGANIC -> 4
+    }
+
+    /**
+     * Justificación de la decisión: la de la regla y, si la caneca asignada no
+     * es la ideal, el aviso del perfil con los nombres visibles de ambas.
+     */
+    private fun justifyAssignment(
+        base: String,
+        ideal: BinDefinition,
+        assigned: BinDefinition,
+        profile: CountryProfile,
+    ): String {
+        if (assigned.id == ideal.id || profile.unavailableBinNotice.isBlank()) return base
+
+        val notice = profile.unavailableBinNotice
+            .replace(IDEAL_PLACEHOLDER, ideal.displayName)
+            .replace(ASSIGNED_PLACEHOLDER, assigned.displayName)
+        return "$base\n\n$notice"
     }
 
     private fun CountryProfile.requireBin(id: BinId): BinDefinition =
@@ -89,4 +134,10 @@ class DefaultRuleEngine : RuleEngine {
             "El perfil «$isoCode» referencia la caneca «${id.value}» pero no la define; " +
                 "el perfil debió rechazarse en la validación de carga"
         }
+
+    private companion object {
+        /** Marcadores de [CountryProfile.unavailableBinNotice]. */
+        const val IDEAL_PLACEHOLDER = "{ideal}"
+        const val ASSIGNED_PLACEHOLDER = "{assigned}"
+    }
 }

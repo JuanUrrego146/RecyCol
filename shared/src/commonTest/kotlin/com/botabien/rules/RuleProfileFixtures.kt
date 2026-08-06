@@ -87,5 +87,6 @@ object RuleProfileFixtures {
             ),
         ),
         conservativeBin = blackBin.id,
+        unavailableBinNotice = "La caneca ideal ({ideal}) no está disponible; usa {assigned} como alternativa conservadora.",
     )
 }

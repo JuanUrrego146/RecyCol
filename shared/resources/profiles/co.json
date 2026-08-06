@@ -97,5 +97,6 @@
       "requiresInteriorView": true
     }
   ],
-  "conservativeBin": "black"
+  "conservativeBin": "black",
+  "unavailableBinNotice": "La caneca ideal ({ideal}) no está entre las canecas registradas en tu entorno; usa {assigned}, la alternativa más conservadora disponible."
 }
