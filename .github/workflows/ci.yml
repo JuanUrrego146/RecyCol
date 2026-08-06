@@ -33,7 +33,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Pruebas de shared (multiplataforma)
-        run: ./gradlew :shared:allTests --stacktrace
+        run: ./gradlew :shared:allTests :shared:testing:allTests --stacktrace
 
       - name: Verificar aislamiento de plataforma en shared
         run: ./gradlew :shared:verifyPlatformIsolation --stacktrace

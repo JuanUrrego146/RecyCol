@@ -53,12 +53,17 @@ val verifyPlatformIsolation by tasks.registering {
     group = "verification"
     description = "Falla si shared/ importa android.*, androidx.* o el runtime de inferencia."
 
-    val sourceDir = layout.projectDirectory.dir("src")
-    inputs.dir(sourceDir)
+    // Cubre el código de :shared y el de :shared:testing (fakes del contrato M0)
+    val sourceDirs = listOf(
+        layout.projectDirectory.dir("src"),
+        layout.projectDirectory.dir("testing/src"),
+    )
+    sourceDirs.forEach { inputs.dir(it).optional() }
 
     doLast {
         val forbidden = Regex("""^\s*import\s+(android\.|androidx\.|com\.google\.ai\.edge\.)""")
-        val offenders = sourceDir.asFileTree.matching { include("**/*.kt") }.files
+        val offenders = sourceDirs
+            .flatMap { dir -> dir.asFileTree.matching { include("**/*.kt") }.files }
             .flatMap { file ->
                 file.readLines().mapIndexedNotNull { index, line ->
                     if (forbidden.containsMatchIn(line)) "${file.relativeTo(projectDir)}:${index + 1} → ${line.trim()}"

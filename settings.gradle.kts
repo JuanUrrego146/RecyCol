@@ -29,4 +29,5 @@ dependencyResolutionManagement {
 rootProject.name = "BotaBien"
 
 include(":shared")
+include(":shared:testing")
 include(":androidApp")

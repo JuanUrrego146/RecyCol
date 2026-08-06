@@ -21,7 +21,7 @@ services:
     volumes:
       - .:/workspace
       - gradle-cache:/home/gradle/.gradle
-    command: ./gradlew :shared:allTests :shared:verifyPlatformIsolation :androidApp:assembleDebug
+    command: ./gradlew :shared:allTests :shared:testing:allTests :shared:verifyPlatformIsolation :androidApp:assembleDebug
 
   ml:
     build:
