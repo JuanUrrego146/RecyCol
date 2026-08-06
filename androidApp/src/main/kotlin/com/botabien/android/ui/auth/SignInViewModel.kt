@@ -35,12 +35,13 @@ class SignInViewModel(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    /** Editar cualquier campo oculta el aviso: el intento anterior ya no describe el estado actual. */
     fun onEmailChange(value: String) {
-        _uiState.update { it.copy(email = value) }
+        _uiState.update { it.copy(email = value, unavailableNoticeVisible = false) }
     }
 
     fun onPasswordChange(value: String) {
-        _uiState.update { it.copy(password = value) }
+        _uiState.update { it.copy(password = value, unavailableNoticeVisible = false) }
     }
 
     fun onSignIn() {

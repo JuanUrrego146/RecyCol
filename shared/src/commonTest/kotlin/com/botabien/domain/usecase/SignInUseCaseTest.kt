@@ -1,32 +1,50 @@
 package com.botabien.domain.usecase
 
-import com.botabien.data.auth.AuthUnavailableException
-import com.botabien.data.auth.GuestAuthProvider
 import com.botabien.domain.model.Credentials
 import com.botabien.domain.model.Session
+import com.botabien.domain.port.AuthProvider
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * CUS-010 con el stub v1 detrás del puerto: la sesión es siempre invitado y
- * el intento de inicio de sesión produce el fallo tipado que la pantalla
- * traduce al aviso de versión futura (RF-035, RF-037).
+ * Contrato del caso de uso de sesión (CUS-010): delega en el puerto sin
+ * lógica propia (RF-036). Se prueba contra un fake local del puerto, no
+ * contra una implementación concreta: el caso de uso no debe conocer ninguna.
  */
 class SignInUseCaseTest {
 
-    private val useCase = SignInUseCase(authProvider = GuestAuthProvider())
+    /** Fake mínimo del puerto, configurable por resultado. */
+    private class ConfigurableAuthProvider(
+        private val session: Session = Session.Guest,
+        private val signInResult: Result<Session> =
+            Result.failure(IllegalStateException("sin backend")),
+    ) : AuthProvider {
+        override suspend fun currentSession(): Session = session
+        override suspend fun signIn(credentials: Credentials): Result<Session> = signInResult
+    }
 
     @Test
-    fun laSesionVigenteEsInvitado() = runTest {
+    fun laSesionVigenteEsLaDelProveedor() = runTest {
+        val useCase = SignInUseCase(authProvider = ConfigurableAuthProvider())
+
         assertEquals(Session.Guest, useCase.currentSession())
     }
 
     @Test
-    fun elIntentoDeInicioDeSesionProduceElFalloDeNoDisponible() = runTest {
-        val result = useCase.signIn(Credentials(email = "user@example.com", password = "x"))
+    fun elResultadoDelInicioDeSesionEsElDelProveedor() = runTest {
+        val failure = SignInUseCase(authProvider = ConfigurableAuthProvider())
+        val success = SignInUseCase(
+            authProvider = ConfigurableAuthProvider(
+                signInResult = Result.success(Session.Authenticated(userId = "user-001")),
+            ),
+        )
 
-        assertTrue(result.exceptionOrNull() is AuthUnavailableException)
+        assertTrue(failure.signIn(Credentials(email = "a@example.com", password = "x")).isFailure)
+        assertEquals(
+            Session.Authenticated(userId = "user-001"),
+            success.signIn(Credentials(email = "a@example.com", password = "x")).getOrNull(),
+        )
     }
 }
