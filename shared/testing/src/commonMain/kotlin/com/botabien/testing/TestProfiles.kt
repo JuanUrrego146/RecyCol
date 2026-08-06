@@ -40,12 +40,24 @@ object TestProfiles {
         route = DisposalRoute.NON_RECYCLABLE,
     )
 
+    /**
+     * Destino de recolección especial (posconsumo). No es una caneca física
+     * del entorno: nunca se «escanea» y no participa de la restricción por
+     * disponibilidad (decisión de Juan en #54).
+     */
+    val specialCollectionBin = BinDefinition(
+        id = BinId("special_collection"),
+        displayName = "Punto de recolección especial",
+        colorHex = "#EF6C00",
+        route = DisposalRoute.SPECIAL_COLLECTION,
+    )
+
     /** Perfil determinista de tres canecas con el caso del cartón para bebidas. */
     val threeBins = CountryProfile(
         isoCode = "zz",
         regulationName = "Perfil de prueba",
         regulationReference = "Perfil sintético para pruebas — no citable",
-        bins = listOf(whiteBin, greenBin, blackBin),
+        bins = listOf(whiteBin, greenBin, blackBin, specialCollectionBin),
         rules = listOf(
             MaterialRule(
                 material = WasteMaterial.PLASTIC,
@@ -70,6 +82,18 @@ object TestProfiles {
                 targetBin = blackBin.id,
                 contaminatedFallback = null,
                 justification = "No aprovechable",
+            ),
+            MaterialRule(
+                material = WasteMaterial.BATTERY,
+                targetBin = specialCollectionBin.id,
+                contaminatedFallback = null,
+                justification = "Pilas y baterías van a un punto de recolección posconsumo, nunca a las canecas del código de colores",
+            ),
+            MaterialRule(
+                material = WasteMaterial.ELECTRONIC,
+                targetBin = specialCollectionBin.id,
+                contaminatedFallback = null,
+                justification = "Los aparatos electrónicos van a un punto de recolección especial (RAEE), nunca a las canecas del código de colores",
             ),
         ),
         inspectionRules = listOf(
