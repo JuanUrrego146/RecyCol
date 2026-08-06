@@ -32,10 +32,12 @@ Reglas nacidas de incidentes reales del primer día. No son opcionales.
   cerrar la issue a mano con un comentario que referencie el PR.
 
 ### CI y fusiones
-- **CI corre en un runner self-hosted dockerizado** en la máquina de Juan
-  (decisión del 06/08, lo opera QA) que reutiliza `docker/android-build.Dockerfile`:
-  CI y build local son el mismo entorno. Verificar en local antes de empujar:
-  `docker compose run --rm android-build`.
+- **CI corre en dos runners self-hosted dockerizados** en la máquina de Juan
+  (decisión del 06/08, los opera QA; guía en `.github/runner/README.md`) sobre
+  la misma imagen `botabien/android-build`: CI y build local son el mismo
+  entorno. Verificar en local antes de empujar: `docker compose run --rm android-build`.
+  Si los runners propios caen, respaldo hospedado:
+  `gh workflow run ci-respaldo.yml --ref <rama>` (produce el mismo check).
 - **La protección de `main` sigue activa y el check «Compilar y probar» en verde
   es obligatorio para fusionar.** Sin excepciones, tampoco para administradores.
 - **QA fusiona los PRs rutinarios** (verde + dentro del ámbito del autor).

@@ -17,6 +17,7 @@ La especificación completa está en `docs/F_Analisis_de_Requerimientos_V1,0_Bot
 - Entrenamiento: Python 3.11, PyTorch, exportación a LiteRT. Vive en `ml/`, aislado del código de la app.
 - **Identificadores en inglés** (`WasteCategory`, `classifyWaste`), `camelCase` para funciones y propiedades, `PascalCase` para clases, `SCREAMING_SNAKE_CASE` para constantes. **Documentación, comentarios KDoc, textos de UI y mensajes de commit en español.**
 - Paradigma: Clean Architecture por capas + orientación a objetos. Dominio puro sin frameworks.
+- **CI en runners propios**: los checks corren en runners self-hosted dockerizados sobre la misma imagen `botabien/android-build` del proyecto (ver `.github/runner/README.md`). La protección de rama exige el check «Compilar y probar» en verde para fusionar a `main`; si los runners propios caen, el respaldo es `gh workflow run ci-respaldo.yml --ref <rama>`. No canceles runs de `main` ni redispares checks en masa.
 - Inyección de dependencias con Koin. Concurrencia con corrutinas y `Flow`. Nada de `GlobalScope`.
 - No introducir dependencias nuevas sin justificarlo en el PR y añadirlas al version catalog.
 
