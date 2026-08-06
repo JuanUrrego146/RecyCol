@@ -6,3 +6,6 @@ pillow==11.1.0
 pyyaml==6.0.2
 onnx==1.17.0
 tqdm==4.67.1
+# S24: ejecuta U²-Net (u2net.onnx) para segmentar el objeto limpio en la
+# síntesis de contaminación.
+onnxruntime==1.20.1

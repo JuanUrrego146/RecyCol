@@ -216,15 +216,28 @@ datasets:
   mendeley_rotten_fruits:
     source: "https://data.mendeley.com/datasets/bdd69gyhv8/1"      # CC BY 4.0
     label_kind: folder
-    # Solo las 3 200 imágenes originales; sus variantes augmentadas se excluyen
-    # porque la augmentación la hace el propio pipeline (S23).
+    # Se usa el zip "Original Image" (3 200 fotos); el de augmentadas del
+    # propio dataset se excluye porque la augmentación la hace S23. Fresco o
+    # podrido, el material es residuo orgánico: ambos estados aportan (fruta
+    # entera y cáscaras aparecen ante la caneca).
     labels:
-      # Fresco o podrido, el material sigue siendo residuo orgánico; ambos
-      # estados aportan (cáscaras y fruta entera aparecen ante la caneca).
-      fresh: ORGANIC
-      rotten: ORGANIC
-    discards:
-      augmented: "Variantes augmentadas del propio dataset: la augmentación se hace en S23 con parámetros del dominio móvil."
+      FreshApple: ORGANIC
+      FreshBanana: ORGANIC
+      FreshGrape: ORGANIC
+      FreshGuava: ORGANIC
+      FreshJujube: ORGANIC
+      FreshOrange: ORGANIC
+      FreshPomegranate: ORGANIC
+      FreshStrawberry: ORGANIC
+      RottenApple: ORGANIC
+      RottenBanana: ORGANIC
+      RottenGrape: ORGANIC
+      RottenGuava: ORGANIC
+      RottenJujube: ORGANIC
+      RottenOrange: ORGANIC
+      RottenPomegranate: ORGANIC
+      RottenStrawberry: ORGANIC
+    discards: {}
 
   open_images_v7:
     source: "https://storage.googleapis.com/openimages/web/factsfigures_v7.html"
