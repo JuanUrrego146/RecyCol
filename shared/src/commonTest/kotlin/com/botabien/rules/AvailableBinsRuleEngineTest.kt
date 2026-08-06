@@ -1,5 +1,6 @@
 package com.botabien.rules
 
+import com.botabien.domain.model.BinDefinition
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.DisposalRoute
@@ -23,15 +24,23 @@ class AvailableBinsRuleEngineTest {
     private val green = RuleProfileFixtures.greenBin
     private val black = RuleProfileFixtures.blackBin
 
+    /** Caneca que no pertenece al perfil, para el caso de identificadores ajenos. */
+    private val foreign = BinDefinition(
+        id = BinId("blue"),
+        displayName = "Caneca ajena al perfil",
+        colorHex = "#1565C0",
+        route = DisposalRoute.RECYCLABLE,
+    )
+
     private fun resolve(
         material: WasteMaterial,
-        vararg available: BinId,
+        vararg available: BinDefinition,
         contamination: ContaminationState = ContaminationState.CLEAN,
-    ) = engine.resolve(material, contamination, available.toSet(), profile)
+    ) = engine.resolve(material, contamination, available.map { it.id }.toSet(), profile)
 
     @Test
     fun conLasTresCanecasDisponiblesSeRespetaLaIdealSinAviso() {
-        val disposal = resolve(WasteMaterial.PLASTIC, white.id, green.id, black.id)
+        val disposal = resolve(WasteMaterial.PLASTIC, white, green, black)
 
         assertEquals(white, disposal.bin)
         assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification, "Sin aviso: la ideal está disponible")
@@ -39,7 +48,7 @@ class AvailableBinsRuleEngineTest {
 
     @Test
     fun conDosCanecasSinLaIdealSePropoLaConservadoraYSeInformaElMotivo() {
-        val disposal = resolve(WasteMaterial.PLASTIC, green.id, black.id)
+        val disposal = resolve(WasteMaterial.PLASTIC, green, black)
 
         assertEquals(black, disposal.bin)
         assertTrue(disposal.justification.startsWith(RuleProfileFixtures.plasticRule.justification))
@@ -49,7 +58,7 @@ class AvailableBinsRuleEngineTest {
 
     @Test
     fun conUnaSolaCanecaEsaEsLaRecomendacionAunqueNoSeaLaConservadora() {
-        val disposal = resolve(WasteMaterial.PLASTIC, green.id)
+        val disposal = resolve(WasteMaterial.PLASTIC, green)
 
         assertEquals(green, disposal.bin)
         assertEquals(DisposalRoute.ORGANIC, disposal.route)
@@ -59,7 +68,7 @@ class AvailableBinsRuleEngineTest {
     @Test
     fun conSoloLaCanecaConservadoraTodoMaterialCaeEnElla() {
         WasteMaterial.entries.forEach { material ->
-            val disposal = resolve(material, black.id)
+            val disposal = resolve(material, black)
 
             assertEquals(black, disposal.bin, "Única caneca para $material")
         }
@@ -70,14 +79,14 @@ class AvailableBinsRuleEngineTest {
         // RESIDUAL apunta a la negra, que no está; entre blanca (RECYCLABLE) y
         // verde (ORGANIC) el ranking conservador prefiere la blanca: la corriente
         // orgánica es la más sensible a un residuo mal ubicado.
-        val disposal = resolve(WasteMaterial.RESIDUAL, white.id, green.id)
+        val disposal = resolve(WasteMaterial.RESIDUAL, white, green)
 
         assertEquals(white, disposal.bin)
     }
 
     @Test
     fun losIdentificadoresAjenosAlPerfilSeIgnoranComoSinRestriccion() {
-        val disposal = resolve(WasteMaterial.PLASTIC, BinId("blue"))
+        val disposal = resolve(WasteMaterial.PLASTIC, foreign)
 
         assertEquals(white, disposal.bin)
         assertEquals(RuleProfileFixtures.plasticRule.justification, disposal.justification)
@@ -85,7 +94,7 @@ class AvailableBinsRuleEngineTest {
 
     @Test
     fun unMaterialSinReglaRestringidoTambienRecibeElAviso() {
-        val disposal = resolve(WasteMaterial.GLASS, green.id)
+        val disposal = resolve(WasteMaterial.GLASS, green)
 
         assertEquals(green, disposal.bin)
         assertTrue(disposal.justification.startsWith(profile.regulationReference))
@@ -96,8 +105,8 @@ class AvailableBinsRuleEngineTest {
     fun laDegradacionPorContaminacionYLaRestriccionSeComponen() {
         val disposal = resolve(
             WasteMaterial.BEVERAGE_CARTON,
-            green.id,
-            black.id,
+            green,
+            black,
             contamination = ContaminationState.CONTAMINATED,
         )
 
