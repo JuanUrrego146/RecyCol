@@ -178,6 +178,8 @@ def main() -> int:
                         help="subdirectorio de runs/ (por defecto full/smoke)")
     parser.add_argument("--no-augment", action="store_true",
                         help="ablación: entrena sin la augmentación de S23")
+    parser.add_argument("--require-gpu", action="store_true",
+                        help="aborta si CUDA no está disponible: evita el fallo silencioso a CPU")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
@@ -187,6 +189,10 @@ def main() -> int:
 
     torch.manual_seed(TORCH_SEED)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.require_gpu and device != "cuda":
+        print("--require-gpu: CUDA no disponible, se aborta para no entrenar en CPU por accidente.",
+              file=sys.stderr)
+        return 2
     if args.batch_size is None:
         args.batch_size = 64 if device == "cuda" else 32
     pin = device == "cuda"
@@ -233,12 +239,15 @@ def main() -> int:
             start = time.time()
             loss = run_epoch(model, loader, optimizer, criterion, device, scaler)
             top1, route_acc, confusion = evaluate(model, val_loader, routes, device)
+            vram_mb = (round(torch.cuda.max_memory_allocated() / 1e6)
+                       if device == "cuda" else 0)
             history.append({"phase": name, "epoch": epoch, "loss": round(loss, 4),
                             "val_top1": round(float(top1), 4),
                             "val_route": round(float(route_acc), 4),
-                            "seconds": round(time.time() - start, 1)})
+                            "seconds": round(time.time() - start, 1),
+                            "vram_peak_mb": vram_mb})
             print(f"[{name} e{epoch}] loss={loss:.4f} top1={top1:.3f} "
-                  f"ruta={route_acc:.3f} ({history[-1]['seconds']}s)")
+                  f"ruta={route_acc:.3f} ({history[-1]['seconds']}s, VRAM pico {vram_mb} MB)")
             if route_acc > best_route:
                 best_route = route_acc
                 torch.save(model.state_dict(), run_dir / "best.pt")
