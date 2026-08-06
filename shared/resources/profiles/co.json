@@ -97,5 +97,6 @@
       "requiresInteriorView": true
     }
   ],
-  "conservativeBin": "black"
+  "conservativeBin": "black",
+  "unavailableBinNotice": "No hay {ideal} disponible; usa {assigned}."
 }
