@@ -15,6 +15,11 @@ package com.botabien.domain.model
  * @property conservativeBin caneca por defecto (ruta conservadora) para materiales
  *   sin regla o cuando la caneca ideal no está disponible: ante la duda, no se
  *   contamina la corriente aprovechable.
+ * @property unavailableBinNotice plantilla del aviso al usuario cuando la
+ *   caneca ideal no está disponible (RF-008, coordinación #61; texto aprobado
+ *   por Juan el 06/08/2026). El motor de reglas sustituye los marcadores
+ *   `{ideal}` y `{assigned}` por los nombres visibles de las canecas. Cadena
+ *   vacía = el perfil no declara aviso y `Disposal.unavailableBinNotice` va nulo.
  */
 data class CountryProfile(
     val isoCode: String,
@@ -24,6 +29,7 @@ data class CountryProfile(
     val rules: List<MaterialRule>,
     val inspectionRules: List<InspectionRule>,
     val conservativeBin: BinId,
+    val unavailableBinNotice: String = "",
 )
 
 /**
