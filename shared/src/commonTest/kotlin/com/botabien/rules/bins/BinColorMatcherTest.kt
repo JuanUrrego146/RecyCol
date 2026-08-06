@@ -117,6 +117,28 @@ class BinColorMatcherTest {
     }
 
     @Test
+    fun lasDeteccionesCanonicasUsanElColorExactoDelPerfilBajoCualquierLuz() {
+        SyntheticLighting.ALL.forEach { (name, light) ->
+            val detections = listOf(white, black, green).map { bin ->
+                detection(SyntheticLighting.applyToHex(bin.colorHex, light))
+            }
+
+            val canonical = matcher.match(detections, colombianLike).toCanonicalDetections()
+
+            // Contrato con ScanBinsUseCase (#49): el caso de uso empareja por
+            // hex exacto, así que cada detección canónica debe coincidir
+            // literalmente con una caneca del perfil.
+            assertEquals(3, canonical.size, "Canónicas bajo luz $name")
+            canonical.forEach { detected ->
+                assertTrue(
+                    colombianLike.bins.any { it.colorHex.equals(detected.colorHex, ignoreCase = true) },
+                    "«${detected.colorHex}» no es el color canónico de ninguna caneca (luz $name)",
+                )
+            }
+        }
+    }
+
+    @Test
     fun losEmparejamientosVienenEnOrdenDeConfianzaDescendente() {
         val detections = listOf(
             detection(green.colorHex, confidence = 0.5f),

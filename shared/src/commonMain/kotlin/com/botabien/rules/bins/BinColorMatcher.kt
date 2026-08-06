@@ -120,3 +120,15 @@ class BinColorMatcher(
             chromaticTolerance
         }
 }
+
+/**
+ * Detecciones canónicas del resultado del emparejamiento: una por caneca
+ * reconocida, con el **color exacto que declara el perfil** en lugar del
+ * color crudo observado. Es lo que el detector emite hacia `ScanBinsUseCase`
+ * (#49), que empareja por hex exacto: la tolerancia a iluminación ya quedó
+ * resuelta aquí.
+ */
+fun BinScanResult.toCanonicalDetections(): List<DetectedBin> =
+    matches.map { match ->
+        DetectedBin(colorHex = match.bin.colorHex, confidence = match.detected.confidence)
+    }
