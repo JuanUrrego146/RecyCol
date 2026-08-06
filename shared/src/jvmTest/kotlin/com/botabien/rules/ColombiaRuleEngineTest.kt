@@ -3,6 +3,7 @@ package com.botabien.rules
 import com.botabien.domain.model.BinId
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.DisposalRoute
+import com.botabien.domain.model.FallbackReason
 import com.botabien.domain.model.WasteMaterial
 import com.botabien.rules.profile.ProfileParser
 import java.io.File
@@ -118,13 +119,17 @@ class ColombiaRuleEngineTest {
     }
 
     @Test
-    fun elAvisoExplicaPorQueNoSeRecomendoLaCanecaIdeal() {
+    fun elAvisoAprobadoExplicaPorQueNoSeRecomendoLaCanecaIdeal() {
         val restricted = resolve(WasteMaterial.PLASTIC, availableBins = setOf(black, green))
         val unrestricted = resolve(WasteMaterial.PLASTIC)
 
-        assertTrue(restricted.justification.startsWith(unrestricted.justification), "La regla citada se conserva")
-        assertTrue("Caneca blanca" in restricted.justification, "El aviso nombra la caneca ideal")
-        assertTrue("Caneca negra" in restricted.justification, "El aviso nombra la caneca asignada")
+        assertEquals(unrestricted.justification, restricted.justification, "La regla citada se conserva pura")
+        assertEquals(FallbackReason.UNAVAILABLE_BIN, restricted.fallbackReason)
+        assertEquals(
+            "No hay Caneca blanca disponible; usa Caneca negra.",
+            restricted.unavailableBinNotice,
+            "Frase aprobada el 06/08/2026 (#61/#78), renderizada con los nombres del perfil",
+        )
     }
 
     @Test

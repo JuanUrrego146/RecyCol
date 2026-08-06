@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BotaBien</string>
+
+    <!-- Selección de país (RF-001, RF-003 · CUS-001) -->
+    <string name="country_selection_title">Elige tu país</string>
+    <string name="country_selection_subtitle">BotaBien aplica la normativa de separación de residuos del país que elijas.</string>
+    <string name="country_selected_description">Seleccionado</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_change_country">Cambiar país</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_country_label">País</string>
+    <string name="action_back">Atrás</string>
+
+    <!-- Estados comunes -->
+    <string name="loading_description">Cargando</string>
 </resources>
