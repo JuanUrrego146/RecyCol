@@ -8,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -44,6 +43,10 @@ enum class BotaButtonStyle {
  * Botón estándar del design system, de estética iOS: esquinas amplias,
  * sin ripple de Material y con respuesta táctil de escala y opacidad
  * animada por muelle (RNF-009).
+ *
+ * El ancho lo decide quien llama: la acción principal de una pantalla se
+ * extiende con `Modifier.fillMaxWidth()`; un botón inline (barras, filas)
+ * ocupa solo su contenido.
  *
  * @param text Etiqueta visible; debe venir de un recurso de cadenas (RNF-011).
  * @param onClick Acción al pulsar.
@@ -95,7 +98,6 @@ fun BotaButton(
         modifier = modifier
             .scale(scale)
             .height(if (compact) 44.dp else 50.dp)
-            .fillMaxWidth()
             .clip(BotaTheme.shapes.medium)
             .background(containerColor)
             .clickable(
