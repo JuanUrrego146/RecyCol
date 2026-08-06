@@ -122,5 +122,5 @@
     }
   ],
   "conservativeBin": "green",
-  "unavailableBinNotice": "La caneca ideal ({ideal}) no está entre las canecas registradas en tu entorno; usa {assigned}, la alternativa más conservadora disponible."
+  "unavailableBinNotice": "No hay {ideal} disponible; usa {assigned}."
 }

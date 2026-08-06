@@ -1,6 +1,7 @@
 package com.botabien.rules.profile
 
 import com.botabien.domain.model.ContaminationState
+import com.botabien.domain.model.DisposalRoute
 import com.botabien.domain.model.WasteMaterial
 import com.botabien.rules.DefaultRuleEngine
 import com.botabien.rules.requiresInspection
@@ -121,9 +122,21 @@ class CatalogEngineBatteryTest {
     }
 
     @Test
-    fun conSoloLaCanecaConservadoraDisponibleTodoMaterialCaeEnElla() {
+    fun conSoloLaCanecaConservadoraDisponibleTodoMaterialCaeEnEllaSalvoRecoleccionEspecial() {
         profiles.forEach { (id, profile) ->
             WasteMaterial.entries.forEach { material ->
+                val idealBin = profile.rules.firstOrNull { it.material == material }?.targetBin
+                    ?: profile.conservativeBin
+                val idealRoute = profile.bins.first { it.id == idealBin }.route
+
+                // La recolección especial queda exenta de la restricción (#54):
+                // el punto de entrega no es una caneca del entorno escaneado.
+                val expected = if (idealRoute == DisposalRoute.SPECIAL_COLLECTION) {
+                    idealBin
+                } else {
+                    profile.conservativeBin
+                }
+
                 val disposal = engine.resolve(
                     material,
                     ContaminationState.CLEAN,
@@ -131,7 +144,7 @@ class CatalogEngineBatteryTest {
                     profile,
                 )
 
-                assertEquals(profile.conservativeBin, disposal.bin.id, "[$id] única caneca para $material")
+                assertEquals(expected, disposal.bin.id, "[$id] única caneca para $material")
             }
         }
     }

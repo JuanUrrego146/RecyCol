@@ -116,5 +116,5 @@
     }
   ],
   "conservativeBin": "gray",
-  "unavailableBinNotice": "El contenedor ideal ({ideal}) no está entre los registrados en tu entorno; usa {assigned}, la alternativa más conservadora disponible."
+  "unavailableBinNotice": "No hay {ideal} disponible; usa {assigned}."
 }
