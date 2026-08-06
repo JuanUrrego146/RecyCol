@@ -64,6 +64,24 @@ Reglas del contrato:
   fuera del hilo principal.
 - `di/` — módulo Koin que expone los puertos `DeviceTierPolicy` y `WasteClassifier`.
 
+## Activación por gama (RF-030) y ajuste manual (RF-031)
+
+- Toda función costosa consulta `DeviceTierPolicy.isEnabled(...)` antes de
+  activarse (invariante 5). Consumidores: este módulo (`OBJECT_DETECTION` al
+  elegir estrategia de ROI), el módulo de cámara (`CONTINUOUS_CLASSIFICATION`,
+  `FULL_FRAME_QUALITY_ANALYSIS`), el flujo de clasificación
+  (`AUTOMATIC_CONTAMINATION_INSPECTION`) y el escaneo de canecas
+  (`CONTINUOUS_BIN_SCAN`).
+- La clasificación por cámara **no** pasa por `isEnabled`: funciona en las
+  tres gamas y bajo cualquier combinación de ajustes (RNF-001); hay prueba
+  que lo verifica por gama.
+- `BenchmarkedTierPolicy.setManualOverride(tier | null)` aplica el nivel de
+  rendimiento elegido por el usuario: manda sobre la gama medida, persiste
+  entre reinicios, suspende la degradación automática y `null` vuelve al modo
+  automático. **Coordinación pendiente**: exponer esto a la pantalla de
+  ajustes (FRONT, S08) requiere un caso de uso/puerto de CORE; mientras tanto
+  el mecanismo queda estable y probado aquí.
+
 ## Decisiones
 
 - El orden de preferencia de aceleración es NNAPI → GPU → CPU. NNAPI se

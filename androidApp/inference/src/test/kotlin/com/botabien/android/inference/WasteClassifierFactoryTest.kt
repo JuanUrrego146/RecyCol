@@ -79,4 +79,29 @@ class WasteClassifierFactoryTest {
         assertIs<GuideFrameRoi>(strategy)
     }
 
+    @Test
+    fun `la clasificacion por camara esta disponible en las tres gamas (RF-030)`() {
+        val allModels = setOf(
+            ModelCatalog.MATERIAL_LOW.assetFileName,
+            ModelCatalog.MATERIAL_MID.assetFileName,
+            ModelCatalog.MATERIAL_HIGH.assetFileName,
+        )
+
+        DeviceTier.entries.forEach { tier ->
+            assertIs<LiteRtWasteClassifier>(
+                WasteClassifierFactory.create(
+                    provider = FakeModelProvider(available = allModels),
+                    policy = FakePolicy(tier),
+                ),
+                "gama $tier con modelos empaquetados",
+            )
+            assertIs<StubWasteClassifier>(
+                WasteClassifierFactory.create(
+                    provider = FakeModelProvider(available = emptySet()),
+                    policy = FakePolicy(tier),
+                ),
+                "gama $tier sin modelos: el stub mantiene la clasificación viva",
+            )
+        }
+    }
 }

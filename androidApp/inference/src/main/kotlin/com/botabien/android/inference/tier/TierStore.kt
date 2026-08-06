@@ -21,6 +21,12 @@ interface TierStore {
 
     /** Invalida la caché (p. ej. para recálculo forzado). */
     fun clear()
+
+    /** Sobrescritura manual del usuario (RF-031), o nula si rige el modo automático. */
+    fun readManualOverride(): DeviceTier?
+
+    /** Persiste la sobrescritura manual; `null` vuelve al modo automático. */
+    fun writeManualOverride(tier: DeviceTier?)
 }
 
 /**
@@ -51,12 +57,29 @@ class PrefsTierStore(
     }
 
     override fun clear() {
-        prefs.edit().clear().apply()
+        // Solo la gama medida: la preferencia manual del usuario sobrevive
+        // a un recálculo (RF-031, la decisión explícita del usuario manda).
+        prefs.edit()
+            .remove(KEY_TIER)
+            .remove(KEY_FINGERPRINT)
+            .apply()
+    }
+
+    override fun readManualOverride(): DeviceTier? {
+        val name = prefs.getString(KEY_MANUAL_OVERRIDE, null) ?: return null
+        return DeviceTier.entries.firstOrNull { it.name == name }
+    }
+
+    override fun writeManualOverride(tier: DeviceTier?) {
+        prefs.edit().apply {
+            if (tier == null) remove(KEY_MANUAL_OVERRIDE) else putString(KEY_MANUAL_OVERRIDE, tier.name)
+        }.apply()
     }
 
     private companion object {
         const val PREFS_NAME = "botabien_inference_tier"
         const val KEY_TIER = "tier"
         const val KEY_FINGERPRINT = "fingerprint"
+        const val KEY_MANUAL_OVERRIDE = "manual_override"
     }
 }
