@@ -125,6 +125,24 @@ class LiteRtWasteClassifierTest {
     }
 
     @Test
+    fun `la latencia de material se reporta al oyente para la degradacion de gama (S20)`() = runTest {
+        val reported = mutableListOf<Long>()
+        val subject = LiteRtWasteClassifier(
+            materialEngine = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
+            materialSpec = ModelCatalog.MATERIAL_LOW,
+            contaminationEngine = ScriptedEngine(floatArrayOf(0.8f, 0.2f)),
+            contaminationSpec = ModelCatalog.CONTAMINATION,
+            onMaterialLatencyMillis = { reported += it },
+        )
+
+        subject.classify(frame)
+        subject.classify(frame)
+        subject.inspectContamination(frame)
+
+        assertEquals(2, reported.size, "clasificar reporta; la inspección no")
+    }
+
+    @Test
     fun `cada etapa registra su latencia por separado`() = runTest {
         val subject = classifier(
             material = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),

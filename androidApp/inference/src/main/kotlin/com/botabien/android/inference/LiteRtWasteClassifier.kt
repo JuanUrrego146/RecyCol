@@ -57,6 +57,7 @@ class LiteRtWasteClassifier(
     private val contaminationRoi: RoiStrategy = GuideFrameRoi(),
     private val preprocessor: FramePreprocessor = FramePreprocessor(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val onMaterialLatencyMillis: ((Long) -> Unit)? = null,
 ) : WasteClassifier {
 
     /** Latencia de la etapa 1 (preprocesado + inferencia de material). */
@@ -76,6 +77,9 @@ class LiteRtWasteClassifier(
                     materialSpec.outputsProbabilities,
                 )
             }
+            // Señal para la degradación de gama en uso (S17): la etapa de
+            // material domina el presupuesto de latencia de la clasificación.
+            materialLatency.lastMillis?.let { onMaterialLatencyMillis?.invoke(it) }
             val materials = ModelOutputOrder.MATERIALS
             if (probabilities.size != materials.size) {
                 throw InferenceException(

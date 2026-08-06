@@ -9,6 +9,7 @@ import com.botabien.android.inference.model.ModelProvider
 import com.botabien.android.inference.roi.DetectorRoi
 import com.botabien.android.inference.roi.GuideFrameRoi
 import com.botabien.android.inference.roi.RoiStrategy
+import com.botabien.android.inference.tier.BenchmarkedTierPolicy
 import com.botabien.domain.model.Feature
 import com.botabien.domain.port.DeviceTierPolicy
 import com.botabien.domain.port.WasteClassifier
@@ -52,6 +53,10 @@ object WasteClassifierFactory {
             contaminationEngine = contaminationEngine,
             contaminationSpec = contaminationSpec,
             roiStrategy = roiStrategyFor(provider, policy),
+            // Cierra el lazo de degradación en uso (S17/S20): la latencia
+            // observada de la etapa de material alimenta a la política.
+            onMaterialLatencyMillis = (policy as? BenchmarkedTierPolicy)
+                ?.let { benchmarked -> benchmarked::reportObservedLatencyMillis },
         )
     }
 
