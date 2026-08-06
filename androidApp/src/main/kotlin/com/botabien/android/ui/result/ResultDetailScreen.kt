@@ -51,19 +51,18 @@ import kotlin.math.roundToInt
  * aplicada, norma citada del perfil activo y aviso orientativo visible.
  *
  * @param outcome resultado a explicar; el detalle solo presenta datos que ya
- *   decidió el motor de reglas (invariante 2).
- * @param isManualSelection `true` cuando el resultado proviene de la selección
- *   manual del usuario (CUS-006); se marca de forma explícita. El flujo de
- *   selección manual llega con S39: esta pantalla ya lo distingue.
+ *   decidió el motor de reglas (invariante 2). El origen manual viene en el
+ *   propio resultado (`manualSelection`, coordinación #94) y se marca de
+ *   forma explícita.
  */
 @Composable
 fun ResultDetailScreen(
     dependencies: AppDependencies,
     outcome: ClassificationOutcome,
-    isManualSelection: Boolean,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isManualSelection = outcome.manualSelection
     var profile by remember { mutableStateOf<CountryProfile?>(null) }
     LaunchedEffect(dependencies) {
         profile = dependencies.selectCountry.activeProfileOrNull()

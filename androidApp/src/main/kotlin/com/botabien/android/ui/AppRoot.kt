@@ -69,10 +69,8 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             frames = frameSource.frames,
                             viewfinder = { CameraViewfinder(frameSource, it) },
                             onOpenSettings = { navState.push(AppDestination.Settings) },
-                            onOpenResultDetail = { outcome, isManual ->
-                                navState.push(
-                                    AppDestination.ResultDetail(outcome, isManual)
-                                )
+                            onOpenResultDetail = { outcome ->
+                                navState.push(AppDestination.ResultDetail(outcome))
                             },
                         )
 
@@ -91,7 +89,6 @@ fun AppRoot(modifier: Modifier = Modifier) {
                         is AppDestination.ResultDetail -> ResultDetailScreen(
                             dependencies = dependencies,
                             outcome = destination.outcome,
-                            isManualSelection = destination.isManualSelection,
                             onBack = { navState.pop() },
                         )
                     }

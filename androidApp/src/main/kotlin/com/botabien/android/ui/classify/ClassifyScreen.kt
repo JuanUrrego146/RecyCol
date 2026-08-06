@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
 import com.botabien.domain.model.ClassificationOutcome
+import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.Disposal
 import com.botabien.domain.model.WasteMaterial
 import com.botabien.domain.model.ImageFrame
@@ -73,22 +75,28 @@ fun ClassifyScreen(
     frames: Flow<ImageFrame>,
     viewfinder: @Composable (Modifier) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenResultDetail: (ClassificationOutcome, Boolean) -> Unit,
+    onOpenResultDetail: (ClassificationOutcome) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val state = remember { ClassifyScreenState(dependencies.classifyWaste, scope) }
     var showManualSheet by remember { mutableStateOf(false) }
+    var inspectionMaterials by remember { mutableStateOf(emptySet<WasteMaterial>()) }
     DisposableEffect(frames) {
         state.start(frames)
         onDispose { state.stop() }
     }
+    LaunchedEffect(dependencies) {
+        inspectionMaterials = dependencies.selectCountry.activeProfileOrNull()
+            ?.inspectionRules?.map { it.material }?.toSet()
+            ?: emptySet()
+    }
 
-    fun resolveManual(material: WasteMaterial) {
+    fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
-            val result = dependencies.resolveManualDisposal.resolve(material)
+            val result = dependencies.resolveManualDisposal.resolve(material, contamination)
             state.applyManualOutcome(result)
-            onOpenResultDetail(result, true)
+            onOpenResultDetail(result)
         }
     }
 
@@ -128,7 +136,7 @@ fun ClassifyScreen(
         ResultOverlay(
             disposal = state.outcome?.disposal,
             material = state.outcome?.classification?.material,
-            onClick = { state.outcome?.let { onOpenResultDetail(it, false) } },
+            onClick = { state.outcome?.let(onOpenResultDetail) },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -153,9 +161,10 @@ fun ClassifyScreen(
 
         if (showManualSheet) {
             ManualSelectionSheet(
-                onSelect = { material ->
+                materialsRequiringInspection = inspectionMaterials,
+                onSelect = { material, contamination ->
                     showManualSheet = false
-                    resolveManual(material)
+                    resolveManual(material, contamination)
                 },
                 onDismiss = { showManualSheet = false },
             )

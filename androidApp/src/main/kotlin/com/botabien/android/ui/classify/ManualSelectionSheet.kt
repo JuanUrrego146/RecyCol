@@ -12,48 +12,108 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import com.botabien.android.R
 import com.botabien.android.ui.components.BotaBottomSheet
+import com.botabien.android.ui.components.BotaButton
+import com.botabien.android.ui.components.BotaButtonStyle
 import com.botabien.android.ui.theme.BotaTheme
+import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.WasteMaterial
 
 /**
  * Hoja de selección manual de material (RF-024, RF-025 · CUS-006).
  *
  * El usuario llega aquí por baja confianza (la app no adivina, RF-023) o por
- * decisión propia. Elegir un material produce la caneca según la normativa
- * activa — incluido el caso ELECTRONIC → punto de recolección especial — y el
- * resultado se marca como selección manual en el detalle.
+ * decisión propia. Para materiales con regla de inspección, la hoja pregunta
+ * por la contaminación antes de resolver — contrato de
+ * `ResolveManualDisposalUseCase` (coordinación #94) — de modo que el motor
+ * pueda degradar a la caneca alternativa si corresponde.
+ *
+ * @param materialsRequiringInspection materiales que el perfil activo somete
+ *   a inspección; para ellos se muestra la pregunta de contaminación.
+ * @param onSelect material elegido y estado de contaminación declarado por el
+ *   usuario ([ContaminationState.UNKNOWN] si no aplica la pregunta).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManualSelectionSheet(
-    onSelect: (WasteMaterial) -> Unit,
+    materialsRequiringInspection: Set<WasteMaterial>,
+    onSelect: (WasteMaterial, ContaminationState) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var pendingInspection by remember { mutableStateOf<WasteMaterial?>(null) }
+
     BotaBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = stringResource(R.string.manual_selection_title),
-            style = BotaTheme.typography.title3,
-            color = BotaTheme.colors.label,
-        )
-        Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
-        Text(
-            text = stringResource(R.string.manual_selection_subtitle),
-            style = BotaTheme.typography.footnote,
-            color = BotaTheme.colors.secondaryLabel,
-        )
-        Spacer(modifier = Modifier.height(BotaTheme.spacing.lg))
-        Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
-        ) {
-            WasteMaterial.entries.forEach { material ->
-                MaterialRow(material = material, onClick = { onSelect(material) })
+        val pending = pendingInspection
+        if (pending == null) {
+            Text(
+                text = stringResource(R.string.manual_selection_title),
+                style = BotaTheme.typography.title3,
+                color = BotaTheme.colors.label,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
+            Text(
+                text = stringResource(R.string.manual_selection_subtitle),
+                style = BotaTheme.typography.footnote,
+                color = BotaTheme.colors.secondaryLabel,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.lg))
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
+                WasteMaterial.entries.forEach { material ->
+                    MaterialRow(
+                        material = material,
+                        onClick = {
+                            if (material in materialsRequiringInspection) {
+                                pendingInspection = material
+                            } else {
+                                onSelect(material, ContaminationState.UNKNOWN)
+                            }
+                        },
+                    )
+                }
             }
+        } else {
+            Text(
+                text = materialLabel(pending),
+                style = BotaTheme.typography.title3,
+                color = BotaTheme.colors.label,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
+            Text(
+                text = stringResource(R.string.manual_inspection_question),
+                style = BotaTheme.typography.footnote,
+                color = BotaTheme.colors.secondaryLabel,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.xl))
+            BotaButton(
+                text = stringResource(R.string.manual_inspection_clean),
+                onClick = { onSelect(pending, ContaminationState.CLEAN) },
+                modifier = Modifier.fillMaxWidth(),
+                style = BotaButtonStyle.Tinted,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+            BotaButton(
+                text = stringResource(R.string.manual_inspection_contaminated),
+                onClick = { onSelect(pending, ContaminationState.CONTAMINATED) },
+                modifier = Modifier.fillMaxWidth(),
+                style = BotaButtonStyle.Tinted,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+            BotaButton(
+                text = stringResource(R.string.action_back),
+                onClick = { pendingInspection = null },
+                modifier = Modifier.fillMaxWidth(),
+                style = BotaButtonStyle.Plain,
+            )
         }
     }
 }

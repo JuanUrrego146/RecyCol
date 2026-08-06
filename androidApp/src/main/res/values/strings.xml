@@ -49,6 +49,9 @@
     <string name="manual_selection_subtitle">Elige el material y te digo dónde va según la normativa de tu país.</string>
     <string name="low_confidence_message">No logro identificarlo con certeza. Prueba otro ángulo o elige el material.</string>
     <string name="low_confidence_action">Elegir material</string>
+    <string name="manual_inspection_question">¿Tiene residuos o líquidos adentro? De eso depende la caneca.</string>
+    <string name="manual_inspection_clean">Está limpio y seco</string>
+    <string name="manual_inspection_contaminated">Tiene residuos</string>
 
     <!-- Resultado de clasificación (RF-013 · CUS-003) -->
     <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>

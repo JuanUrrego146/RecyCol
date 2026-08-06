@@ -38,11 +38,11 @@ sealed interface AppDestination {
     /**
      * Detalle de una decisión con su justificación normativa (CUS-007).
      * Lleva el resultado como carga: el detalle explica exactamente lo que
-     * el usuario tenía en pantalla al abrirlo.
+     * el usuario tenía en pantalla al abrirlo; el origen manual viene en el
+     * propio resultado (`ClassificationOutcome.manualSelection`, #94).
      */
     data class ResultDetail(
         val outcome: ClassificationOutcome,
-        val isManualSelection: Boolean = false,
     ) : AppDestination
 }
 
