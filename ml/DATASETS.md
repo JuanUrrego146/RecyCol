@@ -29,7 +29,7 @@ gitignore).
 | Garbage Dataset v2 | actual en Kaggle (act. 2026) | 13 348 | 10 | **APTO CONDICIONAL — riesgo legal abierto** (bloque CAUTION en `DATA_LICENSES.md`) | Entrenamiento principal por decisión de Juan; revisión legal antes de comercializar |
 | Clothing Dataset (Grigorev) | 2020 | 5 000+ | 20 → `TEXTILE` | APTO (CC0 1.0) | Entrenamiento (refuerzo de textil) |
 | Fresh & Rotten Fruits (Mendeley) | 2022 | 3 200 originales | 16 → `ORGANIC` | APTO (CC BY 4.0) | Entrenamiento (refuerzo de orgánico) |
-| Open Images V7 (subset dirigido) | V7 | recortes de 9 clases | → `ELECTRONIC`, `METAL`, `BEVERAGE_CARTON` | APTO CON FILTRADO por imagen | Entrenamiento (única fuente de `ELECTRONIC`) |
+| Open Images V7 (subset dirigido) | V7 | recortes de 2 clases | → `METAL`, `BEVERAGE_CARTON` | APTO CON FILTRADO por imagen | Entrenamiento (refuerzo del caso estrella) |
 | Garbage Classification 12c | 2021 | 15 150 | 12 | **NO APTO** (imágenes © autores originales) | **Excluido** |
 | ZeroWaste | CVPR 2022 | 12 125 (3 variantes) | 4 | **NO APTO** (CC BY-NC 4.0) | **Excluido** |
 
@@ -186,7 +186,7 @@ Rotten Fruits + Open Images filtrado; RealWaste solo control.
 | Material | Situación | Acción |
 |---|---|---|
 | `BEVERAGE_CARTON` | **Sigue siendo la clase más débil**: TACO filtrado (decenas de instancias) + Open Images «Coffee cup» (requiere curación manual: mezcla tazas de cerámica) | S22 mide conteos reales; S23 augmentación agresiva; S24 evalúa síntesis. **Recomendada la captura propia quirúrgica (300–500 fotos, 3–5 h)** registrada en `DATA_LICENSES.md` |
-| `ELECTRONIC` | Entra en v1 (decisión de Juan) con una sola fuente: recortes de Open Images (objetos en uso, no desechados — brecha de dominio) | Augmentación fuerte en S23; candidatos e-waste de Roboflow/Kaggle en reserva pendientes de verificar licencia (#54) |
+| `ELECTRONIC` | **Detección automática diferida a v2** (decisión de Juan, 06/08/2026). En v1 la ruta existe vía selección manual y desambiguación por baja confianza (CUS-006). El modelo mantiene los 11 logits del contrato EDGE (la clase simplemente nunca gana) | Clases de Open Images anotadas en el mapeo para reactivar en v2 (#54) |
 | `BATTERY` | Garbage v2 (756) + TACO marginal; depende del dataset condicional | Si Garbage v2 cae en la revisión legal, esta clase pierde su fuente principal |
 | `ORGANIC`, `TEXTILE` | Cubiertas con las fuentes nuevas + Garbage v2; brecha de dominio en Clothing/Fruits (objetos no desechados) | Augmentación S23; RealWaste mide la transferencia |
 | `PLASTIC`, `PAPER`, `CARDBOARD`, `GLASS`, `METAL`, `RESIDUAL` | Cubiertas por 3+ fuentes | Balance real se mide en S22 |

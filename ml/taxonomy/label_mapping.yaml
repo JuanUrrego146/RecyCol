@@ -18,7 +18,7 @@
 # ml/DATA_LICENSES.md. Los NO APTOS conservan su mapeo con enabled: false por si
 # su situación legal cambiara; la ingesta (S22) los ignora.
 
-version: 3
+version: 4
 date: "2026-08-06"
 
 target_taxonomy:
@@ -232,14 +232,12 @@ datasets:
     # Anotaciones CC BY 4.0; imágenes listadas CC BY 2.0 con verificación por
     # imagen en la ingesta (mismo mecanismo license_filter que TACO).
     license_filter: commercial_per_image
+    # Decisión de Juan (06/08/2026): la detección automática de ELECTRONIC se
+    # difiere a v2; en v1 esa ruta se cubre por selección manual y baja
+    # confianza (CUS-006). Las clases de electrónica de Open Images (Mobile
+    # phone, Laptop, Remote control, Calculator, Camera, Headphones, Corded
+    # phone) quedan anotadas aquí para reactivarlas en v2 sin rehacer análisis.
     labels:
-      "Mobile phone": ELECTRONIC
-      "Laptop": ELECTRONIC
-      "Remote control": ELECTRONIC
-      "Calculator": ELECTRONIC
-      "Camera": ELECTRONIC
-      "Headphones": ELECTRONIC
-      "Corded phone": ELECTRONIC
       "Tin can": METAL
       # Mezcla vasos desechables con tazas de cerámica: curación manual por
       # muestreo obligatoria en la ingesta (DATA_LICENSES.md).
