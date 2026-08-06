@@ -65,7 +65,7 @@ class ProfileParserTest {
 
     @Test
     fun unaRutaDesconocidaSeReporta() {
-        val json = VALID_PROFILE.replace(""""route": "ORGANIC"""", """"route": "COMPOST"""")
+        val json = VALID_PROFILE.replace(""""route": "NON_RECYCLABLE"""", """"route": "COMPOST"""")
 
         val error = failure(json)
 
