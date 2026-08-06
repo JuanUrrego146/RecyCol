@@ -14,7 +14,7 @@ institucionales adicionales.
 
 | Id | País | Norma | Canecas |
 |---|---|---|---|
-| `co` | Colombia | Resolución 2184 de 2019 (Minambiente), vigente desde 2021 | blanca (aprovechables), negra (no aprovechables), verde (orgánicos) |
+| `co` | Colombia | Resolución 2184 de 2019 (Minambiente), vigente desde 2021 | blanca (aprovechables), negra (no aprovechables), verde (orgánicos), punto de recolección especial (pilas y RAEE, fuera del código de colores — decisión v1, #54) |
 | `co-gtc24` | Colombia | GTC 24:2009 (Icontec), código multicorriente aún usado por universidades, hospitales e industria | gris (papel/cartón), azul (plásticos), blanca (vidrio), marrón oscuro (metales), crema (orgánicos), verde (ordinarios), roja (peligrosos) |
 | `es` | España | Ley 7/2022 de residuos y suelos contaminados; sistema municipal de contenedores | azul (papel/cartón), amarillo (envases ligeros: plástico, metal, brik), verde (vidrio), marrón (orgánica), gris (resto), punto limpio (flujos especiales) |
 
