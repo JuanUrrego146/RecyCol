@@ -1,0 +1,52 @@
+# Flota de runners self-hosted de BotaBien. Uso (desde este directorio):
+#
+#   Levantar (la primera vez exporta los tokens de registro, ver README.md):
+#     docker compose -f docker-compose.runners.yml up -d --build
+#   Tumbar (los runners quedan "offline" en GitHub; la config persiste):
+#     docker compose -f docker-compose.runners.yml down
+#
+# Dimensionado: VM de Docker con ~11,6 GB y 6 CPUs compartidos con el resto
+# del proyecto (ML entrena en GPU aparte). Dos runners con tope de 5 GB y
+# 3 CPUs cada uno dejan aire; el heap de Gradle va limitado a 3g desde el
+# gradle.properties del volumen de caché (lo escribe entrypoint.sh).
+services:
+  runner-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: botabien/actions-runner:2.336.0
+    container_name: botabien-runner-1
+    restart: unless-stopped
+    environment:
+      RUNNER_NAME: botabien-runner-1
+      RUNNER_LABELS: self-hosted,linux,docker,botabien
+      RUNNER_TOKEN: ${RUNNER_TOKEN_1:-}
+      GRADLE_USER_HOME: /opt/gradle-cache
+    volumes:
+      - runner1-agent:/opt/actions-runner
+      - runner1-gradle-cache:/opt/gradle-cache
+    mem_limit: 5g
+    cpus: 3
+
+  runner-2:
+    image: botabien/actions-runner:2.336.0
+    container_name: botabien-runner-2
+    restart: unless-stopped
+    depends_on:
+      - runner-1
+    environment:
+      RUNNER_NAME: botabien-runner-2
+      RUNNER_LABELS: self-hosted,linux,docker,botabien
+      RUNNER_TOKEN: ${RUNNER_TOKEN_2:-}
+      GRADLE_USER_HOME: /opt/gradle-cache
+    volumes:
+      - runner2-agent:/opt/actions-runner
+      - runner2-gradle-cache:/opt/gradle-cache
+    mem_limit: 5g
+    cpus: 3
+
+volumes:
+  runner1-agent:
+  runner1-gradle-cache:
+  runner2-agent:
+  runner2-gradle-cache:
