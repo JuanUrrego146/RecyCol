@@ -1,21 +1,29 @@
 package com.botabien.android.camera
 
-import com.botabien.domain.model.FrameQuality
+import com.botabien.domain.model.CaptureHint
 
 /**
  * Motor de indicaciones con política anti-saturación (RF-017, RF-018, S13).
  *
+ * Trabaja sobre el contrato del dominio: recibe las indicaciones que emite
+ * `ClassifyWasteUseCase` en `ClassificationOutcome.hints` y decide cuál (una
+ * sola) debe estar visible. El caso de uso delega explícitamente esta política
+ * en este motor; la UI (agente FRONT) solo pinta el resultado.
+ *
  * Reglas que implementa, en este orden:
  * 1. Si la confianza de clasificación ya es suficiente, no se molesta al
- *    usuario: ninguna indicación, aunque haya métricas degradadas.
- * 2. Si ninguna métrica está degradada, la indicación vigente se retira
- *    inmediatamente.
- * 3. Solo se muestra una indicación a la vez: la causa dominante según el
- *    orden de prioridad de [CaptureHintType].
- * 4. Entre una indicación nueva y la siguiente debe pasar al menos
- *    [minIntervalMillis]; mantener visible la vigente no cuenta como nueva.
- *    Un cambio de causa también respeta el intervalo: mientras tanto se
- *    conserva la vigente si su causa sigue activa, o no se muestra nada.
+ *    usuario: ninguna indicación de calidad, aunque haya métricas degradadas.
+ * 2. Sin indicaciones activas, la vigente se retira inmediatamente.
+ * 3. Solo se muestra una a la vez: la causa dominante según [PRIORITY]
+ *    (la causa raíz primero: un lente sucio degrada todo lo demás).
+ * 4. Entre una indicación nueva y la siguiente pasa al menos
+ *    [minIntervalMillis]; mantener visible la vigente no cuenta como nueva, y
+ *    un cambio de causa también respeta el intervalo (mientras tanto se
+ *    conserva la vigente si sigue activa, o no se muestra nada).
+ *
+ * [CaptureHint.POINT_INSIDE] no es una indicación de calidad sino el arranque
+ * del flujo de inspección: la gestiona [DirectedCaptureController] (S14) con
+ * la solicitud del perfil, y este motor la ignora.
  *
  * El reloj entra por parámetro (`nowMillis`): el motor es puro y determinista,
  * y las pruebas no dependen del reloj real.
@@ -27,29 +35,29 @@ class CaptureHintEngine(
     private val sufficientConfidence: Float = DEFAULT_SUFFICIENT_CONFIDENCE,
 ) {
 
-    private var currentHint: CaptureHintType? = null
+    private var currentHint: CaptureHint? = null
     private var lastShownAtMillis: Long = NEVER
 
     /**
      * Evalúa el estado actual y devuelve la indicación que debe verse en
      * pantalla, o `null` si no debe verse ninguna.
      *
-     * @param quality métricas del último frame analizado.
+     * @param hints indicaciones activas del último `ClassificationOutcome`.
      * @param classificationConfidence confianza de la última clasificación, o
      *   `null` si todavía no hay resultado.
      * @param nowMillis reloj monótono en milisegundos.
      */
     fun evaluate(
-        quality: FrameQuality,
+        hints: List<CaptureHint>,
         classificationConfidence: Float?,
         nowMillis: Long,
-    ): CaptureHintType? {
+    ): CaptureHint? {
         if (classificationConfidence != null && classificationConfidence >= sufficientConfidence) {
             currentHint = null
             return null
         }
 
-        val active = activeDegradations(quality)
+        val active = PRIORITY.filter { it in hints }
         if (active.isEmpty()) {
             currentHint = null
             return null
@@ -79,22 +87,19 @@ class CaptureHintEngine(
         return currentHint
     }
 
-    /** Degradaciones activas ordenadas por prioridad de [CaptureHintType]. */
-    private fun activeDegradations(quality: FrameQuality): List<CaptureHintType> = buildList {
-        if (quality.lensSoiling) add(CaptureHintType.CLEAN_LENS)
-        if (quality.luminance < FrameQualityThresholds.UNDEREXPOSED_BELOW) {
-            add(CaptureHintType.MORE_LIGHT)
-        }
-        if (quality.luminance > FrameQualityThresholds.OVEREXPOSED_ABOVE) {
-            add(CaptureHintType.TOO_BRIGHT)
-        }
-        if (quality.sharpness < FrameQualityThresholds.BLURRY_BELOW) {
-            add(CaptureHintType.HOLD_STEADY)
-        }
-        if (!quality.objectCentered) add(CaptureHintType.CENTER_OBJECT)
-    }
-
     companion object {
+        /**
+         * Prioridad de las indicaciones de calidad, causa raíz primero.
+         * [CaptureHint.POINT_INSIDE] no aparece: no es una degradación de
+         * captura sino un paso del flujo de inspección (S14).
+         */
+        val PRIORITY: List<CaptureHint> = listOf(
+            CaptureHint.CLEAN_LENS,
+            CaptureHint.MORE_LIGHT,
+            CaptureHint.MOVE_CLOSER,
+            CaptureHint.CENTER_OBJECT,
+        )
+
         /** Intervalo mínimo entre indicaciones nuevas consecutivas. */
         const val DEFAULT_MIN_INTERVAL_MILLIS = 3_000L
 
