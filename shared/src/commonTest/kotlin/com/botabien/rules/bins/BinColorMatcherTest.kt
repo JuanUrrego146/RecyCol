@@ -139,6 +139,24 @@ class BinColorMatcherTest {
     }
 
     @Test
+    fun elPuntoDeRecoleccionEspecialNuncaSeProponeDesdeElEscaneo() {
+        val special = BinDefinition(
+            BinId("special"),
+            "Punto de recolección especial",
+            "#795548",
+            DisposalRoute.SPECIAL_COLLECTION,
+        )
+        val withSpecial = colombianLike.copy(bins = colombianLike.bins + special)
+
+        // Una región exactamente del color declarado para el punto especial
+        // no debe emparejar con él: no es una caneca física del entorno (#54).
+        val result = matcher.match(listOf(detection(special.colorHex)), withSpecial)
+
+        assertTrue(result.matches.isEmpty())
+        assertEquals(UnmatchedReason.COLOR_NOT_IN_PROFILE, result.unmatched.single().reason)
+    }
+
+    @Test
     fun losEmparejamientosVienenEnOrdenDeConfianzaDescendente() {
         val detections = listOf(
             detection(green.colorHex, confidence = 0.5f),
