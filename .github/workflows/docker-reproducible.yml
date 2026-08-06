@@ -1,0 +1,36 @@
+# Reproducibilidad del build en Docker (agente QA, issue #50).
+# Garantiza que la compilación y las pruebas pasan en el contenedor de
+# docker-compose.yml fuera de la máquina de desarrollo: corre cada semana,
+# bajo demanda y en cualquier PR que toque el entorno de build.
+name: Docker reproducible
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+  pull_request:
+    paths:
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'settings.gradle.kts'
+      - '**/*.gradle.kts'
+      - 'gradlew'
+      - 'gradlew.bat'
+
+concurrency:
+  group: docker-reproducible-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-en-docker:
+    name: Compilar y probar dentro del contenedor
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compilar y probar (docker compose run android-build)
+        run: docker compose run --rm android-build

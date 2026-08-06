@@ -1,0 +1,36 @@
+{
+  "reportVersion": 1,
+  "measuredAt": "2026-08-06T12:00:00Z",
+  "synthetic": true,
+  "device": {
+    "model": "Dispositivo sintético de ejemplo",
+    "ramMb": 6144,
+    "apiLevel": 33,
+    "tier": "MID",
+    "delegate": "GPU"
+  },
+  "model": {
+    "variant": "MOBILENET_V3_LARGE_075_INT8",
+    "file": "material_mid_int8.tflite",
+    "sizeBytes": 4200000
+  },
+  "methodology": {
+    "buildType": "release",
+    "warmupRuns": 10,
+    "measuredRuns": 30,
+    "airplaneMode": true
+  },
+  "metrics": {
+    "endToEnd": { "p50Ms": 850, "p90Ms": 1400, "meanMs": 940 },
+    "stages": {
+      "frameQuality": { "p50Ms": 12, "p90Ms": 20, "meanMs": 14 },
+      "preprocess": { "p50Ms": 18, "p90Ms": 30, "meanMs": 20 },
+      "inference": { "p50Ms": 95, "p90Ms": 160, "meanMs": 110 },
+      "contamination": { "p50Ms": 80, "p90Ms": 140, "meanMs": 92 },
+      "ruleEngine": { "p50Ms": 1, "p90Ms": 2, "meanMs": 1 }
+    },
+    "memory": { "peakPssMb": 210 }
+  },
+  "classificationWorks": true,
+  "notes": "Muestra sintética para validar el esquema en CI. No es una medición real y no debe citarse como evidencia de RNF-001."
+}

@@ -1,0 +1,61 @@
+# Pipeline de calidad de BotaBien (agente QA, issue #50).
+# Complementa a ci.yml (compilación y pruebas de shared, agente CORE) con:
+# pruebas unitarias de androidApp, Android Lint, invariantes de arquitectura
+# por análisis estático y validación del esquema de reportes de latencia.
+name: Calidad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: calidad-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas-android:
+    name: Pruebas unitarias y Lint de androidApp
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Pruebas unitarias de androidApp
+        run: ./gradlew :androidApp:testDebugUnitTest --stacktrace
+
+      - name: Android Lint
+        run: ./gradlew :androidApp:lintDebug --stacktrace
+
+  invariantes:
+    name: Invariantes de arquitectura
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar invariantes por análisis estático
+        run: bash .github/scripts/check_invariants.sh
+
+  esquema-benchmark:
+    name: Esquema de reportes de latencia
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validar muestras contra latency-report.schema.json
+        run: pipx run check-jsonschema --schemafile benchmark/latency-report.schema.json benchmark/samples/*.json
