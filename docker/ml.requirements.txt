@@ -9,3 +9,5 @@ tqdm==4.67.1
 # S24: ejecuta U²-Net (u2net.onnx) para segmentar el objeto limpio en la
 # síntesis de contaminación.
 onnxruntime==1.20.1
+# S27: conversión PyTorch → LiteRT con cuantización INT8 (contrato EDGE S15).
+ai-edge-torch==0.7.2
