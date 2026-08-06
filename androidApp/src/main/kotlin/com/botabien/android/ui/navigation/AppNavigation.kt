@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import com.botabien.android.ui.theme.BotaMotion
+import com.botabien.domain.model.ClassificationOutcome
 
 /**
  * Destinos de la aplicación. El grafo refleja la máquina de estados de la
@@ -33,6 +34,16 @@ sealed interface AppDestination {
 
     /** Selección de país desde ajustes: recarga el perfil activo. */
     data object CountryChange : AppDestination
+
+    /**
+     * Detalle de una decisión con su justificación normativa (CUS-007).
+     * Lleva el resultado como carga: el detalle explica exactamente lo que
+     * el usuario tenía en pantalla al abrirlo.
+     */
+    data class ResultDetail(
+        val outcome: ClassificationOutcome,
+        val isManualSelection: Boolean = false,
+    ) : AppDestination
 }
 
 /**

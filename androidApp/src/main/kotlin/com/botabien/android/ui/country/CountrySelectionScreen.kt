@@ -79,8 +79,8 @@ class CountrySelectionState(
     }
 
     /**
-     * Confirma la selección: activa el perfil y reinicia el conjunto de
-     * canecas registrado, que pertenecía a la normativa anterior (RF-003).
+     * Confirma la selección y activa el perfil. El reinicio del conjunto de
+     * canecas lo hace el propio caso de uso (RF-003, coordinación #65).
      */
     fun confirm(onApplied: () -> Unit) {
         val isoCode = selectedIso ?: return
@@ -89,7 +89,6 @@ class CountrySelectionState(
             applying = true
             try {
                 dependencies.selectCountry.select(isoCode)
-                dependencies.scanBins.confirm(emptySet())
             } finally {
                 applying = false
             }
