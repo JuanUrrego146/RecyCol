@@ -21,7 +21,7 @@ on:
 
 concurrency:
   group: docker-reproducible-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build-en-docker:
