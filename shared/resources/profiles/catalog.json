@@ -1,0 +1,11 @@
+{
+  "profiles": [
+    {
+      "id": "co",
+      "country": "co",
+      "displayName": "Colombia — Resolución 2184 de 2019",
+      "file": "co.json",
+      "default": true
+    }
+  ]
+}
