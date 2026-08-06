@@ -1,0 +1,8 @@
+# Dependencias fijadas del pipeline de ML (fuera de torch/torchvision, que se
+# instalan desde el índice CPU de PyTorch en ml.Dockerfile).
+# El agente ML puede ampliar esta lista en sus issues; toda versión va fijada.
+numpy==1.26.4
+pillow==11.1.0
+pyyaml==6.0.2
+onnx==1.17.0
+tqdm==4.67.1

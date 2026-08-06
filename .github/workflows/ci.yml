@@ -1,0 +1,42 @@
+# Integración continua de BotaBien (S01).
+# Compila la app, ejecuta las pruebas multiplataforma de shared y verifica el
+# aislamiento de plataforma (ningún import android.* dentro de shared/).
+# Las versiones de JDK, Gradle (wrapper) y dependencias (version catalog) están
+# fijadas: CI y el contenedor docker/android-build.Dockerfile usan las mismas.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compilar y probar
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Pruebas de shared (multiplataforma)
+        run: ./gradlew :shared:allTests --stacktrace
+
+      - name: Verificar aislamiento de plataforma en shared
+        run: ./gradlew :shared:verifyPlatformIsolation --stacktrace
+
+      - name: Compilar androidApp (debug)
+        run: ./gradlew :androidApp:assembleDebug --stacktrace

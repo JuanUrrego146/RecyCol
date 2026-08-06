@@ -1,0 +1,36 @@
+# Entornos contenerizados de BotaBien. Uso:
+#
+#   Compilar y probar la app (equivale a lo que corre CI):
+#     docker compose run --rm android-build
+#
+#   Shell interactiva en el entorno de build:
+#     docker compose run --rm android-build bash
+#
+#   Pipeline de ML:
+#     docker compose run --rm ml bash
+#
+# La caché de Gradle persiste en el volumen `gradle-cache`: la primera ejecución
+# descarga dependencias, las siguientes son incrementales.
+services:
+  android-build:
+    build:
+      context: docker
+      dockerfile: android-build.Dockerfile
+    image: botabien/android-build:1.0.0
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - gradle-cache:/home/gradle/.gradle
+    command: ./gradlew :shared:allTests :shared:verifyPlatformIsolation :androidApp:assembleDebug
+
+  ml:
+    build:
+      context: docker
+      dockerfile: ml.Dockerfile
+    image: botabien/ml:1.0.0
+    working_dir: /workspace/ml
+    volumes:
+      - .:/workspace
+
+volumes:
+  gradle-cache:
