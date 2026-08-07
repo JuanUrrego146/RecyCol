@@ -53,7 +53,34 @@ Reglas del contrato:
   geometría del marco guía es `GuideFrameRoi.GUIDE_FRACTION` del lado menor,
   centrada: la pantalla de cámara (FRONT) debe dibujar el marco con esa misma
   geometría. `LatencyMeter` registra el coste del detector (lo consume S20).
-- `di/` — módulo Koin que expone el puerto `WasteClassifier`.
+- `tier/` — política de gama real (CUS-008, RF-029): sondeo de capacidades,
+  `WarmupBenchmark` (mediana de latencia sobre el modelo de gama baja, con
+  presupuesto duro para el criterio de los 2 s), `TierResolver` (las
+  capacidades ponen el techo, el benchmark manda), caché en `SharedPreferences`
+  invalidada por fingerprint del sistema, y degradación en uso: con la ventana
+  de latencias observadas sostenidamente sobre el umbral, la gama baja un
+  escalón y se re-cachea. **Integración pendiente con `androidApp/di/`**: el
+  arranque debe llamar una vez a `BenchmarkedTierPolicy.ensureResolved()`
+  fuera del hilo principal.
+- `di/` — módulo Koin que expone los puertos `DeviceTierPolicy` y `WasteClassifier`.
+
+## Activación por gama (RF-030) y ajuste manual (RF-031)
+
+- Toda función costosa consulta `DeviceTierPolicy.isEnabled(...)` antes de
+  activarse (invariante 5). Consumidores: este módulo (`OBJECT_DETECTION` al
+  elegir estrategia de ROI), el módulo de cámara (`CONTINUOUS_CLASSIFICATION`,
+  `FULL_FRAME_QUALITY_ANALYSIS`), el flujo de clasificación
+  (`AUTOMATIC_CONTAMINATION_INSPECTION`) y el escaneo de canecas
+  (`CONTINUOUS_BIN_SCAN`).
+- La clasificación por cámara **no** pasa por `isEnabled`: funciona en las
+  tres gamas y bajo cualquier combinación de ajustes (RNF-001); hay prueba
+  que lo verifica por gama.
+- `BenchmarkedTierPolicy.setManualOverride(tier | null)` aplica el nivel de
+  rendimiento elegido por el usuario: manda sobre la gama medida, persiste
+  entre reinicios, suspende la degradación automática y `null` vuelve al modo
+  automático. **Coordinación pendiente**: exponer esto a la pantalla de
+  ajustes (FRONT, S08) requiere un caso de uso/puerto de CORE; mientras tanto
+  el mecanismo queda estable y probado aquí.
 
 ## Decisiones
 
