@@ -19,10 +19,10 @@ package com.botabien.android.inference.model
  */
 data class ModelSpec(
     val assetFileName: String,
-    val inputSize: Int,
-    val quantizedInput: Boolean,
+    override val inputSize: Int,
+    override val quantizedInput: Boolean,
     val outputClasses: Int,
     val outputsProbabilities: Boolean = true,
-    val inputMean: Float = 0f,
-    val inputStd: Float = 255f,
-)
+    override val inputMean: Float = 0f,
+    override val inputStd: Float = 255f,
+) : InputTensorSpec
