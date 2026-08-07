@@ -661,18 +661,25 @@ VM (issue #128): no los corras a la vez.
 
 ## 9. Carpetas en disco
 
-Tras la limpieza del 07/08 quedan **dos** directorios de trabajo:
+Tras la limpieza del 07/08, en `C:\Users\Juan\Documents\GitHub\`:
 
 | Carpeta | Qué es | Por qué se conserva |
 |---|---|---|
-| `GitHub\BotaBien` | **Clon principal.** Zona neutral compartida | Es el repositorio de referencia y el padre de todos los worktrees. **No se trabaja ni se commitea aquí** |
-| `GitHub\BotaBien-ml` | Worktree del agente ML | **Contiene los datasets (2,0 GB), los checkpoints y los logs de entrenamiento, que no están en git y no se regeneran sin volver a descargar y entrenar.** Nunca borrar sin respaldar `ml/data/`, `ml/runs/` y `ml/reports/` |
+| `BotaBien` | **Clon principal**, en `main` y limpio. Zona neutral compartida | Es el repositorio de referencia y el padre de todos los worktrees. **No se trabaja ni se commitea aquí** |
+| `BotaBien-ml` | Worktree del agente ML (`ml/S22-pipeline-ingesta`) | **Contiene los datasets (2,0 GB), los checkpoints (94 MB) y los reportes de entrenamiento, que no están en git y no se regeneran sin volver a descargar y entrenar.** Nunca borrar sin respaldar `ml/data/`, `ml/runs/` y `ml/reports/` |
+| `BotaBien-org` | Worktree temporal de esta consolidación | Se elimina en cuanto se fusione el PR de `CONTEXTO.md` |
 
-Los worktrees de los demás agentes (`BotaBien-core`, `BotaBien-front`,
-`BotaBien-cam`, `BotaBien-data`, `BotaBien-qa`, `BotaBien-qa-hotfix`,
-`BotaBien.worktrees/rules`, `.botabien-worktrees/edge-*`) **se eliminaron el
-07/08**: todos estaban limpios y con sus commits empujados. Sus ramas siguen en
-`origin`, así que nada se perdió.
+Se eliminaron **16 worktrees** de agentes cerrados (`BotaBien-core`,
+`BotaBien-front`, `BotaBien-cam`, `BotaBien-data`, `BotaBien-qa`,
+`BotaBien-qa-hotfix`, `BotaBien.worktrees/rules` y los nueve
+`.botabien-worktrees/edge-*`). Todos estaban limpios y con sus commits
+empujados; **sus ramas siguen en `origin`**, así que no se perdió nada.
+
+El clon principal estaba en un `HEAD` desprendido de un commit viejo con
+cambios sin commitear. Se sincronizó con `main`; su estado anterior quedó en
+`stash@{0}` por si acaso (`git stash list` / `git stash pop`). Lo único que
+había allí y en ningún otro sitio —el bloque de `.gitignore` para las
+credenciales de Kaggle— se rescató y va en este mismo commit.
 
 **Un agente nuevo crea el suyo y lo borra al terminar:**
 
