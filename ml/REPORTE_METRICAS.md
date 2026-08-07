@@ -54,7 +54,11 @@ jamás usadas en entrenamiento ni selección). La métrica que manda es el
 - Umbral elegido (prioriza no llamar limpio a lo contaminado): 0.62 — recall contaminado 92.2%, precisión 96.2% (validación del sintético).
 - Control indirecto de transferencia: tasa de 'contaminado' en val limpia 0.0 vs control RealWaste 0.0125 (RealWaste debería puntuar claramente más alto; no existe etiqueta real de contaminación en ninguna fuente pública — limitación documentada).
 
-⚠️ **La etapa 2 no transfiere al dominio real.** Solo el 1.2% de RealWaste — residuos degradados de relleno sanitario — se marca como contaminado, frente al 0.0% de las fotos limpias de estudio. Un detector de suciedad que no ve suciedad en un relleno ha aprendido el artefacto de la síntesis, no la contaminación. **No cablear la etapa 2 en automático**: aplica el plan B (preguntar al usuario) hasta que exista un mini-set real con etiqueta limpio/sucio.
+⚠️ **La etapa 2 no transfiere al dominio real.** Solo el 1.2% de RealWaste — residuos degradados de relleno sanitario — se marca como contaminado, frente al 0.0% de las fotos limpias de estudio. Un detector de suciedad que no ve suciedad en un relleno ha aprendido el artefacto de la síntesis, no la contaminación.
+
+**Decisión tomada (07/08): plan B activado.** La etapa 2 automática se sustituye por una pregunta al usuario, **solo para cartón y papel**, donde la contaminación es irreversible; plástico, vidrio y metal se enjuagan y no preguntan nada. El modelo queda entrenado y documentado pero **no es bloqueante para M4** y no se cablea en automático.
+
+Causa y palancas en `reports/S26-contaminacion/RESULTADO.md`. En corto: el fallo principal no es la mancha sino **el diseño del par** — limpio y sucio son la misma foto con y sin parche, así que la tarea se reduce a «¿hay algo superpuesto?». Acotado a fibra de celulosa el problema es bastante más fácil, porque la fibra **absorbe**: la grasa cambia translucidez y saturación del material en vez de superponer un parche opaco. Nada de esto es medible sin un conjunto real con etiqueta limpio/sucio — es la captura prioritaria de RecyCol Entrenamiento.
 
 ## Export LiteRT INT8 (S27)
 

@@ -57,37 +57,84 @@ Es el mismo patrón que el hallazgo central de M4 con el clasificador de materia
 **el dominio de entrenamiento y el dominio real no miden lo mismo**, y una
 métrica interna alta es sospechosa por defecto.
 
-## Consecuencia de producto — decisión de Juan
+## Decisión tomada: plan B activado (07/08)
 
-El riesgo estaba registrado («la contaminación sintética puede no transferir») con
-un plan B ya previsto: **reducir la etapa 2 a una pregunta explícita al usuario,
-conservando el flujo de UX**. Esta medición es la evidencia que activa esa
-decisión, y encaja con la decisión ya tomada de que la baja confianza sea el flujo
-protagonista y de que la app asuma la duda en primera persona.
+Juan activó el plan B. **La etapa 2 automática queda sustituida por una pregunta
+al usuario** («¿está sucio? ¿tiene grasa o restos?») **y solo para cartón y
+papel**, que es donde la contaminación es irreversible. **Plástico, vidrio y
+metal no preguntan nada**: se enjuagan y se reciclan igual.
 
-Afecta directamente al caso estrella: la regla del vaso de café y de la caja de
-pizza exigen inspección del interior, y hoy **no hay detector fiable que la
-resuelva automáticamente**. La regla en sí no cambia — vive en el perfil
-normativo, no en el modelo — cambia quién responde a la pregunta «¿está limpio?».
+Consecuencia para ML: **la etapa 2 deja de ser bloqueante para M4.** El modelo
+queda entrenado y sus métricas documentadas, pero no se invierte más en él.
 
-**No se toca el contrato EDGE↔ML.** `contamination.tflite` sigue existiendo con su
-orden `[CLEAN, CONTAMINATED]`; lo que se decide es si la app lo consulta o
-pregunta al usuario.
+### El problema acotado es bastante más fácil
 
-## Qué haría falta para arreglarlo de verdad
+Con el recorte a cartón y papel, esto deja de ser «detectar suciedad en cualquier
+residuo» y pasa a ser **«detectar grasa y líquido en fibra de celulosa»**. Es un
+problema más pequeño y con una propiedad física aprovechable: **la fibra
+absorbe**.
+
+Una mancha de grasa en cartón **no es un parche superpuesto** —que es exactamente
+lo que la síntesis fabricaba, y por lo que fracasó— sino un cambio de
+**translucidez y saturación del propio material**, con bordes difusos, sin brillo
+especular y sin frontera nítida. Esa firma es mucho más estable entre objetos que
+«suciedad» en abstracto, porque depende del sustrato y el sustrato ahora está
+fijo.
+
+De ahí la intuición concreta: **una síntesis específica de absorción en fibra**
+—oscurecer localmente, subir saturación, reducir contraste local y difuminar los
+bordes, **sin superponer color opaco**— debería transferir bastante mejor que la
+actual. Se puede hacer con las mismas herramientas y ataca justo el atajo que el
+modelo aprendió.
+
+Con la salvedad de siempre, que aquí es lo que manda: **sin datos reales
+etiquetados no hay forma de saber si funciona**, porque la métrica sintética ya
+demostró mentir. Por eso el estado de contaminación en cartón y papel es la
+captura prioritaria de la fase RecyCol Entrenamiento (§10 de `CONTEXTO.md`): es
+lo único que la síntesis no logró replicar y no existe en ninguna fuente pública.
+
+## Encaje del plan B
+
+El riesgo estaba registrado («la contaminación sintética puede no transferir») y
+esta medición es la evidencia que activó su plan B. Encaja con la decisión ya
+tomada de que la baja confianza sea el flujo protagonista y de que la app asuma
+la duda en primera persona.
+
+**Nada de arquitectura cambia:**
+
+- **El motor de reglas no se toca.** La regla del vaso de café y de la caja de
+  pizza vive en el perfil normativo (`contaminatedFallback`), no en el modelo.
+- **El contrato EDGE↔ML tampoco.** `contamination.tflite` sigue existiendo con su
+  orden `[CLEAN, CONTAMINATED]`, e `inspectContamination` sigue en el puerto.
+- **Lo único que cambia es quién rellena `ContaminationState`**: en vez de la
+  etapa 2, el usuario. Para plástico, vidrio y metal ni siquiera se pregunta.
+- Encaja con el invariante 8: ante la duda, caneca conservadora del perfil con su
+  `FallbackReason`.
+- En gama baja la etapa 2 ya era solo captura manual dirigida, así que el plan B
+  **alinea las tres gamas** en el mismo comportamiento.
+
+Ventaja no menor: elimina el **falso «limpio» silencioso**, que es el error caro
+—manda un reciclable sucio a la caneca blanca sin que nadie se entere—. El usuario
+sí sabe si su vaso tiene café dentro.
+
+## Qué haría falta si se retoma
 
 Por orden de retorno:
 
-1. **Un mini-set real de evaluación** con etiqueta limpio/sucio, de evaluación
-   exclusivamente y jamás de entrenamiento. Sin él, esta etapa no tiene métrica
-   honesta y cualquier mejora es invisible. Encaja con el mini-set de ≈400 fotos
-   que ya está especificado para el caso estrella.
-2. **Síntesis más agresiva y variada**: decoloración global, deformación, desgaste
-   y no solo manchas superpuestas — atacando el atajo concreto que el modelo
-   aprendió.
-3. Reconsiderar el enfoque: quizá la señal útil no sea «sucio/limpio» sino
-   «puedo verlo con claridad», que es lo que el `frame_quality_gate.py` de CÁMARA
-   ya mide y que aún no se ha usado.
+1. **Romper la simetría del par** (unas líneas en `PairDataset`): que limpio y
+   sucio no vengan del mismo objeto. Es lo más barato y el mejor diagnóstico —
+   si la exactitud sintética se desploma, confirma que el 94 % era el atajo.
+2. **Síntesis de absorción en fibra** para cartón y papel, según lo anterior:
+   translucidez y saturación en vez de parche opaco.
+3. **Bajar el alfa** de 0,80–0,97 a 0,3–0,7 y variar más.
+4. **Degradación global** además de la mancha, y componer sobre fondos degradados.
+5. **Un mini-set real con etiqueta limpio/sucio** — de evaluación exclusivamente,
+   jamás de entrenamiento. **Es la condición para que cualquiera de los puntos
+   anteriores sea medible**; sin él la única métrica sería otra vez la sintética,
+   que ya demostró mentir. Lo aporta RecyCol Entrenamiento.
+6. Reconsiderar el enfoque: quizá la señal útil no sea «sucio/limpio» sino «puedo
+   verlo con claridad», que es lo que `frame_quality_gate.py` de CÁMARA ya mide y
+   que sigue sin usarse.
 
 ## Artefactos
 
