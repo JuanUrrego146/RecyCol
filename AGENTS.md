@@ -53,6 +53,17 @@ Reglas nacidas de incidentes reales del primer día. No son opcionales.
   de tocar los archivos.
 - QA tiene autoridad de fusión rutinaria; ante la duda, la escala a CORE.
 
+### Tablero de estado (issue fija #123)
+- **Cada hito completado se publica en el tablero #123** con tres líneas: qué
+  terminaste, dónde está (rama, PR, ruta de artefactos si no viven en git) y
+  qué sigue. Computación larga: heartbeat cada ~30 minutos con ETA.
+- El estado real del proyecto vive en ramas sin fusionar, PRs en borrador y
+  artefactos fuera de git — **no se mide por `main` ni por issues cerradas**.
+  El tablero es la fuente de verdad de CORE para reportar a Juan: lo que no
+  esté allí ni en una rama visible, no existe.
+- CORE pregunta en el tablero (o en tu PR) antes de reportar sobre ti;
+  responde aunque sea un renglón.
+
 ### Regla anti-parón
 - **Nadie termina su turno con trabajo pendiente de su milestone.** Al terminar
   un PR se arranca la siguiente issue en el mismo turno. Nadie espera CI,
