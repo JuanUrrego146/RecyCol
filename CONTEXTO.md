@@ -11,14 +11,12 @@ de la campaña de siete agentes en paralelo del 06–07/08.
 
 > ### 🔄 Renombrado en curso: BotaBien → RecyCol
 >
-> El proyecto se está renombrando por partes verificables (QA, en curso). Hasta
-> que termine, este documento describe el estado real y por tanto **sigue
-> mencionando `BotaBien` donde la infraestructura real aún no cambió**: rutas de
-> disco (`BotaBien`, `BotaBien-ml`), namespace de código (`com.botabien.*`,
-> bloqueado por el PR #144 de FRONT), imágenes y contenedores Docker, runners
-> self-hosted y la URL del repositorio de GitHub. No lo edites para
-> "adelantarlo" — cada mención se actualiza junto con el cambio de
-> infraestructura que describe, no antes.
+> El proyecto se está renombrando por partes verificables (QA, en curso).
+> Hechos y verificados: documentación, Docker/runners/CI, repo de GitHub y el
+> namespace de código (`com.recycol.*`). **Solo falta la fase 7**: las carpetas
+> en disco (`BotaBien`, `BotaBien-ml`) siguen con el nombre viejo — se
+> renombran coordinando con Juan/ML para no tumbar un entrenamiento activo. No
+> edites las menciones a esas rutas para "adelantarlas".
 
 ---
 
@@ -91,7 +89,7 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
   contenedor, y el sufijo `-p <proyecto>` es obligatorio para no chocar por el
   lock de Gradle:
   ```bash
-  docker compose -p botabien-<agente> run --rm android-build ./gradlew <tareas>
+  docker compose -p recycol-<agente> run --rm android-build ./gradlew <tareas>
   ```
   Batería equivalente a CI:
   `:shared:allTests :shared:testing:allTests :shared:verifyPlatformIsolation :androidApp:testDebugUnitTest :androidApp:assembleDebug`
@@ -100,7 +98,7 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
   verdad, no por el rollup:
   `gh api repos/JuanUrrego146/RecyCol/commits/<sha>/check-runs`.
 - **Runners propios**, self-hosted y dockerizados, sobre la misma imagen
-  `botabien/android-build` que el build local. Runbook en
+  `recycol/android-build` que el build local. Runbook en
   [`.github/runner/README.md`](.github/runner/README.md). Levantarlos tras un
   reinicio, desde `.github/runner/`:
   ```bash
@@ -115,13 +113,13 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
   que fusiona `main` primero.
 - **No relanzar checks en masa** (congeló la cola 90 min) ni empujar commits
   vacíos a ramas ajenas para redisparar.
-- Cada run verde deja el APK: `gh run download <run-id> -n botabien-debug-apk`.
+- Cada run verde deja el APK: `gh run download <run-id> -n recycol-debug-apk`.
 
 ### Diagnósticos que cuesta caro repetir
 
 | Síntoma | Causa real |
 |---|---|
-| Job en `failure` **sin ningún paso fallido** | OOM del contenedor contra su `mem_limit` (un pipeline en frío pide 6–7 GB). Comprueba: `docker inspect botabien-runner-1 --format '{{.State.OOMKilled}}'` |
+| Job en `failure` **sin ningún paso fallido** | OOM del contenedor contra su `mem_limit` (un pipeline en frío pide 6–7 GB). Comprueba: `docker inspect recycol-runner-1 --format '{{.State.OOMKilled}}'` |
 | «Could not read workspace metadata» | Caché `kotlin-dsl` del volumen corrupta tras reiniciar Docker: bórrala y repite |
 | Run muerto con `runner: NONE`, cero pasos | Infraestructura: relanzar |
 | `gh pr checks` vacío | Verifica por rama y SHA: `gh run list --branch <rama>` contra `git rev-parse origin/<rama>` |

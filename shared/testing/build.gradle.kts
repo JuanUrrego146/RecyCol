@@ -34,7 +34,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.botabien.shared.testing"
+    namespace = "com.recycol.shared.testing"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

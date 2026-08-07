@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "com.botabien.android"
+    namespace = "com.recycol.android"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.botabien.android"
+        applicationId = "com.recycol.android"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

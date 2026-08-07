@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "com.botabien.android.inference"
+    namespace = "com.recycol.android.inference"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
