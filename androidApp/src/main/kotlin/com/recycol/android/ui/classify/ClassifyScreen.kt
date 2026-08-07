@@ -1,7 +1,9 @@
 package com.recycol.android.ui.classify
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -151,6 +153,23 @@ fun ClassifyScreen(
         soilAnsweredEpoch != state.decision?.epoch &&
         state.outcome?.manualSelection != true
 
+    // Qué ocupa la ranura inferior. Sellado y excluyente a propósito: es lo que
+    // garantiza que nunca haya dos superficies de cristal a la vez (#161).
+    val visible = state.outcome
+    val soilMaterial = detectedMaterial?.takeIf { needsSoilAnswer }
+    val decided = visible?.disposal
+    val bottomSlot: DecisionSlot = when {
+        soilMaterial != null -> DecisionSlot.Soil(soilMaterial)
+        decided != null -> DecisionSlot.Decided(
+            disposal = decided,
+            material = detectedMaterial,
+            epoch = state.decision?.epoch,
+        )
+
+        visible?.needsUserDecision == true -> DecisionSlot.Unsure
+        else -> DecisionSlot.Empty
+    }
+
     fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
             val result = dependencies.resolveManualDisposal.resolve(material, contamination)
@@ -264,59 +283,69 @@ fun ClassifyScreen(
                 ),
         )
 
-        // Mientras la pregunta de suciedad está en pantalla, la decisión se
-        // calla: todavía no está decidida, depende de lo que conteste.
-        if (needsSoilAnswer && detectedMaterial != null) {
-            SoilQuestionCard(
-                material = detectedMaterial,
-                onAnswer = { contamination -> answerSoil(detectedMaterial, contamination) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(
-                        start = BotaTheme.spacing.screenMargin,
-                        end = BotaTheme.spacing.screenMargin,
-                        bottom = BotaTheme.spacing.xxl,
-                    ),
-            )
+        // Una sola superficie viva en la ranura inferior (#161). Antes eran tres
+        // visibilidades independientes en la misma posición: al cambiar de
+        // estado, la saliente seguía compuesta mientras la entrante ya estaba
+        // dentro, las dos capas de atenuación del cristal se sumaban y quedaba
+        // un rectángulo más oscuro con bordes duros y el texto de la tarjeta
+        // anterior asomando por debajo. El cristal no estaba mal: se apilaba.
+        AnimatedContent(
+            targetState = bottomSlot,
+            transitionSpec = {
+                // La saliente se apaga **antes** de que entre la siguiente. Sin
+                // ese retardo las dos coexisten translúcidas y el material se
+                // suma consigo mismo, que es justo el artefacto.
+                (
+                    fadeIn(
+                        tween(
+                            BotaMotion.DURATION_BASE_MS,
+                            delayMillis = BotaMotion.DURATION_FAST_MS,
+                        ),
+                    ) + slideInVertically(BotaMotion.surfaceSpring()) { it / 2 }
+                    ) togetherWith fadeOut(tween(BotaMotion.DURATION_FAST_MS))
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = BotaTheme.spacing.screenMargin,
+                    end = BotaTheme.spacing.screenMargin,
+                    bottom = BotaTheme.spacing.xxl,
+                ),
+            label = "decisionSlot",
+        ) { slot ->
+            when (slot) {
+                DecisionSlot.Empty -> Spacer(modifier = Modifier)
+
+                // Mientras la pregunta de suciedad está en pantalla, la decisión
+                // se calla: todavía no está decidida, depende de lo que conteste.
+                is DecisionSlot.Soil -> SoilQuestionCard(
+                    material = slot.material,
+                    onAnswer = { contamination -> answerSoil(slot.material, contamination) },
+                )
+
+                is DecisionSlot.Decided -> ResultOverlay(
+                    disposal = slot.disposal,
+                    material = slot.material,
+                    decisionEpoch = slot.epoch,
+                    onClick = { state.outcome?.let(onOpenResultDetail) },
+                    onCorrect = {
+                        // Desmentir la decisión arranca por las hipótesis
+                        // probables, igual que el camino de baja confianza.
+                        sheetCandidates = state.candidates()
+                        showManualSheet = true
+                    },
+                )
+
+                DecisionSlot.Unsure -> LowConfidencePrompt(
+                    onChooseManually = {
+                        // La desambiguación arranca con las hipótesis probables
+                        // del modelo: hoy la mejor (top-1); top-K cuando llegue #126.
+                        sheetCandidates = state.candidates()
+                        showManualSheet = true
+                    },
+                )
+            }
         }
-
-        ResultOverlay(
-            disposal = if (needsSoilAnswer) null else state.outcome?.disposal,
-            material = state.outcome?.classification?.material,
-            decisionEpoch = state.decision?.epoch,
-            onClick = { state.outcome?.let(onOpenResultDetail) },
-            onCorrect = {
-                // Desmentir la decisión arranca por las hipótesis probables,
-                // igual que el camino de baja confianza.
-                sheetCandidates = state.candidates()
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    start = BotaTheme.spacing.screenMargin,
-                    end = BotaTheme.spacing.screenMargin,
-                    bottom = BotaTheme.spacing.xxl,
-                ),
-        )
-
-        LowConfidencePrompt(
-            visible = state.outcome?.needsUserDecision == true &&
-                state.outcome?.disposal == null,
-            onChooseManually = {
-                // La desambiguación arranca con las hipótesis probables del
-                // modelo: hoy la mejor (top-1); top-K cuando llegue #126.
-                sheetCandidates = state.candidates()
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    start = BotaTheme.spacing.screenMargin,
-                    end = BotaTheme.spacing.screenMargin,
-                    bottom = BotaTheme.spacing.xxl,
-                ),
-        )
 
         // La recompensa: la flor del logo florece sobre lo que se acaba de
         // clasificar. Solo cuando la decisión es firme — ver BloomBurst.
@@ -356,21 +385,33 @@ fun ClassifyScreen(
 }
 
 /**
+ * Qué ocupa la ranura inferior de la pantalla, que es una sola: decisión,
+ * pregunta de suciedad, aviso de duda o nada. Sellado para que el compilador
+ * garantice la exclusión mutua — cuando eran tres visibilidades sueltas nada
+ * impedía que se pintaran a la vez (#161).
+ */
+private sealed interface DecisionSlot {
+    data object Empty : DecisionSlot
+    data class Soil(val material: WasteMaterial) : DecisionSlot
+    data class Decided(
+        val disposal: Disposal,
+        val material: WasteMaterial?,
+        val epoch: Int?,
+    ) : DecisionSlot
+
+    data object Unsure : DecisionSlot
+}
+
+/**
  * Aviso de baja confianza (RF-023): la app no adivina; ofrece otra toma o
  * la selección manual. Discreto, sin bloquear la vista en vivo.
  */
 @Composable
 private fun LowConfidencePrompt(
-    visible: Boolean,
     onChooseManually: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(BotaMotion.surfaceSpring()) { it / 2 } + fadeIn(),
-        exit = slideOutVertically(tween(BotaMotion.DURATION_FAST_MS)) { it / 2 } + fadeOut(),
-        modifier = modifier,
-    ) {
+    Box(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -543,22 +584,14 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun ResultOverlay(
-    disposal: Disposal?,
+    disposal: Disposal,
     material: WasteMaterial?,
     decisionEpoch: Int?,
     onClick: () -> Unit,
     onCorrect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = disposal != null,
-        enter = slideInVertically(BotaMotion.surfaceSpring()) { it / 2 } + fadeIn(),
-        exit = slideOutVertically(tween(BotaMotion.DURATION_FAST_MS)) { it / 2 } + fadeOut(),
-        modifier = modifier,
-    ) {
-        var lastDisposal by remember { mutableStateOf(disposal) }
-        if (disposal != null) lastDisposal = disposal
-
+    Box(modifier = modifier) {
         val interactionSource = remember { MutableInteractionSource() }
         val pressed by interactionSource.collectIsPressedAsState()
         val scale by animateFloatAsState(
@@ -575,12 +608,10 @@ private fun ResultOverlay(
         // por otro fotograma no lo es.
         val haptics = LocalHapticFeedback.current
         LaunchedEffect(decisionEpoch) {
-            if (disposal != null) {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         }
 
-        lastDisposal?.let { current ->
+        disposal.let { current ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
