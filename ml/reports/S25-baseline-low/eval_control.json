@@ -6,6 +6,7 @@
   "n": 4752,
   "top1": 0.3927,
   "route": 0.6593,
+  "route_macro": 0.6667,
   "rnf008": {
     "material_goal": 0.85,
     "route_goal": 0.95,
@@ -69,5 +70,29 @@
       "route": 0.3495,
       "confundido_con": "PLASTIC"
     }
-  ]
+  ],
+  "route_confusion": {
+    "routes": [
+      "NON_RECYCLABLE",
+      "ORGANIC",
+      "RECYCLABLE"
+    ],
+    "matrix": [
+      [
+        372,
+        28,
+        413
+      ],
+      [
+        125,
+        124,
+        598
+      ],
+      [
+        447,
+        8,
+        2637
+      ]
+    ]
+  }
 }
