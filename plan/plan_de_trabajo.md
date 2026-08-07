@@ -119,7 +119,7 @@ Cada sesión es una issue del repositorio. El criterio de hecho es la condición
 
 | Sesión | Objetivo | Requerimientos | Horas | Criterio de hecho |
 |---|---|---|---|---|
-| S21 | Inventario de datasets públicos, licencias y mapeo de taxonomía | RNF-016, RNF-017 | 8 | `ml/DATASETS.md` y `label_mapping.yaml` completos y revisados |
+| S21 | Inventario de datasets públicos, licencias y mapeo de taxonomía | RNF-016, RNF-017 | 8 | `ml/DATA_LICENSES.md` y `label_mapping.yaml` completos y revisados |
 | S22 | Pipeline de ingesta, unificación y particiones reproducibles | RNF-016 | 10 | El pipeline se reproduce desde cero con semilla fija y produce las mismas particiones |
 | S23 | Augmentación orientada al dominio móvil real | RNF-008 | 8 | Desenfoque, movimiento, luz, ruido, artefactos JPEG y oclusión aplicados y verificados visualmente |
 | S24 | Síntesis de contaminación por segmentación y composición | RF-021 | 16 | Conjunto sintético de reciclables contaminados generado y revisado por muestreo |

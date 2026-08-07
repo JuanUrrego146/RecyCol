@@ -212,10 +212,10 @@ S = [
   "RNF-016, RNF-017","CUS-003",
   "Queda documentado qué conjuntos de datos públicos se usan, bajo qué licencia, y cómo se traducen sus etiquetas a la taxonomía del proyecto.",
   ["Inventariar y descargar los conjuntos candidatos: Garbage Dataset v2, Garbage Classification, RealWaste, TrashNet, TACO y ZeroWaste",
-   "Verificar y documentar la licencia de cada uno en `ml/DATASETS.md`",
+   "Verificar y documentar la licencia de cada uno en `ml/DATA_LICENSES.md`",
    "Escribir `ml/taxonomy/label_mapping.yaml` con la traducción a `WasteMaterial`",
    "Descartar explícitamente los conjuntos cuya licencia no sea compatible"],
-  "`ml/DATASETS.md` y `label_mapping.yaml` están completos, revisados, y toda etiqueta de origen tiene destino o descarte justificado.", 8),
+  "`ml/DATA_LICENSES.md` y `label_mapping.yaml` están completos, revisados, y toda etiqueta de origen tiene destino o descarte justificado.", 8),
 
  ("S22","ML",4,"Pipeline de ingesta, unificación y particiones reproducibles",
   "RNF-016","CUS-003",
@@ -492,13 +492,13 @@ CODEOWNERS = """# Ámbitos exclusivos por agente. Escribir fuera del propio ámb
 
 AGENTS_MD = """# Instrucciones para agentes
 
-Lee `context-for-vibe-coding.md` antes de escribir una sola línea de código.
+Lee `CONTEXTO.md` antes de escribir una sola línea de código.
 Contiene las reglas obligatorias del proyecto: stack, convenciones, estructura de
 módulos, invariantes de arquitectura, contratos entre agentes y definición de "hecho".
 
 Antes de empezar una issue:
 
-1. Lee `context-for-vibe-coding.md` completo.
+1. Lee `CONTEXTO.md` completo.
 2. Lee `docs/arquitectura.md` para entender dónde encaja tu módulo.
 3. Comprueba en `plan/plan_de_trabajo.md` cuál es tu ámbito de archivos exclusivo.
 4. Implementa exactamente los RF y CUS que cita la issue: ni una feature de más.
@@ -582,7 +582,7 @@ def build():
         body.append("%d horas — agente %s, hito «%s», según plan/plan_de_trabajo.md" % (horas, agente, ms_title))
         body.append("")
         body.append("## Antes de empezar")
-        body.append("Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente %s "
+        body.append("Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente %s "
                     "y usa los fakes de `shared/testing/` para los módulos de otros agentes." % agente)
         a("")
         a('gh issue create \\')
