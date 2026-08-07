@@ -105,6 +105,24 @@ def main() -> int:
             "(RealWaste debería puntuar claramente más alto; no existe etiqueta real de "
             "contaminación en ninguna fuente pública — limitación documentada).",
         ]
+        # El umbral puede cumplir su recall en el val SINTETICO y aun asi no
+        # transferir: es lo que paso en S26 (94 % en sintetico, 1,25 % de
+        # RealWaste marcado). Sin este veredicto explicito, la tabla de arriba
+        # se lee como un exito.
+        degradado = control.get("realwaste_control")
+        limpio = control.get("trashnet_like_clean")
+        if degradado is not None and limpio is not None and degradado < 0.10:
+            lines += [
+                "",
+                f"⚠️ **La etapa 2 no transfiere al dominio real.** Solo el "
+                f"{degradado:.1%} de RealWaste — residuos degradados de relleno "
+                f"sanitario — se marca como contaminado, frente al {limpio:.1%} de "
+                "las fotos limpias de estudio. Un detector de suciedad que no ve "
+                "suciedad en un relleno ha aprendido el artefacto de la síntesis, no "
+                "la contaminación. **No cablear la etapa 2 en automático**: aplica el "
+                "plan B (preguntar al usuario) hasta que exista un mini-set real con "
+                "etiqueta limpio/sucio.",
+            ]
 
     if export:
         lines += [

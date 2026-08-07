@@ -1,0 +1,68 @@
+{
+  "classes": [
+    "CLEAN",
+    "CONTAMINATED"
+  ],
+  "threshold": {
+    "threshold": 0.62,
+    "recall": 0.9215,
+    "precision": 0.9623,
+    "min_recall": 0.92,
+    "meets_min_recall": true
+  },
+  "history": [
+    {
+      "epoch": 0,
+      "loss": 0.3747,
+      "val_acc@0.5": 0.8611,
+      "seconds": 51.6
+    },
+    {
+      "epoch": 1,
+      "loss": 0.2315,
+      "val_acc@0.5": 0.9215,
+      "seconds": 53.1
+    },
+    {
+      "epoch": 2,
+      "loss": 0.1874,
+      "val_acc@0.5": 0.9184,
+      "seconds": 51.7
+    },
+    {
+      "epoch": 3,
+      "loss": 0.1692,
+      "val_acc@0.5": 0.9364,
+      "seconds": 50.6
+    },
+    {
+      "epoch": 4,
+      "loss": 0.1524,
+      "val_acc@0.5": 0.938,
+      "seconds": 52.8
+    },
+    {
+      "epoch": 5,
+      "loss": 0.1313,
+      "val_acc@0.5": 0.9286,
+      "seconds": 51.5
+    },
+    {
+      "epoch": 6,
+      "loss": 0.1171,
+      "val_acc@0.5": 0.9458,
+      "seconds": 51.3
+    },
+    {
+      "epoch": 7,
+      "loss": 0.1158,
+      "val_acc@0.5": 0.9403,
+      "seconds": 51.3
+    }
+  ],
+  "proxy_control_rate": {
+    "trashnet_like_clean": 0.0,
+    "realwaste_control": 0.0125
+  },
+  "note": "proxy_control_rate es la fracci\u00f3n clasificada como CONTAMINATED en conjuntos externos sin etiqueta real de contaminaci\u00f3n: control indirecto, ver S28."
+}
