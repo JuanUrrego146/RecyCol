@@ -7,7 +7,7 @@
 # quedan en el volumen y los reinicios posteriores no necesitan token.
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/JuanUrrego146/BotaBien}"
+REPO_URL="${REPO_URL:-https://github.com/JuanUrrego146/RecyCol}"
 RUNNER_NAME="${RUNNER_NAME:-recycol-runner}"
 RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,docker,recycol}"
 
@@ -24,7 +24,7 @@ fi
 if [ ! -f .runner ]; then
   if [ -z "${RUNNER_TOKEN:-}" ]; then
     echo "ERROR: runner sin configurar y sin RUNNER_TOKEN. Genera uno con:" >&2
-    echo "  gh api -X POST repos/JuanUrrego146/BotaBien/actions/runners/registration-token --jq .token" >&2
+    echo "  gh api -X POST repos/JuanUrrego146/RecyCol/actions/runners/registration-token --jq .token" >&2
     exit 1
   fi
   ./config.sh --unattended --replace \

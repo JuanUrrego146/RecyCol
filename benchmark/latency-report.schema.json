@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/JuanUrrego146/BotaBien/benchmark/latency-report.schema.json",
+  "$id": "https://github.com/JuanUrrego146/RecyCol/benchmark/latency-report.schema.json",
   "title": "Reporte de latencia por gama de dispositivo",
   "description": "Formato común de los resultados del banco de latencia (RNF-001, RNF-003). Lo producen EDGE (S20) y QA (S41); CI valida las muestras contra este esquema.",
   "type": "object",
