@@ -4,6 +4,9 @@
     formato, así que no hacen falta mapas de bits de respaldo por densidad: el
     icono es vectorial en todas partes y no pesa nada.
 
+    Por lo mismo la carpeta no lleva el calificador -v26 que suele acompañar a
+    los iconos adaptativos: con minSdk 26 es redundante, y Lint lo avisa.
+
     La capa monocroma la usa Android 13+ para los iconos temáticos.
 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">

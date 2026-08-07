@@ -117,15 +117,19 @@ Es **monocromático por diseño**. La profundidad sale de la opacidad de la tier
 de la segunda hoja (55 %), nunca de un segundo tono: por eso la variante monocroma del
 icono de lanzador es el mismo dibujo sin retocar nada.
 
-El logo existe en cuatro formatos porque cada consumidor exige el suyo, y
+El logo existe en tres formatos porque cada consumidor exige el suyo, y
 `BotaLogoResourcesTest` **rompe el build si divergen**:
 
 | Dónde | Para qué |
 |---|---|
 | `BotaLogoPaths` (en `BotaLogo.kt`) | **Origen de verdad** de las curvas |
-| `drawable/ic_logo_botabien.xml` | Recurso de plataforma, para consumidores que no son Compose |
 | `drawable/ic_launcher_foreground.xml` · `ic_launcher_monochrome.xml` | Capas del icono adaptativo, en el lienzo de 108 dp |
 | `docs/brand/botabien-logo.svg` | Maestro para usos externos: favicon, tienda, presentaciones |
+
+No hay un `VectorDrawable` suelto del logo: no lo consumía nadie, y un recurso sin
+consumidor es código muerto que además ensucia el Lint. Si algún día hace falta uno
+—por ejemplo para `windowSplashScreenAnimatedIcon`— se añade **con** su consumidor y
+su fila en esta tabla.
 
 ```kotlin
 BotaLogo(

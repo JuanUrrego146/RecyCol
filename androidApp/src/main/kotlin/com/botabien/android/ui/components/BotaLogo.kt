@@ -26,9 +26,9 @@ import kotlin.math.min
  * con el brote dominando la composición: lo primero que se lee es la flor, no
  * la basura.
  *
- * Se dibuja por trazados en vez de consumir el `VectorDrawable` equivalente
- * porque el arranque necesita animar el brote pieza a pieza ([growth]), y un
- * recurso vectorial solo se puede escalar o teñir entero.
+ * Se dibuja por trazados en vez de consumir un recurso vectorial porque el
+ * arranque necesita animar el brote pieza a pieza ([growth]), y un
+ * `VectorDrawable` solo se puede escalar o teñir entero.
  *
  * Un solo color, el de marca: la profundidad sale de la opacidad de la tierra y
  * de la segunda hoja, nunca de un segundo tono. Eso es lo que permite que la
@@ -156,9 +156,8 @@ private fun String.toPath(): Path = PathParser().parsePathString(this).toPath()
 
 /**
  * Trazados del logo en la rejilla de 96, en coordenadas absolutas. **Son el
- * origen de verdad del logo**: los recursos vectoriales de plataforma
- * (`ic_logo_botabien`, las capas del icono de lanzador) y el SVG maestro de
- * `docs/brand/` repiten estas mismas cadenas, y `BotaLogoResourcesTest`
+ * origen de verdad del logo**: las capas del icono de lanzador y el SVG maestro
+ * de `docs/brand/` repiten estas mismas cadenas, y `BotaLogoResourcesTest`
  * comprueba que no divergen.
  */
 internal object BotaLogoPaths {

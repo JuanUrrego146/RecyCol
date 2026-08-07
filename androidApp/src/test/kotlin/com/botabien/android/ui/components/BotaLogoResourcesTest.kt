@@ -6,10 +6,10 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * El logo existe en cuatro sitios a la vez —el composable, el recurso vectorial
- * de plataforma, las dos capas del icono de lanzador y el SVG maestro— porque
- * cada consumidor exige un formato distinto: el lanzador no ejecuta Compose y
- * Compose no puede animar por piezas un recurso vectorial.
+ * El logo existe en tres sitios a la vez —el composable, las dos capas del icono
+ * de lanzador y el SVG maestro— porque cada consumidor exige un formato
+ * distinto: el lanzador no ejecuta Compose y Compose no puede animar por piezas
+ * un recurso vectorial.
  *
  * Esa duplicación solo es aceptable si no puede divergir en silencio, y de eso
  * se ocupa esta prueba: si alguien retoca una curva en un sitio y se olvida del
@@ -26,11 +26,6 @@ class BotaLogoResourcesTest {
         "hoja derecha" to BotaLogoPaths.SECOND_LEAF,
         "flor" to BotaLogoPaths.FLOWER,
     )
-
-    @Test
-    fun `el recurso vectorial del logo usa los trazados del composable`() {
-        assertContainsEveryPath("androidApp/src/main/res/drawable/ic_logo_botabien.xml")
-    }
 
     @Test
     fun `la capa de primer plano del icono usa los trazados del composable`() {
