@@ -4,11 +4,11 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.recycol.domain.model.CaptureHint
 import com.recycol.domain.model.ClassificationOutcome
 import com.recycol.domain.model.ImageFrame
 import com.recycol.domain.model.WasteMaterial
-import com.recycol.domain.usecase.ClassifyWasteUseCase
+import com.recycol.domain.usecase.StabilizedDecision
+import com.recycol.domain.usecase.TrackClassificationUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -16,48 +16,42 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 
 /**
- * Estado de la pantalla de clasificación (CUS-003, CUS-004). Orquesta el caso
- * de uso sobre el flujo de frames; toda la decisión —calidad, umbrales,
- * reglas, caneca— vive en `shared/domain` (invariante 4).
+ * Estado de la pantalla de clasificación (CUS-003, CUS-004). Bombea frames hacia
+ * [TrackClassificationUseCase] y publica lo que este decida: aquí no se decide
+ * nada (invariante 4).
  *
- * Flujo de inspección interior (CUS-005): cuando el resultado trae la
- * directiva [CaptureHint.POINT_INSIDE], se da al usuario un periodo de gracia
- * para reorientar la cámara y el siguiente frame se envía a
- * [ClassifyWasteUseCase.resolveContamination] para la decisión definitiva.
- *
- * **Ese camino está desactivado mientras dure el plan B**
- * ([askUserAboutContamination]): la etapa de contaminación se entrenó con
- * suciedad sintética y marca como limpio el 98,75 % de la suciedad real, así que
- * resolverla automáticamente daba una respuesta casi siempre equivocada. Peor
- * aún, competía con la pregunta al usuario y la pisaba. Cuando la detección
- * automática funcione, basta con pasar `false` y este flujo revive intacto.
+ * Ya no hay pegajosidad propia. La que había —«si el usuario decidió sobre este
+ * material, su respuesta manda»— se soltaba con un único fotograma borroso,
+ * porque un frame sin clasificación se leía como «otro objeto». Ahora esa
+ * política vive en el estabilizador, donde un fotograma sin evidencia
+ * sencillamente no vota.
  *
  * Los frames se conflan: si el análisis va más lento que la cámara se procesa
  * siempre el más reciente y la vista en vivo jamás se bloquea (RF-009).
  */
 @Stable
 class ClassifyScreenState(
-    private val classifyWaste: ClassifyWasteUseCase,
+    private val tracker: TrackClassificationUseCase,
     private val scope: CoroutineScope,
     val hints: HintPresenter = HintPresenter(),
-    private val clock: () -> Long = System::currentTimeMillis,
-    private val askUserAboutContamination: Boolean = true,
 ) {
 
-    /** Último resultado con decisión o con decisión pendiente del usuario. */
-    var outcome: ClassificationOutcome? by mutableStateOf(null)
+    /** Decisión visible con su identidad; `null` mientras no haya ninguna. */
+    var decision: StabilizedDecision? by mutableStateOf(null)
         private set
 
+    val outcome: ClassificationOutcome?
+        get() = decision?.outcome
+
     private var collectJob: Job? = null
-    private var awaitingMaterial: WasteMaterial? = null
-    private var awaitingSince = 0L
 
     /**
-     * Material sobre el que el usuario ya se pronunció. Mientras el análisis
-     * siga viendo lo mismo, su decisión manda; en cuanto aparece otro material,
-     * se suelta y la cámara vuelve a decidir.
+     * Hipótesis con las que sembrar la hoja de selección manual. Se consulta al
+     * abrirla, no se guarda: la ventana de votación sigue moviéndose y una lista
+     * congelada en el instante de la publicación tendría un solo elemento y
+     * varios segundos de antigüedad.
      */
-    private var decidedByUserFor: WasteMaterial? = null
+    fun candidates(): List<WasteMaterial> = tracker.candidates()
 
     /** Empieza a consumir el flujo de frames. Idempotente mientras corre. */
     fun start(frames: Flow<ImageFrame>) {
@@ -67,69 +61,39 @@ class ClassifyScreenState(
         }
     }
 
-    /** Deja de consumir frames; la última decisión permanece visible. */
+    /**
+     * Deja de consumir frames y olvida todo el seguimiento. La tarjeta que el
+     * usuario está viendo permanece —acaba de verla— pero la evidencia no: volver
+     * a la pantalla un minuto después no puede reanudar votando con lo que se vio
+     * antes, ni conservar una caneca resuelta contra una disponibilidad que el
+     * usuario pudo cambiar en la pantalla de escaneo.
+     */
     fun stop() {
         collectJob?.cancel()
         collectJob = null
+        tracker.reset()
     }
 
     /**
-     * Aplica el resultado de una decisión del usuario —selección manual
-     * (CUS-006) o respuesta a la pregunta de suciedad—: sustituye a la visible y
-     * retira cualquier indicación pendiente.
+     * Selección manual o respuesta a la pregunta de suciedad (CUS-006).
      *
-     * A partir de aquí **el análisis deja de sobrescribir la decisión** mientras
-     * el objeto siga siendo el mismo. Sin eso, lo que el usuario acababa de
-     * responder duraba lo que tardaba en llegar el siguiente fotograma —unos
-     * doscientos milisegundos— y volvía a mandar la clasificación automática,
-     * que además, al no conocer la contaminación, degradaba a la caneca
-     * conservadora. El usuario contestaba «está limpio» y veía la caneca negra.
+     * **Devuelve la decisión ya fijada**, con el epoch nuevo. La pantalla tiene
+     * que registrar ese epoch, no el que había antes de llamar: fijar la decisión
+     * lo incrementa, así que leerlo antes garantiza que nunca coincidan y deja el
+     * guard de la pregunta de suciedad como código muerto.
      */
-    fun applyManualOutcome(manualOutcome: ClassificationOutcome) {
-        outcome = manualOutcome
-        decidedByUserFor = manualOutcome.classification?.material
+    fun applyManualOutcome(manualOutcome: ClassificationOutcome): StabilizedDecision {
+        val fixed = tracker.applyUserDecision(manualOutcome)
+        decision = fixed
         hints.offer(emptyList())
+        return fixed
     }
 
     private suspend fun process(frame: ImageFrame) {
-        val material = awaitingMaterial
-        val result = if (material != null && clock() - awaitingSince >= INTERIOR_GRACE_MS) {
-            awaitingMaterial = null
-            classifyWaste.resolveContamination(material, frame)
-        } else {
-            classifyWaste.execute(frame)
-        }
-
-        // Con el plan B activo no se arranca la toma dirigida: la etapa de
-        // contaminación no transfiere a suciedad real, así que resolverla por
-        // nuestra cuenta produciría una respuesta casi siempre equivocada que
-        // además pisaría la que el usuario está a punto de dar. La pantalla
-        // pregunta y resuelve por selección manual (ver SoilQuestionCard).
-        if (!askUserAboutContamination &&
-            awaitingMaterial == null &&
-            CaptureHint.POINT_INSIDE in result.hints
-        ) {
-            awaitingMaterial = result.classification?.material
-            awaitingSince = clock()
-        }
-
-        // Si el usuario ya decidió sobre este mismo material, su respuesta
-        // manda: el análisis sigue corriendo —y sus indicaciones también— pero
-        // no le pisa la decisión. Al cambiar de objeto se suelta.
-        val decidedMaterial = decidedByUserFor
-        val stillTheSameObject = decidedMaterial != null &&
-            result.classification?.material == decidedMaterial
-        if (!stillTheSameObject) {
-            decidedByUserFor = null
-            if (result.disposal != null || result.needsUserDecision) {
-                outcome = result
-            }
-        }
-        hints.offer(result.hints)
-    }
-
-    companion object {
-        /** Gracia para que el usuario reoriente la cámara hacia el interior. */
-        const val INTERIOR_GRACE_MS = 1_500L
+        val tracked = tracker.onFrame(frame)
+        // Solo se reasigna cuando hay novedad: escribir el mismo valor tres veces
+        // por segundo recompondría la pantalla entera para nada.
+        tracked.decision?.let { decision = it }
+        hints.offer(tracked.hints)
     }
 }

@@ -45,24 +45,41 @@ class ClassifyWasteUseCase(
      * - Material con regla de inspección → decisión preliminar + [CaptureHint.POINT_INSIDE].
      * - En el resto de casos → decisión definitiva.
      */
-    suspend fun execute(frame: ImageFrame): ClassificationOutcome {
-        val hints = captureHintsFor(qualityAnalyzer.analyze(frame))
+    suspend fun execute(frame: ImageFrame): ClassificationOutcome = evaluate(frame).outcome
+
+    /**
+     * Igual que [execute], pero conserva la calidad medida del frame.
+     *
+     * El caso de uso sigue siendo **sin estado**: quien agrega frames a lo largo
+     * del tiempo es [TrackClassificationUseCase], que se instancia por sesión de
+     * pantalla. Aquí no se recuerda nada entre llamadas y el perfil se resuelve en
+     * cada pasada.
+     */
+    suspend fun evaluate(frame: ImageFrame): FrameEvaluation {
+        val quality = qualityAnalyzer.analyze(frame)
+        val hints = captureHintsFor(quality)
         if (hints.isNotEmpty()) {
-            return ClassificationOutcome(
-                classification = null,
-                disposal = null,
-                hints = hints,
-                needsUserDecision = false,
+            return FrameEvaluation(
+                ClassificationOutcome(
+                    classification = null,
+                    disposal = null,
+                    hints = hints,
+                    needsUserDecision = false,
+                ),
+                quality,
             )
         }
 
         val classification = classifier.classify(frame)
         if (classification.confidence < thresholds.material) {
-            return ClassificationOutcome(
-                classification = classification,
-                disposal = null,
-                hints = emptyList(),
-                needsUserDecision = true,
+            return FrameEvaluation(
+                ClassificationOutcome(
+                    classification = classification,
+                    disposal = null,
+                    hints = emptyList(),
+                    needsUserDecision = true,
+                ),
+                quality,
             )
         }
 
@@ -75,11 +92,14 @@ class ClassifyWasteUseCase(
         )
 
         val requiresInspection = profile.inspectionRules.any { it.material == classification.material }
-        return ClassificationOutcome(
-            classification = classification,
-            disposal = disposal,
-            hints = if (requiresInspection) listOf(CaptureHint.POINT_INSIDE) else emptyList(),
-            needsUserDecision = false,
+        return FrameEvaluation(
+            ClassificationOutcome(
+                classification = classification,
+                disposal = disposal,
+                hints = if (requiresInspection) listOf(CaptureHint.POINT_INSIDE) else emptyList(),
+                needsUserDecision = false,
+            ),
+            quality,
         )
     }
 

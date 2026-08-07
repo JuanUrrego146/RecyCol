@@ -18,6 +18,7 @@ import com.recycol.domain.usecase.QualityThresholds
 import com.recycol.domain.usecase.ResolveManualDisposalUseCase
 import com.recycol.domain.usecase.ScanBinsUseCase
 import com.recycol.domain.usecase.SelectCountryUseCase
+import com.recycol.domain.usecase.TrackClassificationUseCase
 import com.recycol.rules.DefaultRuleEngine
 import org.koin.compose.koinInject
 
@@ -30,6 +31,9 @@ import org.koin.compose.koinInject
  *   de país reinicia por sí solo las canecas confirmadas (coordinación #65).
  * @property scanBins escaneo y confirmación de canecas (CUS-002).
  * @property classifyWaste clasificación por cámara (CUS-003 a CUS-006).
+ * @property trackClassification **fábrica**, no instancia: el seguimiento
+ *   temporal tiene estado y ciclo de vida por pantalla. Cada sesión de cámara
+ *   estrena el suyo para no reanudar con votos de hace un minuto.
  * @property resolveManualDisposal selección manual de material (RF-024,
  *   RF-025 · CUS-006, coordinación #94).
  * @property adjustPerformance ajuste manual del nivel de rendimiento (RF-031).
@@ -39,6 +43,7 @@ class AppDependencies(
     val selectCountry: SelectCountryUseCase,
     val scanBins: ScanBinsUseCase,
     val classifyWaste: ClassifyWasteUseCase,
+    val trackClassification: () -> TrackClassificationUseCase,
     val resolveManualDisposal: ResolveManualDisposalUseCase,
     val adjustPerformance: AdjustPerformanceUseCase,
     val manageHistory: ManageHistoryUseCase,
@@ -65,6 +70,19 @@ fun rememberAppDependencies(): AppDependencies {
 
     return remember(profiles, binAvailability, classifier, history, tierPreference) {
         val ruleEngine = DefaultRuleEngine()
+        val classifyWaste = ClassifyWasteUseCase(
+            qualityAnalyzer = FrameQualityProbe(HeuristicFrameQualityAnalyzer()),
+            classifier = classifier,
+            ruleEngine = ruleEngine,
+            profiles = profiles,
+            binAvailability = binAvailability,
+            // La calibración vive en el módulo de cámara, que es quien sabe con
+            // qué escala mide (ver FrameQualityThresholds).
+            qualityThresholds = QualityThresholds(
+                sharpness = FrameQualityThresholds.BLURRY_BELOW,
+                luminance = FrameQualityThresholds.UNDEREXPOSED_BELOW,
+            ),
+        )
         AppDependencies(
             selectCountry = SelectCountryUseCase(
                 profiles = profiles,
@@ -75,19 +93,8 @@ fun rememberAppDependencies(): AppDependencies {
                 profiles = profiles,
                 binAvailability = binAvailability,
             ),
-            classifyWaste = ClassifyWasteUseCase(
-                qualityAnalyzer = FrameQualityProbe(HeuristicFrameQualityAnalyzer()),
-                classifier = classifier,
-                ruleEngine = ruleEngine,
-                profiles = profiles,
-                binAvailability = binAvailability,
-                // La calibración vive en el módulo de cámara, que es quien
-                // sabe con qué escala mide (ver FrameQualityThresholds).
-                qualityThresholds = QualityThresholds(
-                    sharpness = FrameQualityThresholds.BLURRY_BELOW,
-                    luminance = FrameQualityThresholds.UNDEREXPOSED_BELOW,
-                ),
-            ),
+            classifyWaste = classifyWaste,
+            trackClassification = { TrackClassificationUseCase(classifyWaste) },
             resolveManualDisposal = ResolveManualDisposalUseCase(
                 ruleEngine = ruleEngine,
                 profiles = profiles,
