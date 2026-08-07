@@ -1,18 +1,20 @@
 package com.botabien.android.inference.image
 
 import com.botabien.android.inference.frame.PixelAccessFrame
-import com.botabien.android.inference.model.ModelSpec
+import com.botabien.android.inference.model.InputTensorSpec
+import com.botabien.android.inference.roi.CropRegion
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
  * Convierte un frame en el tensor de entrada que espera el modelo.
  *
- * Pipeline fijo: recorte central cuadrado → remuestreo bilineal al lado de la
- * spec → escritura RGB por filas. Con entrada cuantizada escribe UINT8
- * `[0, 255]`; con entrada flotante normaliza con la media y desviación de la
- * spec. Trabaja sobre el arreglo de píxeles, sin tipos de plataforma, para que
- * sea comprobable en JVM y determinista en cualquier dispositivo.
+ * Pipeline fijo: recorte (la región pedida o el cuadrado central por defecto)
+ * → remuestreo bilineal al lado de la spec → escritura RGB por filas. Con
+ * entrada cuantizada escribe UINT8 `[0, 255]`; con entrada flotante normaliza
+ * con la media y desviación de la spec. Trabaja sobre el arreglo de píxeles,
+ * sin tipos de plataforma, para que sea comprobable en JVM y determinista en
+ * cualquier dispositivo.
  *
  * El costo es O(lado²) del destino: se muestrea solo lo que el modelo consume,
  * nunca se recorre el frame completo (presupuesto de latencia, RNF-001).
@@ -22,11 +24,22 @@ class FramePreprocessor {
     /**
      * Produce el búfer de entrada, directo y en orden nativo, con la posición
      * en cero, listo para el intérprete.
+     *
+     * @param region región cuadrada a recortar (RF-010); si es nula se usa el
+     *   cuadrado central máximo. Debe caber en el frame.
      */
-    fun preprocess(frame: PixelAccessFrame, spec: ModelSpec): ByteBuffer {
+    fun preprocess(
+        frame: PixelAccessFrame,
+        spec: InputTensorSpec,
+        region: CropRegion? = null,
+    ): ByteBuffer {
         val pixels = frame.readArgbPixels()
         require(pixels.size == frame.width * frame.height) {
             "El frame declara ${frame.width}x${frame.height} pero entrega ${pixels.size} píxeles."
+        }
+        val crop = region ?: CropRegion.centeredSquare(frame.width, frame.height)
+        require(crop.left + crop.size <= frame.width && crop.top + crop.size <= frame.height) {
+            "La región $crop no cabe en un frame de ${frame.width}x${frame.height}."
         }
 
         val target = spec.inputSize
@@ -35,16 +48,12 @@ class FramePreprocessor {
             .allocateDirect(target * target * CHANNELS * bytesPerChannel)
             .order(ByteOrder.nativeOrder())
 
-        // Recorte central cuadrado sobre el frame original.
-        val side = minOf(frame.width, frame.height)
-        val offsetX = (frame.width - side) / 2
-        val offsetY = (frame.height - side) / 2
-        val scale = side.toFloat() / target
+        val scale = crop.size.toFloat() / target
 
         for (ty in 0 until target) {
-            val sourceY = clampToCrop(offsetY + (ty + 0.5f) * scale - 0.5f, offsetY, side)
+            val sourceY = clampToCrop(crop.top + (ty + 0.5f) * scale - 0.5f, crop.top, crop.size)
             for (tx in 0 until target) {
-                val sourceX = clampToCrop(offsetX + (tx + 0.5f) * scale - 0.5f, offsetX, side)
+                val sourceX = clampToCrop(crop.left + (tx + 0.5f) * scale - 0.5f, crop.left, crop.size)
                 val argb = sampleBilinear(pixels, frame.width, sourceX, sourceY)
                 writePixel(buffer, argb, spec)
             }
@@ -82,7 +91,7 @@ class FramePreprocessor {
         return result
     }
 
-    private fun writePixel(buffer: ByteBuffer, argb: Int, spec: ModelSpec) {
+    private fun writePixel(buffer: ByteBuffer, argb: Int, spec: InputTensorSpec) {
         for (shift in intArrayOf(16, 8, 0)) {
             val channel = channel(argb, shift)
             if (spec.quantizedInput) {

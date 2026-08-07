@@ -14,18 +14,20 @@ import java.nio.channels.FileChannel
  * implementación de producción lee de `assets/`; las pruebas usan dobles.
  * Esta interfaz es estable: cuando el agente ML publique los modelos reales
  * (S27), se dejan caer en `assets/models/` sin tocar ningún consumidor.
+ * Opera por nombre de archivo para servir por igual a clasificadores
+ * ([ModelSpec]) y detectores ([DetectorModelSpec]).
  */
 interface ModelProvider {
 
-    /** Indica si el modelo de la spec está empaquetado y se puede cargar. */
-    fun isAvailable(spec: ModelSpec): Boolean
+    /** Indica si el modelo está empaquetado y se puede cargar. */
+    fun isAvailable(assetFileName: String): Boolean
 
     /**
      * Carga el contenido del modelo listo para el intérprete.
      *
      * @throws IOException si el modelo no existe o no se puede leer.
      */
-    fun load(spec: ModelSpec): ByteBuffer
+    fun load(assetFileName: String): ByteBuffer
 }
 
 /**
@@ -41,27 +43,27 @@ class AssetModelProvider(
     private val baseDir: String = "models",
 ) : ModelProvider {
 
-    override fun isAvailable(spec: ModelSpec): Boolean = try {
-        context.assets.open(assetPath(spec)).use { true }
+    override fun isAvailable(assetFileName: String): Boolean = try {
+        context.assets.open(assetPath(assetFileName)).use { true }
     } catch (_: IOException) {
         false
     }
 
-    override fun load(spec: ModelSpec): ByteBuffer = try {
-        mapFromAssets(spec)
+    override fun load(assetFileName: String): ByteBuffer = try {
+        mapFromAssets(assetFileName)
     } catch (_: IOException) {
-        copyFromAssets(spec)
+        copyFromAssets(assetFileName)
     }
 
-    private fun mapFromAssets(spec: ModelSpec): ByteBuffer =
-        context.assets.openFd(assetPath(spec)).use { fd ->
+    private fun mapFromAssets(assetFileName: String): ByteBuffer =
+        context.assets.openFd(assetPath(assetFileName)).use { fd ->
             FileInputStream(fd.fileDescriptor).channel.use { channel ->
                 channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)
             }
         }
 
-    private fun copyFromAssets(spec: ModelSpec): ByteBuffer =
-        context.assets.open(assetPath(spec)).use { stream ->
+    private fun copyFromAssets(assetFileName: String): ByteBuffer =
+        context.assets.open(assetPath(assetFileName)).use { stream ->
             val bytes = stream.readBytes()
             ByteBuffer.allocateDirect(bytes.size)
                 .order(ByteOrder.nativeOrder())
@@ -69,5 +71,5 @@ class AssetModelProvider(
                 .apply { rewind() }
         }
 
-    private fun assetPath(spec: ModelSpec): String = "$baseDir/${spec.assetFileName}"
+    private fun assetPath(assetFileName: String): String = "$baseDir/$assetFileName"
 }
