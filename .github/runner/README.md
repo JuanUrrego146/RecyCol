@@ -27,15 +27,15 @@ Desde `.github/runner/` (los tokens de registro caducan en 1 h y son de un solo
 uso; **solo hacen falta la primera vez** o tras borrar los volúmenes `runnerN-agent`):
 
 ```bash
-export RUNNER_TOKEN_1=$(gh api -X POST repos/JuanUrrego146/BotaBien/actions/runners/registration-token --jq .token)
-export RUNNER_TOKEN_2=$(gh api -X POST repos/JuanUrrego146/BotaBien/actions/runners/registration-token --jq .token)
+export RUNNER_TOKEN_1=$(gh api -X POST repos/JuanUrrego146/RecyCol/actions/runners/registration-token --jq .token)
+export RUNNER_TOKEN_2=$(gh api -X POST repos/JuanUrrego146/RecyCol/actions/runners/registration-token --jq .token)
 docker compose -f docker-compose.runners.yml up -d --build
 ```
 
 Verificar que están en línea:
 
 ```bash
-gh api repos/JuanUrrego146/BotaBien/actions/runners --jq '.runners[] | .name + " " + .status'
+gh api repos/JuanUrrego146/RecyCol/actions/runners --jq '.runners[] | .name + " " + .status'
 ```
 
 ## Tumbar / reiniciar
@@ -48,8 +48,8 @@ docker compose -f docker-compose.runners.yml up -d    # vuelven sin token
 Baja definitiva (además borra el registro en GitHub y los volúmenes):
 
 ```bash
-gh api repos/JuanUrrego146/BotaBien/actions/runners --jq '.runners[] | (.id|tostring) + " " + .name'
-gh api -X DELETE repos/JuanUrrego146/BotaBien/actions/runners/<id>
+gh api repos/JuanUrrego146/RecyCol/actions/runners --jq '.runners[] | (.id|tostring) + " " + .name'
+gh api -X DELETE repos/JuanUrrego146/RecyCol/actions/runners/<id>
 docker compose -f docker-compose.runners.yml down -v
 ```
 

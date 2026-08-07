@@ -87,14 +87,14 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
 - **CI verde obligatorio antes de fusionar.** El check que satisface la
   protección de rama es **«Compilar y probar»** (workflow `CI`). Verifícalo de
   verdad, no por el rollup:
-  `gh api repos/JuanUrrego146/BotaBien/commits/<sha>/check-runs`.
+  `gh api repos/JuanUrrego146/RecyCol/commits/<sha>/check-runs`.
 - **Runners propios**, self-hosted y dockerizados, sobre la misma imagen
   `botabien/android-build` que el build local. Runbook en
   [`.github/runner/README.md`](.github/runner/README.md). Levantarlos tras un
   reinicio, desde `.github/runner/`:
   ```bash
   docker compose -f docker-compose.runners.yml up -d
-  gh api repos/JuanUrrego146/BotaBien/actions/runners --jq '.runners[].status'
+  gh api repos/JuanUrrego146/RecyCol/actions/runners --jq '.runners[].status'
   ```
   Dimensionado vigente (#131): **1 ejecutor de 8 GB**; el segundo (4 GB) solo en
   picos, con `--profile ola`.
