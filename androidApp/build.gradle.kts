@@ -49,6 +49,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    // Ciclo de vida para el visor de cámara (LocalLifecycleOwner sin API obsoleta)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
 
     // Cámara: agente CAM (androidApp/camera/), RF-009
@@ -62,6 +64,17 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     // Fakes deterministas del contrato M0: las pruebas validan contra los puertos
     testImplementation(project(":shared:testing"))
+
+    // Capa de datos (S36): driver SQLite, preferencias e inyección de dependencias
+    implementation(libs.sqldelight.android.driver)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+
+    // Pantalla de sesión (S38): ViewModel en Compose e inyección en composables
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.koin.androidx.compose)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

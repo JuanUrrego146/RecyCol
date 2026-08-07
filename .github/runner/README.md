@@ -55,6 +55,12 @@ docker compose -f docker-compose.runners.yml down -v
 
 ## Si falla
 
+0. **Job en `failure` SIN ningún paso fallido** → el contenedor murió por OOM
+   contra su `mem_limit` (incidente del 07/08: un pipeline frío necesita
+   ~6-7 GB; con 5 GB moría en `mergeDebugGlobalSynthetics`). Verificar con
+   `docker inspect botabien-runner-N --format '{{.State.OOMKilled}}'`; si el
+   patrón reaparece, subir `mem_limit` o correr un solo runner. No confundir
+   con caché corrupta: reproducir primero en local.
 1. **Jobs en cola y runners offline** → `docker ps` y `docker logs botabien-runner-1`.
    Reinicio rápido: `docker compose -f docker-compose.runners.yml restart`.
 2. **Runner caído y hay prisa** → respaldo en GitHub-hosted:

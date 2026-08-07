@@ -9,11 +9,95 @@
     <string name="action_continue">Continuar</string>
     <string name="action_change_country">Cambiar país</string>
 
-    <!-- Ajustes -->
+    <!-- Ajustes (RF-003, RF-031, RF-034 · CUS-001, CUS-008, CUS-009) -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_country_label">País</string>
     <string name="action_back">Atrás</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="settings_performance_label">Rendimiento</string>
+    <string name="performance_auto">Automático</string>
+    <string name="performance_low">Bajo</string>
+    <string name="performance_mid">Medio</string>
+    <string name="performance_high">Alto</string>
+    <string name="performance_effect_warning">En Automático, BotaBien mide tu teléfono al arrancar. Un nivel manual fuerza o limita funciones auxiliares; la clasificación por cámara funciona siempre.</string>
+    <string name="settings_history_clear">Borrar historial</string>
+    <string name="settings_history_confirm_title">¿Borrar el historial?</string>
+    <string name="settings_history_confirm_message">Se eliminarán todas las clasificaciones guardadas en este teléfono. Esta acción no se puede deshacer.</string>
+    <plurals name="settings_history_count">
+        <item quantity="one">1 clasificación guardada</item>
+        <item quantity="other">%d clasificaciones guardadas</item>
+    </plurals>
 
     <!-- Estados comunes -->
     <string name="loading_description">Cargando</string>
+
+    <!-- Pantalla de inicio de sesión (S38; CUS-010, RF-035) -->
+    <string name="auth_title">Inicia sesión</string>
+    <string name="auth_future_version_subtitle">La cuenta llegará en una versión futura. Hoy puedes usar toda la aplicación como invitado.</string>
+    <string name="auth_email_label">Correo</string>
+    <string name="auth_password_label">Contraseña</string>
+    <string name="auth_sign_in">Iniciar sesión</string>
+    <string name="auth_unavailable_notice">El inicio de sesión con credenciales aún no está disponible. Continúa como invitado.</string>
+    <string name="auth_continue_as_guest">Continuar como invitado</string>
+
+    <!-- Cámara (RF-009 · CUS-003) -->
+    <string name="camera_permission_message">BotaBien necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
+    <string name="camera_permission_action">Permitir cámara</string>
+    <string name="camera_error_message">No se pudo iniciar la cámara. Inténtalo de nuevo.</string>
+
+    <!-- Indicaciones de captura (RF-017 · CUS-004) -->
+    <string name="hint_move_closer">Acércate un poco</string>
+    <string name="hint_more_light">Busca más luz</string>
+    <string name="hint_clean_lens">Limpia el lente de la cámara</string>
+    <string name="hint_center_object">Centra el objeto en el marco</string>
+    <string name="hint_point_inside">Apunta hacia adentro del recipiente</string>
+
+    <!-- Selección manual y baja confianza (RF-023, RF-024, RF-025 · CUS-006) -->
+    <string name="manual_entry_action">Manual</string>
+    <string name="manual_selection_title">¿Qué residuo es?</string>
+    <string name="manual_selection_subtitle">Elige el material y te digo dónde va según la normativa de tu país.</string>
+    <string name="low_confidence_message">Me cuesta identificarlo desde aquí. ¿Me ayudas a elegir?</string>
+    <string name="low_confidence_action">Elegir material</string>
+    <string name="disambiguation_title">Ayúdame a distinguirlo</string>
+    <string name="disambiguation_subtitle">Así de cerca puede ser más de una cosa. Dime cuál es y te digo dónde va.</string>
+    <string name="disambiguation_probable">Probable</string>
+    <string name="disambiguation_show_all">Es otra cosa…</string>
+    <string name="disambiguation_retry">Intentar otra toma</string>
+    <string name="manual_inspection_question">¿Tiene residuos o líquidos adentro? De eso depende la caneca.</string>
+    <string name="manual_inspection_clean">Está limpio y seco</string>
+    <string name="manual_inspection_contaminated">Tiene residuos</string>
+
+    <!-- Resultado de clasificación (RF-013 · CUS-003) -->
+    <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>
+
+    <!-- Detalle del resultado (RF-026, RF-027, RF-028 · CUS-007) -->
+    <string name="result_detail_title">Resultado</string>
+    <string name="result_manual_selection">Selección manual</string>
+    <string name="result_unavailable_bin">Caneca ideal no disponible</string>
+    <string name="result_open_detail_action">Ver la justificación normativa</string>
+    <string name="result_section_material">Material identificado</string>
+    <string name="result_section_rule">Regla aplicada</string>
+    <string name="result_section_regulation">Norma citada</string>
+    <string name="result_confidence_format">Confianza del %1$d %%</string>
+    <string name="result_orientative_notice">Esta recomendación es orientativa y no sustituye la normativa local vigente ni las indicaciones de tu operador de aseo.</string>
+
+    <!-- Rutas de disposición (RNF-011) -->
+    <string name="route_recyclable">Aprovechable</string>
+    <string name="route_non_recyclable">No aprovechable</string>
+    <string name="route_organic">Orgánico</string>
+    <string name="route_hazardous">Peligroso</string>
+    <string name="route_special_collection">Recolección especial</string>
+
+    <!-- Materiales (RNF-011) -->
+    <string name="material_plastic">Plástico</string>
+    <string name="material_paper">Papel</string>
+    <string name="material_cardboard">Cartón</string>
+    <string name="material_beverage_carton">Cartón para bebidas</string>
+    <string name="material_glass">Vidrio</string>
+    <string name="material_metal">Metal</string>
+    <string name="material_organic">Orgánico</string>
+    <string name="material_textile">Textil</string>
+    <string name="material_battery">Pilas y baterías</string>
+    <string name="material_electronic">Electrónico</string>
+    <string name="material_residual">No aprovechable</string>
 </resources>

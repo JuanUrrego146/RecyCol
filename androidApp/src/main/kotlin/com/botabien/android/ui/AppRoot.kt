@@ -11,12 +11,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.botabien.android.camera.CameraXFrameSource
+import com.botabien.android.ui.classify.CameraViewfinder
+import com.botabien.android.ui.classify.ClassifyScreen
 import com.botabien.android.ui.components.BotaActivityIndicator
 import com.botabien.android.ui.country.CountrySelectionScreen
-import com.botabien.android.ui.home.HomeScreen
 import com.botabien.android.ui.navigation.AppDestination
 import com.botabien.android.ui.navigation.AppNavHost
 import com.botabien.android.ui.navigation.AppNavState
+import com.botabien.android.ui.result.ResultDetailScreen
 import com.botabien.android.ui.settings.SettingsScreen
 import com.botabien.android.ui.theme.BotaTheme
 
@@ -29,6 +33,8 @@ import com.botabien.android.ui.theme.BotaTheme
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
     val dependencies = remember { fakeAppDependencies() }
+    val appContext = LocalContext.current.applicationContext
+    val frameSource = remember { CameraXFrameSource(appContext) }
     var start by remember { mutableStateOf<AppDestination?>(null) }
     LaunchedEffect(dependencies) {
         start = if (dependencies.selectCountry.activeProfileOrNull() == null) {
@@ -58,9 +64,14 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             onCountryApplied = { navState.replaceAll(AppDestination.Home) },
                         )
 
-                        AppDestination.Home -> HomeScreen(
+                        AppDestination.Home -> ClassifyScreen(
                             dependencies = dependencies,
+                            frames = frameSource.frames,
+                            viewfinder = { CameraViewfinder(frameSource, it) },
                             onOpenSettings = { navState.push(AppDestination.Settings) },
+                            onOpenResultDetail = { outcome ->
+                                navState.push(AppDestination.ResultDetail(outcome))
+                            },
                         )
 
                         AppDestination.Settings -> SettingsScreen(
@@ -73,6 +84,12 @@ fun AppRoot(modifier: Modifier = Modifier) {
                             dependencies = dependencies,
                             isOnboarding = false,
                             onCountryApplied = { navState.pop() },
+                        )
+
+                        is AppDestination.ResultDetail -> ResultDetailScreen(
+                            dependencies = dependencies,
+                            outcome = destination.outcome,
+                            onBack = { navState.pop() },
                         )
                     }
                 }

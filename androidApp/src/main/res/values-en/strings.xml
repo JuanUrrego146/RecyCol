@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BotaBien</string>
+
+    <!-- Selección de país (RF-001, RF-003 · CUS-001) -->
+    <string name="country_selection_title">Choose your country</string>
+    <string name="country_selection_subtitle">BotaBien applies the waste-sorting regulation of the country you choose.</string>
+    <string name="country_selected_description">Selected</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_change_country">Change country</string>
+
+    <!-- Ajustes (RF-003, RF-031, RF-034 · CUS-001, CUS-008, CUS-009) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_country_label">Country</string>
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="settings_performance_label">Performance</string>
+    <string name="performance_auto">Automatic</string>
+    <string name="performance_low">Low</string>
+    <string name="performance_mid">Medium</string>
+    <string name="performance_high">High</string>
+    <string name="performance_effect_warning">In Automatic, BotaBien benchmarks your phone at startup. A manual level forces or limits auxiliary features; camera classification always works.</string>
+    <string name="settings_history_clear">Clear history</string>
+    <string name="settings_history_confirm_title">Clear history?</string>
+    <string name="settings_history_confirm_message">All classifications saved on this phone will be deleted. This action cannot be undone.</string>
+    <plurals name="settings_history_count">
+        <item quantity="one">1 saved classification</item>
+        <item quantity="other">%d saved classifications</item>
+    </plurals>
+
+    <!-- Estados comunes -->
+    <string name="loading_description">Loading</string>
+
+    <!-- Cámara (RF-009 · CUS-003) -->
+    <string name="camera_permission_message">BotaBien needs the camera to identify the waste item. The image is processed on your phone and never leaves it.</string>
+    <string name="camera_permission_action">Allow camera</string>
+    <string name="camera_error_message">The camera could not start. Try again.</string>
+
+    <!-- Indicaciones de captura (RF-017 · CUS-004) -->
+    <string name="hint_move_closer">Move a little closer</string>
+    <string name="hint_more_light">Find more light</string>
+    <string name="hint_clean_lens">Clean the camera lens</string>
+    <string name="hint_center_object">Center the object in the frame</string>
+    <string name="hint_point_inside">Point inside the container</string>
+
+    <!-- Selección manual y baja confianza (RF-023, RF-024, RF-025 · CUS-006) -->
+    <string name="manual_entry_action">Manual</string>
+    <string name="manual_selection_title">What is this item?</string>
+    <string name="manual_selection_subtitle">Choose the material and I will tell you where it goes under your country\'s regulation.</string>
+    <string name="low_confidence_message">I\'m having trouble identifying it from here. Help me choose?</string>
+    <string name="low_confidence_action">Choose material</string>
+    <string name="disambiguation_title">Help me tell it apart</string>
+    <string name="disambiguation_subtitle">This close it could be more than one thing. Tell me which and I\'ll tell you where it goes.</string>
+    <string name="disambiguation_probable">Likely</string>
+    <string name="disambiguation_show_all">It\'s something else…</string>
+    <string name="disambiguation_retry">Try another shot</string>
+    <string name="manual_inspection_question">Does it have residue or liquid inside? The bin depends on it.</string>
+    <string name="manual_inspection_clean">It\'s clean and dry</string>
+    <string name="manual_inspection_contaminated">It has residue</string>
+
+    <!-- Resultado de clasificación (RF-013 · CUS-003) -->
+    <string name="result_degraded_by_contamination">Reassigned due to contamination</string>
+
+    <!-- Detalle del resultado (RF-026, RF-027, RF-028 · CUS-007) -->
+    <string name="result_detail_title">Result</string>
+    <string name="result_manual_selection">Manual selection</string>
+    <string name="result_unavailable_bin">Ideal bin unavailable</string>
+    <string name="result_open_detail_action">See the regulatory justification</string>
+    <string name="result_section_material">Identified material</string>
+    <string name="result_section_rule">Applied rule</string>
+    <string name="result_section_regulation">Cited regulation</string>
+    <string name="result_confidence_format">Confidence %1$d %%</string>
+    <string name="result_orientative_notice">This recommendation is for guidance only and does not replace current local regulations or your waste operator\'s instructions.</string>
+
+    <!-- Rutas de disposición (RNF-011) -->
+    <string name="route_recyclable">Recyclable</string>
+    <string name="route_non_recyclable">Non-recyclable</string>
+    <string name="route_organic">Organic</string>
+    <string name="route_hazardous">Hazardous</string>
+    <string name="route_special_collection">Special collection</string>
+
+    <!-- Materiales (RNF-011) -->
+    <string name="material_plastic">Plastic</string>
+    <string name="material_paper">Paper</string>
+    <string name="material_cardboard">Cardboard</string>
+    <string name="material_beverage_carton">Beverage carton</string>
+    <string name="material_glass">Glass</string>
+    <string name="material_metal">Metal</string>
+    <string name="material_organic">Organic</string>
+    <string name="material_textile">Textile</string>
+    <string name="material_battery">Batteries</string>
+    <string name="material_electronic">Electronics</string>
+    <string name="material_residual">Non-recoverable</string>
+</resources>

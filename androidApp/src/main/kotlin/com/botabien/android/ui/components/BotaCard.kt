@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.Role
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 
@@ -53,6 +54,7 @@ fun BotaCard(
                     Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = null,
+                        role = Role.Button,
                         onClick = onClick,
                     )
                 } else {

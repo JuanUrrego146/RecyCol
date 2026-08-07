@@ -55,6 +55,8 @@ data class BotaColorScheme(
     val scrim: Color,
     /** Contenido dibujado sobre [scrim]; constante entre temas. */
     val onScrim: Color,
+    /** Fondo del área de cámara: oscuro en ambos temas, como un visor real. */
+    val cameraBackdrop: Color,
 
     /** Verdadero cuando el esquema activo es el oscuro. */
     val isDark: Boolean,
@@ -71,7 +73,9 @@ internal val LightBotaColors = BotaColorScheme(
     groupedBackground = Color(0xFFF2F2F7),
     surfaceElevated = Color(0xFFFFFFFF),
     label = Color(0xFF000000),
-    secondaryLabel = Color(0x993C3C43),
+    // 76 % de opacidad (frente al 60 % de iOS) para garantizar contraste AA
+    // de texto normal sobre los fondos claros (RNF-010).
+    secondaryLabel = Color(0xC23C3C43),
     tertiaryLabel = Color(0x4D3C3C43),
     fill = Color(0x33787880),
     secondaryFill = Color(0x29787880),
@@ -82,6 +86,7 @@ internal val LightBotaColors = BotaColorScheme(
     info = Color(0xFF0040DD),
     scrim = Color(0x8A000000),
     onScrim = Color(0xFFFFFFFF),
+    cameraBackdrop = Color(0xFF0A0A0C),
     isDark = false,
 )
 
@@ -107,6 +112,7 @@ internal val DarkBotaColors = BotaColorScheme(
     info = Color(0xFF409CFF),
     scrim = Color(0x8A000000),
     onScrim = Color(0xFFFFFFFF),
+    cameraBackdrop = Color(0xFF000000),
     isDark = true,
 )
 
