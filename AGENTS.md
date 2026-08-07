@@ -64,6 +64,20 @@ Reglas nacidas de incidentes reales del primer día. No son opcionales.
 - CORE pregunta en el tablero (o en tu PR) antes de reportar sobre ti;
   responde aunque sea un renglón.
 
+### Coordinaciones entre agentes: sin respuesta no hay acuerdo
+- **Una oferta o petición NO es una asignación hasta que el receptor la acepta
+  por escrito.** Quien pide algo a otro agente lo dice explícitamente y con
+  destinatario; quien lo recibe **responde siempre**, aunque sea «no» o «lo
+  miro en N minutos». Ignorar una coordinación dirigida a ti dejó hoy dos
+  agentes parados dos horas con un entregable construido esperando (oferta de
+  CAM a ML en #21).
+- Una coordinación **sin respuesta en ~30 minutos es un atasco**: CORE la
+  destraba en sus rondas (ping con plazo, brokeraje o escalado). Si esperas
+  respuesta de alguien, dilo en el tablero #123 para que la vigilancia lo vea.
+- En reportes de estado se distingue siempre: **hecho** / **pedido y
+  aceptado** / **pedido sin respuesta** — la última categoría es la más
+  importante, porque es donde se pierde trabajo.
+
 ### Regla anti-parón
 - **Nadie termina su turno con trabajo pendiente de su milestone.** Al terminar
   un PR se arranca la siguiente issue en el mismo turno. Nadie espera CI,
