@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JuanUrrego146/BotaBien/benchmark/latency-report.schema.json",
+  "title": "Reporte de latencia por gama de dispositivo",
+  "description": "Formato común de los resultados del banco de latencia (RNF-001, RNF-003). Lo producen EDGE (S20) y QA (S41); CI valida las muestras contra este esquema.",
+  "type": "object",
+  "required": ["reportVersion", "measuredAt", "device", "model", "methodology", "metrics"],
+  "additionalProperties": false,
+  "properties": {
+    "reportVersion": {
+      "const": 1,
+      "description": "Versión del formato de reporte."
+    },
+    "measuredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la medición en ISO 8601."
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$",
+      "description": "Commit del que se construyó el APK medido."
+    },
+    "synthetic": {
+      "type": "boolean",
+      "default": false,
+      "description": "true solo en muestras de ejemplo; un reporte sintético jamás se cita como evidencia."
+    },
+    "device": {
+      "type": "object",
+      "required": ["model", "ramMb", "apiLevel", "tier", "delegate"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string", "description": "Modelo comercial, p. ej. 'Pixel 4a'." },
+        "soc": { "type": "string" },
+        "ramMb": { "type": "integer", "minimum": 512 },
+        "apiLevel": { "type": "integer", "minimum": 26 },
+        "tier": {
+          "enum": ["LOW", "MID", "HIGH"],
+          "description": "Gama observada, la que resolvió DeviceTierPolicy en el dispositivo."
+        },
+        "delegate": {
+          "enum": ["NNAPI", "GPU", "CPU"],
+          "description": "Delegado de inferencia efectivamente usado en la medición."
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["variant", "file"],
+      "additionalProperties": false,
+      "properties": {
+        "variant": {
+          "enum": ["MOBILENET_V3_SMALL_INT8", "MOBILENET_V3_LARGE_075_INT8", "EFFICIENTNET_LITE2_INT8"],
+          "description": "Variante de modelo por gama según la política del plan."
+        },
+        "file": { "type": "string", "description": "Nombre del archivo .tflite medido." },
+        "sizeBytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "methodology": {
+      "type": "object",
+      "required": ["buildType", "warmupRuns", "measuredRuns", "airplaneMode"],
+      "additionalProperties": false,
+      "properties": {
+        "buildType": { "const": "release", "description": "Solo se mide sobre build release." },
+        "warmupRuns": { "type": "integer", "minimum": 1 },
+        "measuredRuns": { "type": "integer", "minimum": 30 },
+        "airplaneMode": { "const": true, "description": "La medición se hace sin conectividad (RNF-002)." }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["endToEnd", "stages"],
+      "additionalProperties": false,
+      "properties": {
+        "endToEnd": {
+          "$ref": "#/$defs/latencyStat",
+          "description": "Frame capturado → decisión de caneca en pantalla. Se mide directo, no se suma por etapas."
+        },
+        "stages": {
+          "type": "object",
+          "required": ["frameQuality", "preprocess", "inference", "ruleEngine"],
+          "additionalProperties": false,
+          "properties": {
+            "frameQuality": { "$ref": "#/$defs/latencyStat" },
+            "preprocess": { "$ref": "#/$defs/latencyStat" },
+            "inference": { "$ref": "#/$defs/latencyStat" },
+            "contamination": { "$ref": "#/$defs/latencyStat" },
+            "ruleEngine": { "$ref": "#/$defs/latencyStat" }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "peakPssMb": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "classificationWorks": {
+      "type": "boolean",
+      "description": "Verificación del requisito duro: la clasificación por cámara funcionó en este dispositivo. false invalida la corrida sea cual sea la latencia."
+    },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "latencyStat": {
+      "type": "object",
+      "required": ["p50Ms", "p90Ms", "meanMs"],
+      "additionalProperties": false,
+      "properties": {
+        "p50Ms": { "type": "number", "minimum": 0 },
+        "p90Ms": { "type": "number", "minimum": 0 },
+        "meanMs": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}
