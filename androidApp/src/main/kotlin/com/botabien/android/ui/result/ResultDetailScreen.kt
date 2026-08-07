@@ -80,7 +80,16 @@ fun ResultDetailScreen(
                 vertical = BotaTheme.spacing.lg,
             ),
     ) {
-        Row {
+        // Barra de navegación al estilo de iOS: solo la vuelta, alineada al
+        // margen y con su área táctil. El título de la pantalla lo pone la
+        // propia caneca — un «Detalle» genérico encima solo restaba jerarquía a
+        // lo único que el usuario ha venido a leer.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(NAV_BAR_HEIGHT),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             BotaButton(
                 text = stringResource(R.string.action_back),
                 onClick = onBack,
@@ -88,15 +97,11 @@ fun ResultDetailScreen(
                 compact = true,
             )
         }
-        Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
-        Text(
-            text = stringResource(R.string.result_detail_title),
-            style = BotaTheme.typography.largeTitle,
-            color = BotaTheme.colors.label,
-        )
-        Spacer(modifier = Modifier.height(BotaTheme.spacing.xxl))
+        Spacer(modifier = Modifier.height(BotaTheme.spacing.lg))
 
         if (disposal != null) {
+            // Cabecera protagonista: el color de la caneca en grande y su
+            // nombre como titular de la pantalla.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -111,12 +116,6 @@ fun ResultDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(BotaTheme.spacing.lg))
                 Column {
-                    Text(
-                        text = disposal.bin.displayName,
-                        style = BotaTheme.typography.title2,
-                        color = BotaTheme.colors.label,
-                    )
-                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BotaRouteGlyph(
                             route = disposal.route,
@@ -125,13 +124,19 @@ fun ResultDetailScreen(
                         Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
                         Text(
                             text = routeLabel(disposal.route),
-                            style = BotaTheme.typography.subheadline,
+                            style = BotaTheme.typography.footnoteEmphasized,
                             color = BotaTheme.colors.secondaryLabel,
                         )
                     }
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
+                    Text(
+                        text = disposal.bin.displayName,
+                        style = BotaTheme.typography.title1,
+                        color = BotaTheme.colors.label,
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(BotaTheme.spacing.lg))
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.xl))
 
             Row(horizontalArrangement = Arrangement.spacedBy(BotaTheme.spacing.sm)) {
                 if (isManualSelection) {
@@ -169,7 +174,9 @@ fun ResultDetailScreen(
                         style = BotaTheme.typography.body,
                         color = BotaTheme.colors.label,
                     )
-                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+                    ConfidenceBar(fraction = classification.confidence)
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
                     Text(
                         text = stringResource(
                             R.string.result_confidence_format,
@@ -211,6 +218,38 @@ fun ResultDetailScreen(
 
         OrientativeNotice()
         Spacer(modifier = Modifier.height(BotaTheme.spacing.xxl))
+    }
+}
+
+/**
+ * Confianza de la clasificación como barra.
+ *
+ * El porcentaje solo no dice gran cosa: hay que leerlo y compararlo mentalmente
+ * con algo. La barra se entiende de un vistazo y el número se queda al lado para
+ * quien quiera el dato exacto — el texto sigue portando la información, la barra
+ * la refuerza (RNF-010).
+ *
+ * No traduce el valor a «alta» o «baja»: dónde están esos cortes lo decide
+ * `ConfidenceThresholds` en el dominio, y su calibración es trabajo de QA. La
+ * interfaz no se inventa umbrales.
+ */
+@Composable
+private fun ConfidenceBar(fraction: Float, modifier: Modifier = Modifier) {
+    val safeFraction = fraction.coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(CONFIDENCE_BAR_HEIGHT)
+            .clip(BotaTheme.shapes.capsule)
+            .background(BotaTheme.colors.fill),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(safeFraction)
+                .height(CONFIDENCE_BAR_HEIGHT)
+                .clip(BotaTheme.shapes.capsule)
+                .background(BotaTheme.colors.accent),
+        )
     }
 }
 
@@ -296,6 +335,12 @@ private fun routeLabel(route: DisposalRoute): String = stringResource(
 
 /** Diámetro de la muestra de color en la cabecera del detalle. */
 private val HEADER_SWATCH_SIZE = 56.dp
+
+/** Alto de la barra de navegación, el de iOS. */
+private val NAV_BAR_HEIGHT = 44.dp
+
+/** Grosor de la barra de confianza. */
+private val CONFIDENCE_BAR_HEIGHT = 6.dp
 
 /** Opacidad del tinte del aviso orientativo. */
 private const val NOTICE_TINT_ALPHA = 0.10f

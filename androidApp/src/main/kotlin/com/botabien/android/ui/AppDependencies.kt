@@ -1,6 +1,9 @@
 package com.botabien.android.ui
 
+import com.botabien.domain.model.ClassificationResult
 import com.botabien.domain.model.DeviceTier
+import com.botabien.domain.model.InspectionRule
+import com.botabien.domain.model.WasteMaterial
 import com.botabien.domain.port.TierPreferenceRepository
 import com.botabien.domain.usecase.AdjustPerformanceUseCase
 import com.botabien.domain.usecase.ClassifyWasteUseCase
@@ -57,7 +60,12 @@ fun fakeAppDependencies(): AppDependencies {
     // provisional se parezca a lo que verá el usuario; el contenido normativo
     // del perfil no cambia y sigue siendo el de `shared/testing`.
     val profiles = FakeProfileRepository(
-        catalog = listOf(TestProfiles.threeBins.copy(isoCode = DEMO_ISO_CODE)),
+        catalog = listOf(
+            TestProfiles.threeBins.copy(
+                isoCode = DEMO_ISO_CODE,
+                inspectionRules = DEMO_INSPECTION_RULES,
+            ),
+        ),
         initiallyActive = null,
     )
     val binAvailability = FakeBinAvailabilityRepository()
@@ -74,7 +82,17 @@ fun fakeAppDependencies(): AppDependencies {
         ),
         classifyWaste = ClassifyWasteUseCase(
             qualityAnalyzer = FakeFrameQualityAnalyzer(),
-            classifier = FakeWasteClassifier(),
+            // El fake devolvía plástico, que no exige inspección y por tanto
+            // dejaba fuera de la demostración el caso estrella del producto: el
+            // vaso de café, que aparenta cartón reciclable pero se arruina si
+            // lleva líquido dentro. Con esto la composición provisional recorre
+            // el flujo entero —pregunta de suciedad incluida— en vez del atajo.
+            classifier = FakeWasteClassifier(
+                classification = ClassificationResult(
+                    material = WasteMaterial.BEVERAGE_CARTON,
+                    confidence = DEMO_CONFIDENCE,
+                ),
+            ),
             ruleEngine = ruleEngine,
             profiles = profiles,
             binAvailability = binAvailability,
@@ -111,3 +129,37 @@ private class InMemoryTierPreference : TierPreferenceRepository {
  * publique el catálogo real y el usuario elija de verdad entre países.
  */
 private const val DEMO_ISO_CODE = "CO"
+
+/** Confianza de la clasificación de demostración. */
+private const val DEMO_CONFIDENCE = 0.88f
+
+/**
+ * Materiales que exigen preguntar por la suciedad en la composición de demo.
+ *
+ * El perfil de prueba de `shared/testing` solo trae la regla del cartón para
+ * bebidas, y el plan B aprobado cubre **toda la fibra**: papel y cartón, porque
+ * la fibra absorbe la grasa y el líquido y se arruina, mientras que una botella
+ * o una lata se enjuagan y se reciclan igual.
+ *
+ * Esto es composición de demostración, **no normativa**: las reglas de verdad
+ * viven en `shared/resources/profiles/` y son ámbito de RULES, a quien
+ * corresponde añadirlas a los perfiles reales (coordinación abierta). En cuanto
+ * el catálogo real esté cableado, esta lista sobra.
+ */
+private val DEMO_INSPECTION_RULES = listOf(
+    InspectionRule(
+        material = WasteMaterial.BEVERAGE_CARTON,
+        promptKey = "inspection.point_inside",
+        requiresInteriorView = true,
+    ),
+    InspectionRule(
+        material = WasteMaterial.CARDBOARD,
+        promptKey = "inspection.show_box_interior",
+        requiresInteriorView = true,
+    ),
+    InspectionRule(
+        material = WasteMaterial.PAPER,
+        promptKey = "inspection.point_inside",
+        requiresInteriorView = false,
+    ),
+)
