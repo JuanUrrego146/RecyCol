@@ -194,7 +194,9 @@ def main() -> int:
               file=sys.stderr)
         return 2
     if args.batch_size is None:
-        args.batch_size = 64 if device == "cuda" else 32
+        # La variante high (EfficientNet-B2 a 260 px) no cabe con batch 64 en
+        # los ~5,6 GiB efectivos de la 3060 Ti (el escritorio retiene ~2,3).
+        args.batch_size = (32 if args.variant == "high" else 64) if device == "cuda" else 32
     pin = device == "cuda"
     print(f"device={device}" + (f" ({torch.cuda.get_device_name(0)})" if pin else ""))
     arch, side = VARIANTS[args.variant]
