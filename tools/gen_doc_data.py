@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Datos del documento de requerimientos de BotaBien."""
+"""Datos del documento de requerimientos de RecyCol."""
 
 FECHA = "06/08/2026"
 RESPONSABLE = "Juan Urrego"
-PROYECTO = "BotaBien"
+PROYECTO = "RecyCol"
 
 EQUIPO = [
     ("Gestor de Proyectos", "Juan Urrego"),
@@ -50,7 +50,7 @@ JUSTIFICACION = (
     "suele conservar residuo líquido en su interior; la Resolución 2184 de 2019 exige explícitamente que lo depositado "
     "en la caneca blanca esté limpio y seco, de modo que ese vaso corresponde a la caneca negra. Esa condición es "
     "invisible desde el exterior del objeto y ninguna aplicación existente la verifica.\n\n"
-    "BotaBien nace para resolver ambos problemas a la vez. Mediante la cámara del teléfono y redes neuronales que se "
+    "RecyCol nace para resolver ambos problemas a la vez. Mediante la cámara del teléfono y redes neuronales que se "
     "ejecutan íntegramente en el dispositivo, identifica el material del residuo, comprueba si está contaminado "
     "solicitando al usuario la toma que hace falta, y traduce ese diagnóstico a la caneca correcta según la norma "
     "vigente del país en el que se encuentra. La traducción no está cableada en el código sino declarada en un perfil "

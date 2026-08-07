@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="titulo descripcion">
+  <title id="titulo">RecyCol</title>
+  <desc id="descripcion">Un bote de basura lleno de tierra del que brota una flor.</desc>
+
+  <!--
+    Logo maestro de RecyCol. Es la fuente de verdad para cualquier uso externo
+    (favicon, presentaciones, tienda de aplicaciones). Las mismas cadenas de
+    trazado alimentan el VectorDrawable de Android y el composable BotaLogo;
+    si cambian aquí, cambian en los tres sitios.
+
+    Rejilla de 96 x 96. El motivo ocupa de y=6.7 a y=85 y de x=25 a x=71.
+    Un solo color de marca: la profundidad se consigue con opacidad, nunca con
+    un segundo tono, para que el monocromo de Android funcione sin retocar nada.
+  -->
+  <g fill="none" stroke="#1B7F3C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Tierra: masa tintada que llena el bote hasta el borde. -->
+    <path d="M33.5 67 L34.6 81.5 Q34.9 84.5 38.2 84.5 L57.8 84.5 Q61.1 84.5 61.4 81.5 L62.5 67 Q55 70 48 68 Q41 66 33.5 67 Z"
+          fill="#1B7F3C" fill-opacity="0.33" stroke="none"/>
+
+    <!-- Bote: base compacta, apenas un tercio del alto. -->
+    <path d="M25 58 L71 58"/>
+    <path d="M30.5 61 L34 81 Q34.5 85 38.8 85 L57.2 85 Q61.5 85 62 81 L65.5 61"/>
+
+    <!-- Tallo, con una curvatura mínima para que no parezca una regla. -->
+    <path d="M48 62 C47 52 47.5 44 48 36" stroke-width="5.5"/>
+
+    <!-- Hojas: la segunda atenuada para dar profundidad sin un segundo color. -->
+    <path d="M48 52 C41 52.5 36 48.5 34.4 42.4 C42 40.8 47 45.2 48 52 Z" fill="#1B7F3C" stroke="none"/>
+    <path d="M48 45 C55 45.5 60 41.5 61.6 35.4 C54 33.8 49 38.2 48 45 Z" fill="#1B7F3C" fill-opacity="0.55" stroke="none"/>
+
+    <!--
+      Flor de cinco pétalos con el centro perforado. Los pétalos se trazan en
+      sentido horario y el centro en sentido antihorario: con relleno "nonzero"
+      eso resta el hueco sin necesidad de máscaras, que el formato de Android no
+      admite. El hueco es lo que mantiene la flor legible a 24 px.
+    -->
+    <path fill="#1B7F3C" stroke="none" fill-rule="nonzero"
+          d="M41.4 13.3 a6.6 6.6 0 1 1 13.2 0 a6.6 6.6 0 1 1 -13.2 0 Z
+             M49.7 19.3 a6.6 6.6 0 1 1 13.2 0 a6.6 6.6 0 1 1 -13.2 0 Z
+             M46.5 29.1 a6.6 6.6 0 1 1 13.2 0 a6.6 6.6 0 1 1 -13.2 0 Z
+             M36.3 29.1 a6.6 6.6 0 1 1 13.2 0 a6.6 6.6 0 1 1 -13.2 0 Z
+             M33.1 19.3 a6.6 6.6 0 1 1 13.2 0 a6.6 6.6 0 1 1 -13.2 0 Z
+             M44 22 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0 Z"/>
+  </g>
+</svg>

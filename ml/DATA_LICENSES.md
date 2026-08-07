@@ -1,4 +1,4 @@
-# Procedencia y licencias de datos y modelos — BotaBien ML
+# Procedencia y licencias de datos y modelos — RecyCol ML
 
 **Criterio vigente: USO COMERCIAL.** La app se comercializará; todo activo del
 pipeline (datasets, pesos preentrenados, herramientas que generan datos) debe

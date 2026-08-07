@@ -26,7 +26,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BotaBien"
+rootProject.name = "RecyCol"
 
 include(":shared")
 include(":shared:testing")

@@ -1,4 +1,4 @@
-# CONTEXTO — BotaBien
+# CONTEXTO — RecyCol
 
 **Este es el único documento que un agente necesita leer antes de trabajar.**
 Sustituye a `context-for-vibe-coding.md`, a `ml/DATASETS.md` y a los siete
@@ -9,9 +9,18 @@ sintetizado aquí; lo que no está aquí, está enlazado desde la sección
 Última consolidación: **07/08/2026**, tras el reinicio de la máquina y el cierre
 de la campaña de siete agentes en paralelo del 06–07/08.
 
+> ### 🔄 Renombrado en curso: BotaBien → RecyCol
+>
+> El proyecto se está renombrando por partes verificables (QA, en curso).
+> Hechos y verificados: documentación, Docker/runners/CI, repo de GitHub y el
+> namespace de código (`com.recycol.*`). **Solo falta la fase 7**: las carpetas
+> en disco (`BotaBien`, `BotaBien-ml`) siguen con el nombre viejo — se
+> renombran coordinando con Juan/ML para no tumbar un entrenamiento activo. No
+> edites las menciones a esas rutas para "adelantarlas".
+
 ---
 
-## 1. Qué es BotaBien
+## 1. Qué es RecyCol
 
 Aplicación móvil Android (portable a iOS) que, usando la cámara y redes
 neuronales que corren **íntegramente en el dispositivo**, dice en qué caneca va
@@ -80,21 +89,21 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
   contenedor, y el sufijo `-p <proyecto>` es obligatorio para no chocar por el
   lock de Gradle:
   ```bash
-  docker compose -p botabien-<agente> run --rm android-build ./gradlew <tareas>
+  docker compose -p recycol-<agente> run --rm android-build ./gradlew <tareas>
   ```
   Batería equivalente a CI:
   `:shared:allTests :shared:testing:allTests :shared:verifyPlatformIsolation :androidApp:testDebugUnitTest :androidApp:assembleDebug`
 - **CI verde obligatorio antes de fusionar.** El check que satisface la
   protección de rama es **«Compilar y probar»** (workflow `CI`). Verifícalo de
   verdad, no por el rollup:
-  `gh api repos/JuanUrrego146/BotaBien/commits/<sha>/check-runs`.
+  `gh api repos/JuanUrrego146/RecyCol/commits/<sha>/check-runs`.
 - **Runners propios**, self-hosted y dockerizados, sobre la misma imagen
-  `botabien/android-build` que el build local. Runbook en
+  `recycol/android-build` que el build local. Runbook en
   [`.github/runner/README.md`](.github/runner/README.md). Levantarlos tras un
   reinicio, desde `.github/runner/`:
   ```bash
   docker compose -f docker-compose.runners.yml up -d
-  gh api repos/JuanUrrego146/BotaBien/actions/runners --jq '.runners[].status'
+  gh api repos/JuanUrrego146/RecyCol/actions/runners --jq '.runners[].status'
   ```
   Dimensionado vigente (#131): **1 ejecutor de 8 GB**; el segundo (4 GB) solo en
   picos, con `--profile ola`.
@@ -104,13 +113,13 @@ integra. Estas reglas existen porque **cada una se aprendió rompiendo algo**.
   que fusiona `main` primero.
 - **No relanzar checks en masa** (congeló la cola 90 min) ni empujar commits
   vacíos a ramas ajenas para redisparar.
-- Cada run verde deja el APK: `gh run download <run-id> -n botabien-debug-apk`.
+- Cada run verde deja el APK: `gh run download <run-id> -n recycol-debug-apk`.
 
 ### Diagnósticos que cuesta caro repetir
 
 | Síntoma | Causa real |
 |---|---|
-| Job en `failure` **sin ningún paso fallido** | OOM del contenedor contra su `mem_limit` (un pipeline en frío pide 6–7 GB). Comprueba: `docker inspect botabien-runner-1 --format '{{.State.OOMKilled}}'` |
+| Job en `failure` **sin ningún paso fallido** | OOM del contenedor contra su `mem_limit` (un pipeline en frío pide 6–7 GB). Comprueba: `docker inspect recycol-runner-1 --format '{{.State.OOMKilled}}'` |
 | «Could not read workspace metadata» | Caché `kotlin-dsl` del volumen corrupta tras reiniciar Docker: bórrala y repite |
 | Run muerto con `runner: NONE`, cero pasos | Infraestructura: relanzar |
 | `gh pr checks` vacío | Verifica por rama y SHA: `gh run list --branch <rama>` contra `git rev-parse origin/<rama>` |
@@ -222,7 +231,7 @@ traducción material → caneca la hace el motor de reglas contra un perfil
 normativo intercambiable por país.
 
 ```
-BotaBien/
+RecyCol/
 ├── shared/                          # KMP, SIN dependencias de Android
 │   ├── domain/                      # entidades, casos de uso, puertos      → CORE
 │   ├── testing/                     # fakes deterministas                   → CORE
@@ -667,7 +676,6 @@ Tras la limpieza del 07/08, en `C:\Users\Juan\Documents\GitHub\`:
 |---|---|---|
 | `BotaBien` | **Clon principal**, en `main` y limpio. Zona neutral compartida | Es el repositorio de referencia y el padre de todos los worktrees. **No se trabaja ni se commitea aquí** |
 | `BotaBien-ml` | Worktree del agente ML (`ml/S22-pipeline-ingesta`) | **Contiene los datasets (2,0 GB), los checkpoints (94 MB) y los reportes de entrenamiento, que no están en git y no se regeneran sin volver a descargar y entrenar.** Nunca borrar sin respaldar `ml/data/`, `ml/runs/` y `ml/reports/` |
-| `BotaBien-org` | Worktree temporal de esta consolidación | Se elimina en cuanto se fusione el PR de `CONTEXTO.md` |
 
 Se eliminaron **16 worktrees** de agentes cerrados (`BotaBien-core`,
 `BotaBien-front`, `BotaBien-cam`, `BotaBien-data`, `BotaBien-qa`,
@@ -698,7 +706,7 @@ copies su contenido aquí.**
 
 | Documento | Qué contiene |
 |---|---|
-| [`docs/F_Analisis_de_Requerimientos_V1,0_BotaBien.md`](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.md) · [.docx](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) | **Especificación completa**: CUS, RF, RNF y matriz de trazabilidad. Es la fuente de verdad de qué hay que construir |
+| [`docs/F_Analisis_de_Requerimientos_V1,0_RecyCol.md`](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.md) · [.docx](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.docx) | **Especificación completa**: CUS, RF, RNF y matriz de trazabilidad. Es la fuente de verdad de qué hay que construir |
 | [`ml/DATA_LICENSES.md`](ml/DATA_LICENSES.md) | **Registro legal de procedencia**: licencia, evidencia y veredicto comercial de cada dataset, peso y herramienta. Manda sobre el resto |
 | [`docs/arquitectura.md`](docs/arquitectura.md) | Diagramas Mermaid: contexto, casos de uso, modelo de dominio, secuencias, estados, y la tabla de decisiones de arquitectura con sus alternativas descartadas |
 | [`plan/plan_de_trabajo.md`](plan/plan_de_trabajo.md) | Estimación, cronograma y criterio de hecho por sesión (S01–S44) |

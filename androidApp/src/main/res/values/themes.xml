@@ -2,14 +2,14 @@
 <!--
     Tema de la ventana. Solo existe para lo que ocurre **antes** de que Compose
     pinte el primer fotograma: el fondo que el sistema muestra mientras se crea
-    la actividad. Todo lo demás lo decide BotaBienTheme.
+    la actividad. Todo lo demás lo decide RecyColTheme.
 
     Sin esto la ventana arranca con el blanco del tema de plataforma, así que
     abrir la app de noche daba un destello blanco antes de la interfaz oscura.
     El calificador -night resuelve el par correcto.
 -->
 <resources>
-    <style name="Theme.BotaBien" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.RecyCol" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 </resources>

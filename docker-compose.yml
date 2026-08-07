@@ -1,4 +1,4 @@
-# Entornos contenerizados de BotaBien. Uso:
+# Entornos contenerizados de RecyCol. Uso:
 #
 #   Compilar y probar la app (equivale a lo que corre CI):
 #     docker compose run --rm android-build
@@ -16,7 +16,7 @@ services:
     build:
       context: docker
       dockerfile: android-build.Dockerfile
-    image: botabien/android-build:1.0.0
+    image: recycol/android-build:1.0.0
     working_dir: /workspace
     volumes:
       - .:/workspace

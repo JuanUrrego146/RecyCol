@@ -5,7 +5,7 @@
     salgan claros sobre una app oscura.
 -->
 <resources>
-    <style name="Theme.BotaBien" parent="@android:style/Theme.Material.NoActionBar">
+    <style name="Theme.RecyCol" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 </resources>

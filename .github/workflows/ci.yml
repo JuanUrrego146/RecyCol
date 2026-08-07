@@ -1,9 +1,9 @@
-# Integración continua de BotaBien (S01; runner propio desde el 06/08/2026, QA).
+# Integración continua de RecyCol (S01; runner propio desde el 06/08/2026, QA).
 # Compila la app, ejecuta las pruebas multiplataforma de shared, las pruebas
 # unitarias de androidApp e inference, y verifica el aislamiento de plataforma.
 #
 # Corre en los runners self-hosted del proyecto (.github/runner/): la imagen es
-# la misma botabien/android-build de docker/, así que JDK, Gradle y Android SDK
+# la misma recycol/android-build de docker/, así que JDK, Gradle y Android SDK
 # vienen fijados por la imagen y no se instalan aquí. Si los runners propios
 # están caídos, el respaldo hospedado es ci-respaldo.yml (mismo check).
 name: CI
@@ -40,11 +40,11 @@ jobs:
 
       # El APK de cada build verde queda descargable desde la página del run
       # (pestaña Actions → run → «Artifacts»), o por CLI:
-      #   gh run download <run-id> -n botabien-debug-apk
+      #   gh run download <run-id> -n recycol-debug-apk
       - name: Publicar APK como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
-          name: botabien-debug-apk
+          name: recycol-debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk
           retention-days: 14
           if-no-files-found: error
