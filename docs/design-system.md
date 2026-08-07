@@ -245,16 +245,57 @@ Modifier.botaGlass(shape = BotaTheme.shapes.capsule)  // para lo que ya tiene di
    sigue sin conocer ningún color de caneca.
 4. **El grado no lo elige el llamador**, lo resuelve el tema.
 
+**Las cuatro capas.** Las cuatro hacen falta; quitar una lo devuelve a parecer un velo gris:
+
+1. **Atenuación** — sostiene el contraste del texto sobre vídeo en vivo.
+2. **Luz cenital** — el material parece iluminado desde arriba.
+3. **Canto biselado** — bandas de luz pegadas al borde superior e inferior. Es lo que da
+   sensación de *grosor*; sin ellas la superficie parece pintada sobre la pantalla.
+4. **Brillo especular** en el contorno, más el sombreado exterior que la despega del fondo.
+
+La primera versión llevaba solo 1, 2 y un contorno de 1 px, y **en el dispositivo no se
+distinguía del velo plano anterior**. El bisel y la sombra son lo que marcó la diferencia.
+
 **Grados** (`BotaTheme.glass`, resuelto una vez en `BotaBienTheme`)
 
 | Grado | Cuándo | Qué hace |
 |---|---|---|
-| `Clear` | Por defecto | Translúcido, atenuado y tintado, con brillo en el borde |
-| `Veil` | Poca memoria · ahorro de energía · animaciones desactivadas | Superficie opaca y borde tenue; cuesta lo mismo que un fondo plano |
+| `Clear` | Por defecto | Translúcido, atenuado y tintado, con canto y brillo en el borde |
+| `Veil` | Animaciones desactivadas por el usuario | Superficie opaca y borde tenue |
 
-La jerarquía y la legibilidad **son idénticas en los dos grados**; solo cambia el
-material. Cualquiera de las tres señales basta para bajar a `Veil`: equivocarse hacia el
-material barato cuesta algo de belleza, y hacia el caro cuesta fluidez en la cámara.
+La jerarquía y la legibilidad **son idénticas en los dos grados**; solo cambia el material.
+
+**Solo se degrada por preferencia, no por potencia**, y es un cambio deliberado: sin
+desenfoque de fondo el cristal son dos degradados y un borde, o sea lo que cuesta
+cualquier superficie plana. La versión inicial degradaba también con poca memoria o con
+el ahorro de energía activo, lo que no ahorraba nada y dejaba sin material a cualquiera
+con el ahorro de batería encendido. Si algún día se añade desenfoque real —eso sí
+cuesta— la degradación por gama vuelve a tener sentido: consúltese `DeviceTierPolicy`
+por caso de uso y degrádese el subárbol con `LocalGlassMaterial`.
+
+**Sobre qué fondo se ve.** El material necesita algo detrás que dejar pasar: sobre una
+escena oscura y uniforme —la cámara tapada, por ejemplo— cualquier cristal se lee como
+una caja gris. No es un defecto que se pueda corregir subiendo la intensidad; es la
+naturaleza del material.
+
+**Ojo: `BotaButton` no vale sobre cristal.** Sus tres estilos tiñen el contenido con el
+verde de marca, calculado para contrastar sobre fondos **claros**. Sobre el velo oscuro
+de la cámara ese verde se queda por debajo de AA y casi no se lee — se detectó en una
+captura del dispositivo, no compilando. Las acciones que van sobre cristal usan
+`BotaTheme.colors.onScrim` como color de contenido, con `headline` y 44 dp de área
+táctil. Si esto se repite en más pantallas, merece un estilo propio en el design system.
+
+**Composición sobre la cámara: los estados se turnan, no se acumulan.** La regla que
+salió de ver la pantalla amontonada en el dispositivo:
+
+- Con decisión visible → el marco de encuadre se apaga (no hay nada que encuadrar), la
+  orientación desaparece y la entrada manual se repliega dentro de la tarjeta como
+  «No es esto».
+- Sin decisión → manda la orientación, el marco respira y la entrada manual está a mano.
+
+Y la jerarquía de la decisión: **el material es antetítulo pequeño y la caneca es el
+titular** (`title2`). Lo que hay que hacer con el residuo importa más que lo que el
+modelo cree que es.
 
 **Por qué no desenfoca el fondo.** `PreviewView` monta un `SurfaceView`, que el sistema
 compone en una capa aparte y **no se puede capturar** en un `GraphicsLayer`: un desenfoque

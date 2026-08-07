@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BotaBien</string>
+    <string name="app_name">RecyCol</string>
 
     <!-- Selección de país (RF-001, RF-003 · CUS-001) -->
     <string name="country_selection_title">Choose your country</string>
-    <string name="country_selection_subtitle">BotaBien applies the waste-sorting regulation of the country you choose.</string>
+    <string name="country_selection_subtitle">RecyCol applies the waste-sorting regulation of the country you choose.</string>
     <string name="country_selected_description">Selected</string>
     <string name="action_continue">Continue</string>
     <string name="action_change_country">Change country</string>
@@ -19,7 +19,7 @@
     <string name="performance_low">Low</string>
     <string name="performance_mid">Medium</string>
     <string name="performance_high">High</string>
-    <string name="performance_effect_warning">In Automatic, BotaBien benchmarks your phone at startup. A manual level forces or limits auxiliary features; camera classification always works.</string>
+    <string name="performance_effect_warning">In Automatic, RecyCol benchmarks your phone at startup. A manual level forces or limits auxiliary features; camera classification always works.</string>
     <string name="settings_history_clear">Clear history</string>
     <string name="settings_history_confirm_title">Clear history?</string>
     <string name="settings_history_confirm_message">All classifications saved on this phone will be deleted. This action cannot be undone.</string>
@@ -41,7 +41,7 @@
     <string name="auth_continue_as_guest">Continue as guest</string>
 
     <!-- Cámara (RF-009 · CUS-003) -->
-    <string name="camera_permission_message">BotaBien needs the camera to identify the waste item. The image is processed on your phone and never leaves it.</string>
+    <string name="camera_permission_message">RecyCol needs the camera to identify the waste item. The image is processed on your phone and never leaves it.</string>
     <string name="camera_permission_action">Allow camera</string>
     <string name="camera_error_message">The camera could not start. Try again.</string>
 
@@ -100,4 +100,12 @@
     <string name="material_battery">Batteries</string>
     <string name="material_electronic">Electronics</string>
     <string name="material_residual">Non-recoverable</string>
+
+    <string name="result_not_this_action">That\'s not it</string>
+    <string name="result_open_detail_hint">Tap to see why</string>
+
+    <!-- Top bar and viewfinder guidance (RF-009, RF-018 · CUS-003) -->
+    <string name="banner_change_country_action">Change country</string>
+    <string name="guidance_title">Point at a waste item</string>
+    <string name="guidance_body">Frame it inside the guide and I will tell you which bin it goes in.</string>
 </resources>

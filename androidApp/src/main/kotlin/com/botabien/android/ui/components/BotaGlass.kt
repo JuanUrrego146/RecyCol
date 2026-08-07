@@ -1,6 +1,5 @@
 package com.botabien.android.ui.components
 
-import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -38,7 +38,7 @@ enum class BotaGlassState {
     /** En reposo, con una decisión tomada o sin nada que decir. */
     Settled,
 
-    /** Analizando: el borde respira despacio, sin llamar la atención. */
+    /** Analizando: el borde recorre un pulso de luz. */
     Analyzing,
 
     /**
@@ -51,14 +51,21 @@ enum class BotaGlassState {
 
 /**
  * Superficie de cristal del design system: el material translúcido que flota
- * sobre el contenido, con su atenuación para sostener la legibilidad y el brillo
- * especular que remata el borde.
+ * sobre el contenido.
  *
- * El grado de material lo decide [LocalGlassMaterial], no el llamador: en gama
- * baja, con ahorro de energía o con las animaciones desactivadas, la misma
- * llamada produce una superficie opaca que cuesta lo mismo que un fondo plano.
- * **La jerarquía y la legibilidad no cambian entre grados**; solo cambia el
- * material.
+ * Se construye con cuatro capas, y **las cuatro hacen falta** para que se lea
+ * como cristal y no como un velo gris:
+ *
+ * 1. **Atenuación**, que sostiene el contraste del texto sobre vídeo en vivo.
+ * 2. **Luz cenital**, que hace que el material parezca iluminado desde arriba.
+ * 3. **Canto biselado**: sendas bandas de luz pegadas al borde superior e
+ *    inferior. Es lo que da sensación de *grosor* — sin ellas la superficie
+ *    parece pintada sobre la pantalla en vez de flotar por encima.
+ * 4. **Brillo especular** en el contorno, más intenso donde daría la luz.
+ *
+ * Más una sombra exterior que la despega del fondo. La primera versión de este
+ * componente se quedó corta justamente en el bisel y en la sombra, y el
+ * resultado fue que el material no se distinguía del velo plano anterior.
  *
  * @param tint tinte de la caneca decidida. Sigue siendo dato del perfil
  *   normativo (`BinDefinition.colorHex`), no una decisión de diseño: el cristal
@@ -111,10 +118,22 @@ fun Modifier.botaGlass(
     val dimAlpha = if (opaque) VEIL_DIM_ALPHA else CLEAR_DIM_ALPHA
     val lightTop = (if (opaque) VEIL_LIGHT_ALPHA else CLEAR_LIGHT_ALPHA) +
         haze * HAZE_LIGHT_GAIN
+    val bevelAlpha = (if (opaque) VEIL_BEVEL_ALPHA else CLEAR_BEVEL_ALPHA) *
+        (1f - haze * HAZE_BEVEL_LOSS)
     val rimAlpha = (if (opaque) VEIL_RIM_ALPHA else CLEAR_RIM_ALPHA) *
         (1f - haze * HAZE_RIM_LOSS) * breath
+    val transparent = colors.onScrim.copy(alpha = 0f)
 
     return this
+        .then(
+            if (opaque || !filled) {
+                Modifier
+            } else {
+                // Sombra exterior: sin ella la superficie parece pintada sobre
+                // la pantalla; con ella flota por encima del contenido.
+                Modifier.shadow(elevation = GLASS_ELEVATION, shape = shape, clip = false)
+            },
+        )
         .clip(shape)
         .then(
             if (!filled) {
@@ -124,18 +143,29 @@ fun Modifier.botaGlass(
                 Modifier
             } else {
                 Modifier
-                    // Atenuación: es lo que sostiene el contraste del texto
-                    // cuando detrás hay vídeo en vivo. Va primero y no se salta
-                    // ni en el material más transparente (RNF-010).
+                    // 1 · Atenuación. Va primero y no se salta ni en el material
+                    // más transparente: es lo único que sostiene el contraste
+                    // del texto cuando detrás hay vídeo en vivo (RNF-010).
                     .background(color = colors.scrim.copy(alpha = dimAlpha), shape = shape)
-                    // Lavado de luz: el material parece iluminado desde arriba
-                    // en vez de ser una capa gris uniforme. Es lo que separa el
-                    // cristal del velo plano de toda la vida.
+                    // 2 · Luz cenital.
                     .background(
                         brush = Brush.verticalGradient(
                             listOf(
                                 colors.onScrim.copy(alpha = lightTop),
                                 colors.onScrim.copy(alpha = lightTop * LIGHT_BOTTOM_RATIO),
+                            ),
+                        ),
+                        shape = shape,
+                    )
+                    // 3 · Canto biselado: la luz se concentra en una banda
+                    // pegada al borde, como en el canto de un vidrio grueso.
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to colors.onScrim.copy(alpha = bevelAlpha),
+                                BEVEL_STOP to transparent,
+                                1f - BEVEL_STOP to transparent,
+                                1f to colors.onScrim.copy(alpha = bevelAlpha * BEVEL_BOTTOM_RATIO),
                             ),
                         ),
                         shape = shape,
@@ -154,8 +184,8 @@ fun Modifier.botaGlass(
                     )
             },
         )
-        // Brillo especular del borde: más intenso arriba a la izquierda, donde
-        // daría la luz, y con un rebote tenue en el canto inferior.
+        // 4 · Brillo especular del contorno, más intenso arriba a la izquierda,
+        // donde daría la luz, con un rebote tenue en el canto opuesto.
         .border(
             width = rimWidth,
             brush = Brush.linearGradient(
@@ -182,7 +212,7 @@ private fun rememberBreath(active: Boolean): Float {
     val breath by transition.animateFloat(
         initialValue = BREATH_MIN,
         targetValue = BREATH_MAX,
-        animationSpec = InfiniteRepeatableSpec(
+        animationSpec = infiniteRepeatable(
             animation = tween(BREATH_PERIOD_MS, easing = BotaMotion.easeInOut),
             repeatMode = RepeatMode.Reverse,
         ),
@@ -191,50 +221,68 @@ private fun rememberBreath(active: Boolean): Float {
     return breath
 }
 
-/** Grosor del brillo del borde; un cabello, como en iOS. */
-private val RIM_WIDTH = 1.dp
+/** Grosor del brillo del borde. */
+private val RIM_WIDTH = 1.5.dp
+
+/** Elevación de la sombra que despega el cristal del fondo. */
+private val GLASS_ELEVATION = 12.dp
 
 /** Atenuación del material transparente: deja ver, pero sostiene el contraste. */
-private const val CLEAR_DIM_ALPHA = 0.40f
+private const val CLEAR_DIM_ALPHA = 0.42f
 
-/** Atenuación del material opaco de gama baja. */
-private const val VEIL_DIM_ALPHA = 0.88f
+/** Atenuación del material opaco. */
+private const val VEIL_DIM_ALPHA = 0.90f
 
 /** Lavado de luz del material transparente. */
-private const val CLEAR_LIGHT_ALPHA = 0.20f
+private const val CLEAR_LIGHT_ALPHA = 0.26f
 
 /** Lavado de luz del material opaco, apenas insinuado. */
-private const val VEIL_LIGHT_ALPHA = 0.06f
+private const val VEIL_LIGHT_ALPHA = 0.07f
 
 /** Proporción de luz que queda en el canto inferior. */
-private const val LIGHT_BOTTOM_RATIO = 0.25f
+private const val LIGHT_BOTTOM_RATIO = 0.22f
 
-/** Intensidad del brillo del borde en el material transparente. */
-private const val CLEAR_RIM_ALPHA = 0.60f
+/** Intensidad de la banda de canto en el material transparente. */
+private const val CLEAR_BEVEL_ALPHA = 0.45f
 
-/** Intensidad del brillo del borde en el material opaco. */
-private const val VEIL_RIM_ALPHA = 0.16f
+/** Intensidad de la banda de canto en el material opaco. */
+private const val VEIL_BEVEL_ALPHA = 0.10f
 
-/** Punto del borde donde la luz decae antes de rebotar. */
+/** Grosor relativo de la banda de canto respecto al alto de la superficie. */
+private const val BEVEL_STOP = 0.045f
+
+/** Proporción de luz que recoge el canto inferior. */
+private const val BEVEL_BOTTOM_RATIO = 0.55f
+
+/** Intensidad del brillo del contorno en el material transparente. */
+private const val CLEAR_RIM_ALPHA = 0.85f
+
+/** Intensidad del brillo del contorno en el material opaco. */
+private const val VEIL_RIM_ALPHA = 0.18f
+
+/** Punto del contorno donde la luz decae antes de rebotar. */
 private const val RIM_SHADE_STOP = 0.55f
 
-/** Cuánta luz queda en el tramo sombreado del borde. */
-private const val RIM_SHADE_RATIO = 0.22f
+/** Cuánta luz queda en el tramo sombreado del contorno. */
+private const val RIM_SHADE_RATIO = 0.20f
 
 /** Rebote de luz en el canto opuesto al foco. */
 private const val RIM_BOUNCE_RATIO = 0.5f
 
 /** Opacidad con la que el color de caneca atraviesa el cristal. */
-private const val TINT_ALPHA = 0.16f
+private const val TINT_ALPHA = 0.22f
 
 /** Luz añadida cuando el material se empaña por la duda. */
-private const val HAZE_LIGHT_GAIN = 0.12f
+private const val HAZE_LIGHT_GAIN = 0.14f
 
-/** Definición que pierde el borde cuando el material se empaña. */
+/** Definición que pierde el canto cuando el material se empaña. */
+private const val HAZE_BEVEL_LOSS = 0.7f
+
+/** Definición que pierde el contorno cuando el material se empaña. */
 private const val HAZE_RIM_LOSS = 0.55f
 
-/** Extremos del pulso del borde mientras se analiza. */
-private const val BREATH_MIN = 0.45f
+/** Extremos del pulso del contorno mientras se analiza. */
+private const val BREATH_MIN = 0.3f
 private const val BREATH_MAX = 1f
 
 /** Periodo del pulso: lento, para que acompañe sin distraer. */

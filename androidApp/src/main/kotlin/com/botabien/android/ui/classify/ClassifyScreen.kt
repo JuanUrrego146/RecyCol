@@ -2,7 +2,11 @@ package com.botabien.android.ui.classify
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +18,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +43,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -56,6 +65,7 @@ import com.botabien.android.ui.components.BotaButtonStyle
 import com.botabien.android.ui.components.BotaGlassState
 import com.botabien.android.ui.components.BotaRouteGlyph
 import com.botabien.android.ui.components.botaGlass
+import com.botabien.android.ui.country.countryDisplayName
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
@@ -94,11 +104,19 @@ fun ClassifyScreen(
         state.start(frames)
         onDispose { state.stop() }
     }
+    var countryName by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(dependencies) {
-        inspectionMaterials = dependencies.selectCountry.activeProfileOrNull()
-            ?.inspectionRules?.map { it.material }?.toSet()
-            ?: emptySet()
+        val profile = dependencies.selectCountry.activeProfileOrNull()
+        inspectionMaterials = profile?.inspectionRules?.map { it.material }?.toSet() ?: emptySet()
+        countryName = profile?.isoCode?.let(::countryDisplayName)
     }
+
+    // La orientación se rige por la decisión visible: mientras no haya ninguna
+    // hay que decirle al usuario qué hacer, y si lleva mucho rato con la misma
+    // en pantalla es que se ha quedado parado y conviene recordárselo.
+    val guidanceVisible = rememberGuidanceVisible(
+        decisionKey = state.outcome?.disposal?.bin?.id,
+    )
 
     fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
@@ -111,46 +129,83 @@ fun ClassifyScreen(
     Box(modifier = modifier.fillMaxSize().background(BotaTheme.colors.cameraBackdrop)) {
         viewfinder(Modifier.fillMaxSize())
 
+        val hasDecision = state.outcome?.disposal != null
+
         GuideFrame(
             // Mientras no haya decisión visible, la app sigue mirando: el marco
-            // respira. En cuanto decide, se asienta.
-            analyzing = state.outcome == null,
+            // respira. En cuanto decide, se apaga y deja el sitio a la caneca.
+            analyzing = !hasDecision,
+            dimmed = hasDecision,
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth(GUIDE_WIDTH_FRACTION)
                 .aspectRatio(1f),
         )
 
-        OverlayAction(
-            text = stringResource(R.string.settings_title),
-            onClick = onOpenSettings,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(BotaTheme.spacing.screenMargin),
-        )
-
-        OverlayAction(
-            text = stringResource(R.string.manual_entry_action),
-            onClick = {
-                sheetCandidates = emptyList()
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(BotaTheme.spacing.screenMargin),
-        )
-
-        HintOverlay(
-            hint = state.hints.visible,
+        // Todo el cromo superior en una sola columna: la barra manda y lo demás
+        // cuelga de ella. Antes eran dos cápsulas sueltas en las esquinas, que
+        // no daban ninguna sensación de estructura sobre el vídeo.
+        Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = BotaTheme.spacing.xxxl * 2),
+                .padding(BotaTheme.spacing.screenMargin),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ClassifyTopBanner(
+                countryName = countryName,
+                onOpenSettings = onOpenSettings,
+            )
+            // La entrada manual solo mientras no hay decisión: en cuanto la hay,
+            // la acción equivalente vive dentro de la tarjeta («No es esto»), y
+            // mantener las dos a la vez era parte de lo que amontonaba.
+            AnimatedVisibility(
+                visible = !hasDecision,
+                enter = fadeIn(tween(BotaMotion.DURATION_FAST_MS)),
+                exit = fadeOut(tween(BotaMotion.DURATION_FAST_MS)),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    OverlayAction(
+                        text = stringResource(R.string.manual_entry_action),
+                        onClick = {
+                            sheetCandidates = emptyList()
+                            showManualSheet = true
+                        },
+                        modifier = Modifier.padding(top = BotaTheme.spacing.sm),
+                    )
+                }
+            }
+            HintOverlay(
+                hint = state.hints.visible,
+                modifier = Modifier.padding(top = BotaTheme.spacing.sm),
+            )
+        }
+
+        // La orientación se calla cuando hay una indicación de captura: esa es
+        // más concreta y no conviene apilar avisos (RF-018).
+        ViewfinderGuidance(
+            visible = guidanceVisible && state.hints.visible == null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = BotaTheme.spacing.screenMargin,
+                    end = BotaTheme.spacing.screenMargin,
+                    bottom = GUIDANCE_BOTTOM_INSET,
+                ),
         )
 
         ResultOverlay(
             disposal = state.outcome?.disposal,
             material = state.outcome?.classification?.material,
             onClick = { state.outcome?.let(onOpenResultDetail) },
+            onCorrect = {
+                // Desmentir la decisión arranca por las hipótesis probables,
+                // igual que el camino de baja confianza.
+                sheetCandidates = listOfNotNull(state.outcome?.classification?.material)
+                showManualSheet = true
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -243,23 +298,74 @@ private fun LowConfidencePrompt(
 }
 
 /**
- * Marco guía de encuadre; mera ayuda visual, nunca bloquea la vista. Solo lleva
- * el brillo del borde, sin relleno: atenuar el centro sería atenuar justo lo
- * que el usuario está intentando enfocar.
+ * Marco de encuadre: cuatro esquinas, no una caja.
  *
- * Mientras se analiza, ese borde respira. Es la forma más discreta de decir
- * «te estoy mirando» sin ocupar sitio ni añadir texto.
+ * Antes era un rectángulo completo que ocupaba media pantalla y competía con
+ * todo lo demás. Su trabajo es **orientar la mirada**, no protagonizar, y para
+ * eso bastan las esquinas — es además el lenguaje que cualquiera reconoce de
+ * un escáner. Ocupa menos, pesa mucho menos y encuadra igual.
+ *
+ * Se apaga casi del todo cuando ya hay una decisión: en ese momento no hay nada
+ * que encuadrar y el ojo tiene que irse a la caneca.
  */
 @Composable
-private fun GuideFrame(analyzing: Boolean, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.botaGlass(
-            shape = BotaTheme.shapes.large,
-            state = if (analyzing) BotaGlassState.Analyzing else BotaGlassState.Settled,
-            rimWidth = BotaTheme.spacing.xxs,
-            filled = false,
-        ),
+private fun GuideFrame(
+    analyzing: Boolean,
+    dimmed: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val presence by animateFloatAsState(
+        targetValue = if (dimmed) GUIDE_DIMMED_ALPHA else 1f,
+        animationSpec = tween(BotaMotion.DURATION_BASE_MS, easing = BotaMotion.easeInOut),
+        label = "guideFramePresence",
     )
+    val breath by rememberInfiniteTransition(label = "guideBreath").animateFloat(
+        initialValue = if (analyzing) GUIDE_BREATH_MIN else 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(GUIDE_BREATH_PERIOD_MS, easing = BotaMotion.easeInOut),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "guideBreathValue",
+    )
+
+    val color = BotaTheme.colors.onScrim
+    val stroke = GUIDE_STROKE
+    val arm = GUIDE_ARM
+    val radius = GUIDE_RADIUS
+
+    Canvas(modifier = modifier) {
+        val strokePx = stroke.toPx()
+        val armPx = arm.toPx()
+        val radiusPx = radius.toPx()
+        val alpha = presence * (if (analyzing) breath else 1f)
+
+        // Una esquina por cuadrante, dibujada como dos brazos unidos por un
+        // cuarto de curva del mismo radio que las tarjetas del sistema.
+        val corners = listOf(
+            Triple(Offset(0f, 0f), 1f, 1f),
+            Triple(Offset(size.width, 0f), -1f, 1f),
+            Triple(Offset(0f, size.height), 1f, -1f),
+            Triple(Offset(size.width, size.height), -1f, -1f),
+        )
+        corners.forEach { (origin, dirX, dirY) ->
+            val path = Path().apply {
+                moveTo(origin.x + dirX * armPx, origin.y)
+                lineTo(origin.x + dirX * radiusPx, origin.y)
+                quadraticBezierTo(
+                    origin.x, origin.y,
+                    origin.x, origin.y + dirY * radiusPx,
+                )
+                lineTo(origin.x, origin.y + dirY * armPx)
+            }
+            drawPath(
+                path = path,
+                color = color,
+                alpha = alpha,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round),
+            )
+        }
+    }
 }
 
 /** Indicación de captura única, discreta, arriba y sin desplazar contenido. */
@@ -302,6 +408,7 @@ private fun ResultOverlay(
     disposal: Disposal?,
     material: WasteMaterial?,
     onClick: () -> Unit,
+    onCorrect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -332,7 +439,7 @@ private fun ResultOverlay(
         }
 
         lastDisposal?.let { current ->
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer {
@@ -353,51 +460,113 @@ private fun ResultOverlay(
                         onClickLabel = openDetailLabel,
                         onClick = onClick,
                     )
-                    .padding(BotaTheme.spacing.lg),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(BotaTheme.spacing.xl),
             ) {
-                BinSwatch(colorHex = current.bin.colorHex)
-                Spacer(modifier = Modifier.width(BotaTheme.spacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BotaRouteGlyph(
-                            route = current.route,
-                            color = BotaTheme.colors.onScrim,
-                        )
-                        Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
-                        Text(
-                            text = current.bin.displayName,
-                            style = BotaTheme.typography.headline,
-                            color = BotaTheme.colors.onScrim,
-                        )
-                    }
-                    if (material != null) {
-                        Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
-                        Text(
-                            text = materialLabel(material),
-                            style = BotaTheme.typography.subheadline,
-                            color = BotaTheme.colors.onScrim.copy(alpha = SECONDARY_ON_SCRIM_ALPHA),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
+                // El material va encima y pequeño, y la caneca debajo y grande:
+                // lo que hay que hacer con el residuo importa más que lo que el
+                // modelo cree que es. Antes iban al revés y en el mismo cuerpo.
+                if (material != null) {
                     Text(
-                        text = current.justification,
-                        style = BotaTheme.typography.footnote,
-                        color = BotaTheme.colors.onScrim.copy(alpha = TERTIARY_ON_SCRIM_ALPHA),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        text = materialLabel(material),
+                        style = BotaTheme.typography.footnoteEmphasized,
+                        color = BotaTheme.colors.onScrim.copy(alpha = SECONDARY_ON_SCRIM_ALPHA),
                     )
-                    if (current.degradedByContamination) {
-                        Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
-                        DegradedNotice(stringResource(R.string.result_degraded_by_contamination))
-                    }
-                    current.unavailableBinNotice?.let { notice ->
-                        Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
-                        DegradedNotice(notice)
-                    }
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.xs))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BinSwatch(colorHex = current.bin.colorHex)
+                    Spacer(modifier = Modifier.width(BotaTheme.spacing.md))
+                    BotaRouteGlyph(
+                        route = current.route,
+                        color = BotaTheme.colors.onScrim,
+                    )
+                    Spacer(modifier = Modifier.width(BotaTheme.spacing.sm))
+                    Text(
+                        text = current.bin.displayName,
+                        style = BotaTheme.typography.title2,
+                        color = BotaTheme.colors.onScrim,
+                    )
+                }
+                Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+                Text(
+                    text = current.justification,
+                    style = BotaTheme.typography.footnote,
+                    color = BotaTheme.colors.onScrim.copy(alpha = TERTIARY_ON_SCRIM_ALPHA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (current.degradedByContamination) {
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+                    DegradedNotice(stringResource(R.string.result_degraded_by_contamination))
+                }
+                current.unavailableBinNotice?.let { notice ->
+                    Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+                    DegradedNotice(notice)
+                }
+
+                // La corrección vive aquí, no en una cápsula suelta arriba:
+                // cuando hay una decisión en pantalla, la acción que alguien
+                // quiere es desmentirla, y tiene que estar donde está mirando.
+                Spacer(modifier = Modifier.height(BotaTheme.spacing.md))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.result_open_detail_hint),
+                        style = BotaTheme.typography.caption1,
+                        color = BotaTheme.colors.onScrim.copy(alpha = TERTIARY_ON_SCRIM_ALPHA),
+                    )
+                    // Acción sobre cristal, no un BotaButton: el estilo Plain
+                    // pinta el contenido con el verde de marca, que sobre el
+                    // velo oscuro se queda sin contraste (RNF-010). Aquí manda
+                    // el color de contenido del velo.
+                    OnScrimAction(
+                        text = stringResource(R.string.result_not_this_action),
+                        onClick = onCorrect,
+                    )
                 }
             }
         }
+    }
+}
+
+/**
+ * Acción textual sobre una superficie de cristal. Existe porque los estilos de
+ * `BotaButton` tiñen el contenido con el verde de marca, pensado para fondos
+ * claros: sobre el velo oscuro de la cámara ese verde pierde el contraste que
+ * exige RNF-010. Aquí el contenido va en el color del velo.
+ */
+@Composable
+private fun OnScrimAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val alpha by animateFloatAsState(
+        targetValue = if (pressed) BotaMotion.PRESSED_ALPHA else 1f,
+        animationSpec = BotaMotion.pressSpring(),
+        label = "onScrimActionAlpha",
+    )
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = BotaTheme.typography.headline,
+            color = BotaTheme.colors.onScrim.copy(alpha = alpha),
+        )
     }
 }
 
@@ -517,7 +686,35 @@ internal fun materialLabel(material: WasteMaterial): String = stringResource(
     }
 )
 
-private const val GUIDE_WIDTH_FRACTION = 0.72f
+/**
+ * Altura reservada bajo la orientación. Ya no tiene que esquivar la tarjeta de
+ * decisión —no coinciden nunca—, solo separarse del borde inferior.
+ */
+private val GUIDANCE_BOTTOM_INSET = 120.dp
+
+/**
+ * Ancho del marco de encuadre. Bajó de 0,72 a 0,62: encuadra igual y deja
+ * respirar la pantalla, que era la queja.
+ */
+private const val GUIDE_WIDTH_FRACTION = 0.62f
+
+/** Grosor de las esquinas del marco. */
+private val GUIDE_STROKE = 3.dp
+
+/** Longitud de cada brazo de esquina. */
+private val GUIDE_ARM = 30.dp
+
+/** Radio de la curva de esquina; el mismo lenguaje que las tarjetas. */
+private val GUIDE_RADIUS = 18.dp
+
+/** Presencia del marco cuando ya hay una decisión: casi apagado. */
+private const val GUIDE_DIMMED_ALPHA = 0.18f
+
+/** Extremo tenue del pulso del marco mientras se analiza. */
+private const val GUIDE_BREATH_MIN = 0.45f
+
+/** Periodo del pulso del marco. */
+private const val GUIDE_BREATH_PERIOD_MS = 1_400
 private const val GUIDE_ALPHA = 0.45f
 private const val SECONDARY_ON_SCRIM_ALPHA = 0.8f
 private const val TERTIARY_ON_SCRIM_ALPHA = 0.7f
