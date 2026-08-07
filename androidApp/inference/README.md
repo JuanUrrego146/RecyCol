@@ -130,7 +130,23 @@ esta tabla y al reporte de S41.
 
 ## Cómo entregar y validar un export (S27 — guía para el agente ML)
 
-Tres pasos, sin tocar código de este módulo:
+**Vía rápida — un solo comando, sin EDGE** (requiere `adb` en el PATH y un
+dispositivo o emulador conectado; en Windows, desde Git Bash):
+
+```bash
+./androidApp/inference/validate_models.sh ml/dist/models ruta/al/conjunto-eval
+```
+
+El script copia los `.tflite`, imprime sus **SHA-256** (para cotejar con
+`export_report.json`), corre el banco completo y deja el registro legible en
+`androidApp/inference/build/registro-validacion.txt`: contrato OK/violado por
+modelo, acuerdo con el lote de referencia, **top-1 antes y después de la
+cuantización con la pérdida en puntos**, y latencia mediana + memoria por
+variante y vía de aceleración. El segundo argumento es opcional; sin él solo
+se validan contrato y latencia. En emulador la latencia es solo de la vía
+CPU: la corrida por gama real exige un dispositivo físico de cada gama (S41).
+
+La vía manual equivalente, en tres pasos:
 
 1. **Dejar caer los archivos** (todos gitignorados, no se versionan):
    - Modelos INT8 en `src/main/assets/models/` con los nombres del contrato.
