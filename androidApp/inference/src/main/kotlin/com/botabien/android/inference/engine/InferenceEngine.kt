@@ -34,6 +34,14 @@ interface InferenceEngine : AutoCloseable {
      *   que declara la [com.botabien.android.inference.model.ModelSpec] del modelo.
      */
     fun run(input: ByteBuffer): FloatArray
+
+    /**
+     * Ejecuta una inferencia sobre un modelo con varios tensores de salida
+     * (detectores, RF-010) y los devuelve aplanados, en orden de índice y ya
+     * decuantizados. Los modelos de una sola salida devuelven una lista de un
+     * elemento.
+     */
+    fun runMultiOutput(input: ByteBuffer): List<FloatArray> = listOf(run(input))
 }
 
 /**
