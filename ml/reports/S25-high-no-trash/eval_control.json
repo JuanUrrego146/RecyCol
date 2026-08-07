@@ -1,0 +1,98 @@
+{
+  "variant": "high",
+  "run": "no-trash",
+  "arch": "efficientnet_b2",
+  "split": "control",
+  "n": 4752,
+  "top1": 0.4933,
+  "route": 0.6978,
+  "route_macro": 0.6872,
+  "rnf008": {
+    "material_goal": 0.85,
+    "route_goal": 0.95,
+    "material_met": false,
+    "route_met": false
+  },
+  "per_class": [
+    {
+      "material": "PLASTIC",
+      "support": 921,
+      "top1": 0.7134,
+      "route": 0.9207,
+      "confundido_con": "METAL"
+    },
+    {
+      "material": "PAPER",
+      "support": 500,
+      "top1": 0.7,
+      "route": 0.86,
+      "confundido_con": "RESIDUAL"
+    },
+    {
+      "material": "CARDBOARD",
+      "support": 461,
+      "top1": 0.3427,
+      "route": 0.8308,
+      "confundido_con": "PAPER"
+    },
+    {
+      "material": "GLASS",
+      "support": 420,
+      "top1": 0.3,
+      "route": 0.9381,
+      "confundido_con": "PLASTIC"
+    },
+    {
+      "material": "METAL",
+      "support": 790,
+      "top1": 0.7241,
+      "route": 0.8772,
+      "confundido_con": "PLASTIC"
+    },
+    {
+      "material": "ORGANIC",
+      "support": 847,
+      "top1": 0.3636,
+      "route": 0.3636,
+      "confundido_con": "PLASTIC"
+    },
+    {
+      "material": "TEXTILE",
+      "support": 318,
+      "top1": 0.4371,
+      "route": 0.5094,
+      "confundido_con": "PAPER"
+    },
+    {
+      "material": "RESIDUAL",
+      "support": 495,
+      "top1": 0.0687,
+      "route": 0.198,
+      "confundido_con": "PLASTIC"
+    }
+  ],
+  "route_confusion": {
+    "routes": [
+      "NON_RECYCLABLE",
+      "ORGANIC",
+      "RECYCLABLE"
+    ],
+    "matrix": [
+      [
+        260,
+        65,
+        488
+      ],
+      [
+        28,
+        308,
+        511
+      ],
+      [
+        326,
+        18,
+        2748
+      ]
+    ]
+  }
+}

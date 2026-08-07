@@ -63,7 +63,7 @@ def calibration_batches(input_side: int):
         yield torch.from_numpy(array.astype(np.float32)).permute(2, 0, 1).unsqueeze(0)
 
 
-def load_trained(kind: str, run: str = "full-v2-clean") -> tuple[torch.nn.Module, int]:
+def load_trained(kind: str, run: str = "no-trash") -> tuple[torch.nn.Module, int]:
     if kind == "contamination":
         import torchvision
         from torch import nn
@@ -83,15 +83,25 @@ def load_trained(kind: str, run: str = "full-v2-clean") -> tuple[torch.nn.Module
     return model, side
 
 
-def export_variant(kind: str, run: str = "full-v2-clean") -> Path:
+def export_variant(kind: str, run: str = "no-trash") -> Path:
+    # ai-edge-torch fue renombrado a litert-torch. El paquete viejo instalable
+    # hoy (0.7.2) es un shim vacío, y las versiones anteriores que sí traían
+    # .quantize fijan un tf-nightly concreto que PyPI ya purgó: son
+    # ininstalables. Se prefiere litert-torch (API de estructura idéntica) y se
+    # conserva el nombre antiguo como respaldo por si la imagen es vieja.
     try:
-        import ai_edge_torch
-        from ai_edge_torch.quantize import pt2e_quantizer, quant_config
+        try:
+            import litert_torch as edge_torch
+            from litert_torch.quantize import pt2e_quantizer, quant_config
+        except ImportError:
+            import ai_edge_torch as edge_torch
+            from ai_edge_torch.quantize import pt2e_quantizer, quant_config
         from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
     except ImportError as error:
         raise SystemExit(
-            "ai-edge-torch no está instalado en el contenedor: reconstruye la imagen "
-            "(docker compose build ml) tras docker/ml.requirements.txt de S27. "
+            "Falta el conversor a LiteRT en el contenedor. litert-torch exige "
+            "torch>=2.11 y la imagen de entrenamiento lleva 2.6: instala ambos en el "
+            "contenedor de export (ver ml/reports/S27-export/RESULTADO.md). "
             f"Detalle: {error}"
         )
 
@@ -107,7 +117,7 @@ def export_variant(kind: str, run: str = "full-v2-clean") -> Path:
         prepared(batch)
     quantized = convert_pt2e(prepared, fold_quantize=False)
 
-    edge_model = ai_edge_torch.convert(
+    edge_model = edge_torch.convert(
         quantized, sample,
         quant_config=quant_config.QuantConfig(pt2e_quantizer=quantizer),
     )
@@ -122,8 +132,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", choices=list(CONTRACT_NAMES))
     parser.add_argument("--all", action="store_true")
-    parser.add_argument("--run", default="full-v2-clean",
-                        help="run de material a exportar (default full-v2-clean)")
+    parser.add_argument("--run", default="no-trash",
+                        help="run de material a exportar. La receta ganadora de S25 es "
+                             "no-trash (--exclude garbage_dataset_v2:RESIDUAL); para la "
+                             "variante low el mejor checkpoint es el de no-trash-seed")
     args = parser.parse_args()
     kinds = list(CONTRACT_NAMES) if args.all else [args.variant]
     if not kinds or kinds == [None]:
