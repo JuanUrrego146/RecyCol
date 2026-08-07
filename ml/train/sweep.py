@@ -53,12 +53,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--phase2-epochs", type=int, default=12)
+    parser.add_argument("--workers", type=int, default=3,
+                        help="workers del DataLoader por run: conservador porque la VM comparte RAM con los runners de CI")
     args = parser.parse_args()
 
+    common = ["--require-gpu", "--workers", str(args.workers)]
     plan: list[tuple[str, str, list[str]]] = []
     for lr in PILOT_LRS:
         plan.append(("low", f"lr{lr:g}",
-                     ["--lr-phase2", str(lr), "--phase2-epochs", str(args.phase2_epochs)]))
+                     [*common, "--lr-phase2", str(lr), "--phase2-epochs", str(args.phase2_epochs)]))
     # Los runs de arquitectura usan el lr ganador del piloto; se añaden tras él.
 
     if args.dry_run:
@@ -83,13 +86,13 @@ def main() -> int:
     for variant in ARCH_VARIANTS:
         name = f"arch-lr{best_lr:g}"
         metrics = run_config(variant, name,
-                             ["--lr-phase2", str(best_lr),
+                             [*common, "--lr-phase2", str(best_lr),
                               "--phase2-epochs", str(args.phase2_epochs)])
         if metrics:
             results[f"{variant}/{name}"] = metrics
 
     metrics = run_config("low", "no-augment",
-                         ["--lr-phase2", str(best_lr), "--no-augment",
+                         [*common, "--lr-phase2", str(best_lr), "--no-augment",
                           "--phase2-epochs", str(args.phase2_epochs)])
     if metrics:
         results["low/no-augment"] = metrics

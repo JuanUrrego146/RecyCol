@@ -16,7 +16,10 @@ services:
     working_dir: /workspace/ml
     gpus: all
     # Los workers del DataLoader comparten tensores por /dev/shm; los 64 MB
-    # por defecto de Docker los matan con "Bus error".
-    shm_size: "8gb"
+    # por defecto de Docker los matan con "Bus error". Acotado a 2 GB: la VM
+    # de WSL2 tiene ~11,6 GiB compartidos con los runners de CI (5 GiB de
+    # límite cada uno) y un tmpfs mayor invita al OOM killer de la VM, que
+    # fue lo que tumbó los primeros intentos del barrido.
+    shm_size: "2gb"
     volumes:
       - .:/workspace
