@@ -144,6 +144,10 @@ fun ClassifyScreen(
     val needsSoilAnswer = detectedMaterial != null &&
         detectedMaterial in inspectionMaterials &&
         state.outcome?.disposal != null &&
+        // Nunca sobre una decisión provisional: preguntar «¿está sucio?» por algo
+        // que la app todavía no ha decidido acababa cambiando la pregunta debajo
+        // del usuario mientras la contestaba.
+        state.decision?.provisional == false &&
         soilAnsweredEpoch != state.decision?.epoch &&
         state.outcome?.manualSelection != true
 

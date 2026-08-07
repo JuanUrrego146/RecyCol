@@ -114,9 +114,17 @@ class ClassificationStabilizerTest {
         // El bug observado: dos materiales alternando a ~3 fps durante 10 s. Es
         // el peor caso posible para la votación —ninguno consigue mayoría clara—
         // y aun así la pantalla no puede cambiar más rápido que la permanencia.
+        var epochPrevio = -1
         repeat(33) { index ->
             val outcome = if (index % 2 == 0) plastic else paper
-            if (stabilizer.offer(outcome, t, 0.5f) != null) publicadas += t
+            // Solo los cambios de decisión, no los ascensos: el ascenso emite
+            // para que la pantalla se entere, pero no mueve nada visible.
+            stabilizer.offer(outcome, t, 0.5f)?.let { emitida ->
+                if (emitida.epoch != epochPrevio) {
+                    publicadas += t
+                    epochPrevio = emitida.epoch
+                }
+            }
             t += 300
         }
 
@@ -140,18 +148,6 @@ class ClassificationStabilizerTest {
     }
 
     @Test
-    fun `el ascenso a comprometida no emite ni avanza el epoch`() {
-        val stabilizer = ClassificationStabilizer()
-        val first = stabilizer.offer(plastic, 1_000, 0.5f)
-        assertNotNull(first)
-
-        assertNull(stabilizer.offer(plastic, 1_300, 0.5f))
-        assertNull(stabilizer.offer(plastic, 1_600, 0.5f))
-
-        assertFalse(stabilizer.isProvisional, "Con tres votos ya está comprometida")
-    }
-
-    @Test
     fun `tres votos iguales comprometen desde cero`() {
         val stabilizer = ClassificationStabilizer()
         // Arranca con duda para que no haya publicación provisional.
@@ -172,37 +168,66 @@ class ClassificationStabilizerTest {
     }
 
     @Test
-    fun `cuatro votos discrepantes desbancan tras la permanencia`() {
+    fun `una decision comprometida no se releva sin unanimidad`() {
         val stabilizer = ClassificationStabilizer()
         repeat(3) { stabilizer.offer(plastic, 1_000 + it * 300L, 0.5f) }
+        assertFalse(stabilizer.isProvisional)
 
-        var emitted: StabilizedDecision? = null
-        listOf(3_000L, 3_300L, 3_600L, 3_900L).forEach { t ->
-            stabilizer.offer(paper, t, 0.5f)?.let { emitted = it }
-        }
+        // Cuatro de cinco no bastan: eso es el modelo dudando del mismo objeto.
+        // Esta es la deriva observada en el teléfono —el mismo vaso pasando por
+        // plástico, vidrio y cartón— y no puede volver.
+        listOf(3_000L, 3_300L, 3_600L, 3_900L).forEach { stabilizer.offer(paper, it, 0.5f) }
 
-        assertNotNull(emitted, "Cuatro votos unánimes deben acabar desbancando")
-        assertEquals(WasteMaterial.PAPER, emitted.outcome?.classification?.material)
+        assertEquals(WasteMaterial.PLASTIC, stabilizer.visibleOutcome?.classification?.material)
     }
 
     @Test
-    fun `una mayoria de duda retira la tarjeta aunque no sea unanime`() {
+    fun `una ventana entera y unanime si releva a una comprometida`() {
         val stabilizer = ClassificationStabilizer()
-        var t = 1_000L
-        var visible: ClassificationOutcome? = null
+        repeat(3) { stabilizer.offer(plastic, 1_000 + it * 300L, 0.5f) }
 
-        // Estado estacionario del modelo ambiguo: 2 de cada 5 fotogramas deciden.
-        // Una caneca firme e inmóvil ahí sería mentir sobre la confianza real.
-        repeat(20) { index ->
-            val outcome = if (index % 5 < 2) plastic else unsure()
-            stabilizer.offer(outcome, t, 0.5f)?.let { visible = it.outcome }
+        // Kilómetro y medio de segundo diciendo consistentemente otra cosa: eso
+        // es apuntar a otro objeto, no dudar del mismo.
+        var t = 3_000L
+        repeat(5) {
+            stabilizer.offer(paper, t, 0.5f)
             t += 300
         }
 
-        assertTrue(
-            visible?.needsUserDecision == true,
-            "Con la duda en mayoría la decisión visible no puede ser una caneca firme",
-        )
+        assertEquals(WasteMaterial.PAPER, stabilizer.visibleOutcome?.classification?.material)
+    }
+
+    @Test
+    fun `una provisional si se releva con el quorum normal`() {
+        val stabilizer = ClassificationStabilizer()
+        stabilizer.offer(plastic, 1_000, 0.5f)
+        assertTrue(stabilizer.isProvisional, "Un solo voto es una opinión, no una decisión")
+
+        var t = 2_500L
+        repeat(3) {
+            stabilizer.offer(paper, t, 0.5f)
+            t += 300
+        }
+
+        assertEquals(WasteMaterial.PAPER, stabilizer.visibleOutcome?.classification?.material)
+    }
+
+    @Test
+    fun `el ascenso a comprometida se emite sin avanzar el epoch`() {
+        val stabilizer = ClassificationStabilizer()
+        val first = stabilizer.offer(plastic, 1_000, 0.5f)
+        assertNotNull(first)
+        assertTrue(first.provisional)
+
+        assertNull(stabilizer.offer(plastic, 1_300, 0.5f))
+        val promoted = stabilizer.offer(plastic, 1_600, 0.5f)
+
+        // La pantalla tiene que enterarse para poder colgar la pregunta de
+        // suciedad, pero el epoch no se mueve: no es una decisión nueva y volver
+        // a vibrar por ella sería mentir.
+        assertNotNull(promoted, "El ascenso tiene que llegar a la pantalla")
+        assertFalse(promoted.provisional)
+        assertEquals(first.epoch, promoted.epoch)
     }
 
     @Test

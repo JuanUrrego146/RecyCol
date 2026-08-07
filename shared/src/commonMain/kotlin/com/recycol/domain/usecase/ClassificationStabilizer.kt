@@ -28,10 +28,17 @@ import kotlin.math.abs
  *   Es monótono **dentro de esta instancia** y empieza en cero en cada una: cada
  *   pantalla tiene su estabilizador. Quien guarde un epoch para compararlo
  *   después tiene que recordarlo con el tracker como clave, nunca suelto.
+ * @property provisional `true` mientras la decisión sea la opinión de un solo
+ *   fotograma y todavía pueda relevarse barato. Nada irreversible debería
+ *   colgarse de una decisión provisional: preguntarle al usuario si el residuo
+ *   está sucio y cambiarle la pregunta debajo mientras contesta es exactamente
+ *   el fallo que esto evita. El ascenso a comprometida **emite** —para que la
+ *   pantalla se entere— pero no avanza el epoch: no es una decisión nueva.
  */
 data class StabilizedDecision(
     val outcome: ClassificationOutcome?,
     val epoch: Int,
+    val provisional: Boolean,
 )
 
 /**
@@ -125,8 +132,16 @@ class ClassificationStabilizer(
     /** Media móvil del hueco entre papeletas; 0 mientras no haya dos. */
     private var ballotGapMillis = 0L
 
-    /** Lo que ha cambiado en la pasada en curso: una sola emisión por pasada. */
+    /** Hay algo que contarle a la pantalla en esta pasada. */
     private var dirty = false
+
+    /**
+     * La decisión cambió de identidad en esta pasada. Separado de [dirty] porque
+     * el ascenso de provisional a comprometida sí hay que contarlo pero **no** es
+     * una decisión nueva: si avanzara el epoch, el teléfono volvería a vibrar y
+     * la flor saldría dos veces por el mismo objeto.
+     */
+    private var epochDirty = false
 
     private var epoch = 0
 
@@ -191,6 +206,7 @@ class ClassificationStabilizer(
         luminance: Float?,
     ): StabilizedDecision? {
         dirty = false
+        epochDirty = false
 
         val sceneChanged = updateTimeline(atMillis, luminance)
         anchorIfPending(atMillis)
@@ -253,9 +269,14 @@ class ClassificationStabilizer(
 
         val held = publishedBallot
         if (held != null) {
-            // Ascenso: la provisional alcanzó quórum. No emite ni avanza el epoch
-            // — no es una decisión nueva, es la misma mejor respaldada.
-            if (!committed && votesFor(held) >= thresholds.commitVotes) committed = true
+            // Ascenso: la provisional alcanzó quórum. Emite —la pantalla necesita
+            // saber que ya puede colgar cosas de ella, como la pregunta de
+            // suciedad— pero no avanza el epoch: es la misma decisión, mejor
+            // respaldada, y volver a vibrar por ella sería mentir.
+            if (!committed && votesFor(held) >= thresholds.commitVotes) {
+                committed = true
+                dirty = true
+            }
 
             if (atMillis >= holdUntil) {
                 val rival = leader { it != held }
@@ -292,7 +313,7 @@ class ClassificationStabilizer(
         // nueva para la pantalla, no dos: contarlo dos veces disparaba la
         // vibración y la floración por duplicado.
         if (!dirty) return null
-        epoch++
+        if (epochDirty) epoch++
         return decision()
     }
 
@@ -372,16 +393,25 @@ class ClassificationStabilizer(
     /**
      * Coste de desbancar a la decisión visible.
      *
-     * La histéresis protege a una opinión **respaldada**, no a una que ya perdió
-     * la ventana. Un titular caído por debajo de `commitVotes` se desbanca con
-     * `commitVotes`: sin esa condición, un objeto que supera el umbral en 2 de
-     * cada 5 fotogramas producía un estado estacionario en el que la app mostraba
-     * una caneca firme, vibrada y celebrada, indefinidamente, mientras la mayoría
-     * de los fotogramas decía que el modelo no llega al umbral.
+     * **Una decisión comprometida se queda.** Solo la releva una ventana entera y
+     * unánime, que a la cadencia real es kilómetro y medio de segundo diciendo
+     * consistentemente otra cosa: eso es apuntar a otro objeto, no el modelo
+     * dudando del mismo. Una provisional, en cambio, es la opinión de un solo
+     * fotograma y se releva con el quórum normal.
+     *
+     * Una versión anterior abarataba el relevo cuando el titular perdía apoyo, en
+     * nombre de no sostener una decisión que la ventana ya no respalda. Sobre el
+     * teléfono eso se veía como una deriva: el mismo vaso pasaba por plástico,
+     * vidrio y cartón, uno cada vez que el titular bajaba de tres votos. Se
+     * cambia el criterio a propósito: con un modelo que se contradice a sí mismo
+     * el 14 % de los fotogramas, una respuesta estable que se puede corregir con
+     * «No es esto» sirve más que una sucesión de respuestas honestas. Lo que sí
+     * se conserva es la retirada por falta de evidencia: si el objeto desaparece,
+     * la tarjeta se va.
      */
     private fun votesToUnseat(held: Ballot): Int = when {
         pinned -> thresholds.unpinVotes
-        committed && votesFor(held) >= thresholds.commitVotes -> thresholds.switchVotes
+        committed -> thresholds.unpinVotes
         else -> thresholds.commitVotes
     }
 
@@ -439,6 +469,7 @@ class ClassificationStabilizer(
         supportedAt = atMillis
         unsupportedPasses = 0
         dirty = true
+        epochDirty = true
     }
 
     private fun retire() {
@@ -449,6 +480,7 @@ class ClassificationStabilizer(
         pinned = false
         unsupportedPasses = 0
         dirty = true
+        epochDirty = true
     }
 
     private fun anchorIfPending(atMillis: Long) {
@@ -458,7 +490,11 @@ class ClassificationStabilizer(
         holdUntil = atMillis + thresholds.minHoldMillis
     }
 
-    private fun decision() = StabilizedDecision(outcome = published, epoch = epoch)
+    private fun decision() = StabilizedDecision(
+        outcome = published,
+        epoch = epoch,
+        provisional = isProvisional,
+    )
 
     /** @return `true` si delante del lente hay algo distinto. */
     private fun updateTimeline(atMillis: Long, luminance: Float?): Boolean {
