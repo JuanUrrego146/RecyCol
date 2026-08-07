@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    El fondo de ventana del esquema oscuro. Coincide con BotaColors.background
+    del esquema oscuro: negro puro, como los fondos agrupados de iOS en oscuro.
+-->
+<resources>
+    <color name="window_background">#000000</color>
+</resources>

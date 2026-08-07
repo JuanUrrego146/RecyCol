@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Variante oscura del tema de ventana. El padre cambia a la familia oscura de
+    la plataforma para que los diálogos del sistema anteriores a Compose no
+    salgan claros sobre una app oscura.
+-->
+<resources>
+    <style name="Theme.BotaBien" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

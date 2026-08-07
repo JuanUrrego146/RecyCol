@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Colores de plataforma. Son los únicos colores literales fuera del design
+    system, y existen porque el lanzador y la pantalla de arranque los pintan
+    antes de que Compose exista: no hay forma de leerlos de BotaTheme.
+
+    Su valor es el mismo verde de marca de BotaColors.accent en esquema claro.
+    Si cambia allí, cambia aquí.
+-->
+<resources>
+    <color name="ic_launcher_background">#1B7F3C</color>
+
+    <!-- Fondo de la ventana antes del primer fotograma; igual a BotaColors.background. -->
+    <color name="window_background">#FFFFFF</color>
+</resources>

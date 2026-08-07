@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Icono adaptativo. Con minSdk 26 todos los dispositivos entienden este
+    formato, así que no hacen falta mapas de bits de respaldo por densidad: el
+    icono es vectorial en todas partes y no pesa nada.
+
+    La capa monocroma la usa Android 13+ para los iconos temáticos.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

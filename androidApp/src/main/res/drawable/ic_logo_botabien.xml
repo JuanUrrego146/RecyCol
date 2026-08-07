@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Logo de BotaBien en la rejilla de 96 dp del SVG maestro
+    (docs/brand/botabien-logo.svg). Se usa donde hace falta un recurso de
+    plataforma: la pantalla de arranque del sistema y cualquier consumidor que
+    no sea Compose. Dentro de la interfaz se usa el composable BotaLogo, que
+    dibuja estos mismos trazados y además sabe animarlos.
+
+    Se tinta con android:tint desde quien lo consume; el color propio es el
+    verde de marca del design system.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Tierra: masa tintada que llena el bote hasta el borde. -->
+    <path
+        android:pathData="M33.5,67 L34.6,81.5 Q34.9,84.5 38.2,84.5 L57.8,84.5 Q61.1,84.5 61.4,81.5 L62.5,67 Q55,70 48,68 Q41,66 33.5,67 Z"
+        android:fillColor="#1B7F3C"
+        android:fillAlpha="0.33" />
+
+    <!-- Bote: base compacta, apenas un tercio del alto. -->
+    <path
+        android:pathData="M25,58 L71,58"
+        android:strokeColor="#1B7F3C"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M30.5,61 L34,81 Q34.5,85 38.8,85 L57.2,85 Q61.5,85 62,81 L65.5,61"
+        android:strokeColor="#1B7F3C"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Tallo. -->
+    <path
+        android:pathData="M48,62 C47,52 47.5,44 48,36"
+        android:strokeColor="#1B7F3C"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round" />
+
+    <!-- Hojas: la segunda atenuada para dar profundidad sin un segundo color. -->
+    <path
+        android:pathData="M48,52 C41,52.5 36,48.5 34.4,42.4 C42,40.8 47,45.2 48,52 Z"
+        android:fillColor="#1B7F3C" />
+    <path
+        android:pathData="M48,45 C55,45.5 60,41.5 61.6,35.4 C54,33.8 49,38.2 48,45 Z"
+        android:fillColor="#1B7F3C"
+        android:fillAlpha="0.55" />
+
+    <!--
+        Flor de cinco pétalos con el centro perforado: los pétalos van en
+        sentido horario y el centro en sentido antihorario, de modo que el
+        relleno nonZero resta el hueco. El formato no admite máscaras y el
+        hueco es lo que mantiene la flor legible a 24 dp.
+    -->
+    <path
+        android:pathData="M41.4,13.3 a6.6,6.6 0 1,1 13.2,0 a6.6,6.6 0 1,1 -13.2,0 Z M49.7,19.3 a6.6,6.6 0 1,1 13.2,0 a6.6,6.6 0 1,1 -13.2,0 Z M46.5,29.1 a6.6,6.6 0 1,1 13.2,0 a6.6,6.6 0 1,1 -13.2,0 Z M36.3,29.1 a6.6,6.6 0 1,1 13.2,0 a6.6,6.6 0 1,1 -13.2,0 Z M33.1,19.3 a6.6,6.6 0 1,1 13.2,0 a6.6,6.6 0 1,1 -13.2,0 Z M44,22 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0 Z"
+        android:fillColor="#1B7F3C"
+        android:fillType="nonZero" />
+</vector>

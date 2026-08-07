@@ -101,6 +101,61 @@ más `screenMargin` (20 dp) como margen horizontal estándar de toda pantalla.
 - Muelles: `pressSpring()` para respuesta táctil, `surfaceSpring()` para hojas y
   superposiciones.
 - Constantes táctiles: `PRESSED_SCALE 0.96 · PRESSED_ALPHA 0.75`.
+- Arranque: `DURATION_LAUNCH_SETTLE_MS 200 · DURATION_LAUNCH_GROWTH_MS 620 ·
+  DURATION_LAUNCH_HOLD_MS 100 · DURATION_LAUNCH_EXIT_MS 260`, con la curva `growth`.
+  Son exclusivas de la entrada de marca; ninguna pantalla las usa.
+
+## Marca
+
+### Logo
+
+Un bote de basura lleno de tierra del que brota una flor: el residuo bien clasificado
+se convierte en vida. El brote domina la composición —ocupa dos tercios del alto— para
+que lo primero que se lea sea la flor y no la basura.
+
+Es **monocromático por diseño**. La profundidad sale de la opacidad de la tierra (33 %) y
+de la segunda hoja (55 %), nunca de un segundo tono: por eso la variante monocroma del
+icono de lanzador es el mismo dibujo sin retocar nada.
+
+El logo existe en cuatro formatos porque cada consumidor exige el suyo, y
+`BotaLogoResourcesTest` **rompe el build si divergen**:
+
+| Dónde | Para qué |
+|---|---|
+| `BotaLogoPaths` (en `BotaLogo.kt`) | **Origen de verdad** de las curvas |
+| `drawable/ic_logo_botabien.xml` | Recurso de plataforma, para consumidores que no son Compose |
+| `drawable/ic_launcher_foreground.xml` · `ic_launcher_monochrome.xml` | Capas del icono adaptativo, en el lienzo de 108 dp |
+| `docs/brand/botabien-logo.svg` | Maestro para usos externos: favicon, tienda, presentaciones |
+
+```kotlin
+BotaLogo(
+    modifier = Modifier.size(108.dp),
+    color = BotaTheme.colors.accent,  // por defecto, el acento del tema
+    growth = 1f,                      // 0 = solo el bote con su tierra; 1 = logo completo
+)
+```
+
+`growth` existe para la entrada de marca: reparte un único progreso entre el tallo, las
+dos hojas y la flor con tramos solapados, de modo que el gesto se lea continuo. El logo
+estático se dibuja siempre con `1f`, que es el valor por defecto.
+
+El icono de lanzador es vectorial en todas las densidades: con `minSdk 26` todos los
+dispositivos entienden el icono adaptativo, así que no hay mapas de bits que mantener.
+
+### Entrada de marca (`BotaLaunchScreen`)
+
+`MainActivity` **envuelve** la raíz con ella en vez de precederla: el contenido se compone
+desde el primer fotograma por debajo del velo, así que la animación tapa el arranque sin
+alargarlo. Dura ~1,1 s en total y no vuelve a aparecer al rotar.
+
+Respeta el ajuste de sistema de animaciones (`ANIMATOR_DURATION_SCALE == 0`, que es como
+Android expone «reducir movimiento»): en ese caso el logo aparece quieto, se sostiene
+220 ms y se retira. Se conserva la marca y se elimina el movimiento.
+
+El fondo del velo es `BotaTheme.colors.background`, el mismo de la app, para que la
+retirada no tenga salto de color. El tema de ventana (`Theme.BotaBien`, con su variante
+`-night`) fija ese mismo color como `windowBackground` y elimina el destello blanco que
+había al abrir la app en oscuro.
 
 ## Componentes
 
