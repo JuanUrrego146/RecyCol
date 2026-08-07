@@ -1,4 +1,4 @@
-# Version catalog de BotaBien. Toda dependencia del proyecto se declara aquí
+# Version catalog de RecyCol. Toda dependencia del proyecto se declara aquí
 # con versión fijada; ningún build.gradle.kts declara versiones sueltas (RNF-015).
 [versions]
 kotlin = "2.1.21"

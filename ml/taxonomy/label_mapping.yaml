@@ -1,4 +1,4 @@
-# Mapeo de taxonomía — BotaBien ML (S21 · RNF-016, RNF-017)
+# Mapeo de taxonomía — RecyCol ML (S21 · RNF-016, RNF-017)
 #
 # Traduce cada etiqueta de origen de los datasets inventariados en ml/DATA_LICENSES.md
 # a la taxonomía cerrada WasteMaterial del dominio. Regla del proyecto: ningún
@@ -24,7 +24,7 @@ date: "2026-08-06"
 target_taxonomy:
   # Debe coincidir con el enum del dominio; el validador compara contra el .kt
   # si el archivo está presente en el árbol de trabajo.
-  source: shared/src/commonMain/kotlin/com/botabien/domain/model/WasteMaterial.kt
+  source: shared/src/commonMain/kotlin/com/recycol/domain/model/WasteMaterial.kt
   materials:
     - PLASTIC
     - PAPER

@@ -52,19 +52,19 @@ kotlin {
 
 /*
  * Base de datos local (S36). El esquema vive en shared/src/commonMain/sqldelight
- * y el código generado queda en com.botabien.data.db, sin dependencias de
+ * y el código generado queda en com.recycol.data.db, sin dependencias de
  * plataforma: cada plataforma aporta su driver vía DatabaseDriverFactory.
  */
 sqldelight {
     databases {
-        create("BotaBienDatabase") {
-            packageName.set("com.botabien.data.db")
+        create("RecyColDatabase") {
+            packageName.set("com.recycol.data.db")
         }
     }
 }
 
 android {
-    namespace = "com.botabien.shared"
+    namespace = "com.recycol.shared"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

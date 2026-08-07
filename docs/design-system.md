@@ -21,12 +21,12 @@ interfaz declara colores, estilos de texto, radios, espaciados ni curvas de anim
 
 ## Uso
 
-El árbol de composición entero vive dentro de `BotaBienTheme`, que publica los tokens y
+El árbol de composición entero vive dentro de `RecyColTheme`, que publica los tokens y
 configura por debajo un `MaterialTheme` equivalente para los componentes internos de
 Material 3. Las pantallas leen **siempre** de `BotaTheme`:
 
 ```kotlin
-BotaBienTheme {          // en MainActivity; decide claro/oscuro con isSystemInDarkTheme()
+RecyColTheme {          // en MainActivity; decide claro/oscuro con isSystemInDarkTheme()
     // ...
     Text(
         text = stringResource(R.string.result_title),
@@ -124,7 +124,7 @@ El logo existe en tres formatos porque cada consumidor exige el suyo, y
 |---|---|
 | `BotaLogoPaths` (en `BotaLogo.kt`) | **Origen de verdad** de las curvas |
 | `drawable/ic_launcher_foreground.xml` · `ic_launcher_monochrome.xml` | Capas del icono adaptativo, en el lienzo de 108 dp |
-| `docs/brand/botabien-logo.svg` | Maestro para usos externos: favicon, tienda, presentaciones |
+| `docs/brand/recycol-logo.svg` | Maestro para usos externos: favicon, tienda, presentaciones |
 
 No hay un `VectorDrawable` suelto del logo: no lo consumía nadie, y un recurso sin
 consumidor es código muerto que además ensucia el Lint. Si algún día hace falta uno
@@ -157,13 +157,13 @@ Android expone «reducir movimiento»): en ese caso el logo aparece quieto, se s
 220 ms y se retira. Se conserva la marca y se elimina el movimiento.
 
 El fondo del velo es `BotaTheme.colors.background`, el mismo de la app, para que la
-retirada no tenga salto de color. El tema de ventana (`Theme.BotaBien`, con su variante
+retirada no tenga salto de color. El tema de ventana (`Theme.RecyCol`, con su variante
 `-night`) fija ese mismo color como `windowBackground` y elimina el destello blanco que
 había al abrir la app en oscuro.
 
 ## Componentes
 
-Todos en `com.botabien.android.ui.components`. Los textos llegan siempre por parámetro
+Todos en `com.recycol.android.ui.components`. Los textos llegan siempre por parámetro
 desde un recurso de cadenas; ningún componente trae texto propio.
 
 ### `BotaButton`
@@ -256,7 +256,7 @@ Modifier.botaGlass(shape = BotaTheme.shapes.capsule)  // para lo que ya tiene di
 La primera versión llevaba solo 1, 2 y un contorno de 1 px, y **en el dispositivo no se
 distinguía del velo plano anterior**. El bisel y la sombra son lo que marcó la diferencia.
 
-**Grados** (`BotaTheme.glass`, resuelto una vez en `BotaBienTheme`)
+**Grados** (`BotaTheme.glass`, resuelto una vez en `RecyColTheme`)
 
 | Grado | Cuándo | Qué hace |
 |---|---|---|
@@ -349,7 +349,7 @@ política anti-saturación de indicaciones (RF-018).
 
 ## Claro / oscuro
 
-`BotaBienTheme` sigue el ajuste del sistema (`isSystemInDarkTheme()`). Los dos esquemas
+`RecyColTheme` sigue el ajuste del sistema (`isSystemInDarkTheme()`). Los dos esquemas
 comparten tokens: un componente bien escrito no pregunta por el tema salvo casos límite
 (`BotaTheme.colors.isDark`). Los tonos semánticos cambian de variante entre esquemas para
 mantener el contraste AA en ambos.

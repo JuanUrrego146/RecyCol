@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://botabien.app/schemas/profile.schema.json",
-  "title": "Perfil normativo de país — BotaBien",
+  "$id": "https://recycol.app/schemas/profile.schema.json",
+  "title": "Perfil normativo de país — RecyCol",
   "description": "Formato de los perfiles normativos. Todo lo específico de un país vive en un archivo con este esquema (RNF-004): agregar un país es agregar un archivo, nunca tocar código. El vocabulario de materiales es el enumerado compartido WasteMaterial y el de rutas es DisposalRoute; ambos deben mantenerse sincronizados con shared/domain.",
   "type": "object",
   "additionalProperties": false,
