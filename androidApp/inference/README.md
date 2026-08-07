@@ -127,3 +127,38 @@ Medición y registro:
 El registro por gama del criterio de hecho se llena ejecutando el banco en un
 dispositivo de cada gama cuando existan los `.tflite`; las cifras se vuelcan a
 esta tabla y al reporte de S41.
+
+## Cómo entregar y validar un export (S27 — guía para el agente ML)
+
+Tres pasos, sin tocar código de este módulo:
+
+1. **Dejar caer los archivos** (todos gitignorados, no se versionan):
+   - Modelos INT8 en `src/main/assets/models/` con los nombres del contrato.
+   - Para medir la pérdida de cuantización, el **gemelo float** de cada
+     variante junto al INT8: `material_low_float.tflite`, etc. Entrada
+     FLOAT32 RGB normalizada a `[0,1]`; si su export usa otra normalización,
+     avisar y se ajusta la spec (una línea).
+   - Conjunto de evaluación en `src/androidTest/assets/eval/`: imágenes +
+     `labels.csv` con líneas `archivo,MATERIAL` (nombres de `WasteMaterial`).
+     **Nunca del dominio de entrenamiento** (RealWaste como control, regla
+     del proyecto). Con la brecha de dominio conocida (91 % propio vs 42 %
+     real), este banco mide contra lo que importa.
+
+2. **Correr el banco** (dispositivo o emulador conectado):
+
+   ```bash
+   ./gradlew :androidApp:inference:connectedDebugAndroidTest
+   ```
+
+3. **Leer el registro** (`REGISTRO-S27` / `REGISTRO-S20` en el log de
+   instrumentación):
+   - `ModelContractVerification` — el export cumple el contrato (formas,
+     clases, softmax) contra el runtime real; si el `label_mapping` quedó
+     desincronizado del enumerado, falla aquí con mensaje explícito.
+   - `QuantizationAccuracyBenchmark` — top-1 INT8, top-1 float, **pérdida de
+     cuantización en puntos**, acuerdo INT8↔float y delta de confianza.
+   - `DeviceLatencyBenchmark` — latencia mediana por variante y vía de
+     aceleración, y memoria (presupuesto < 350 MB asertado).
+
+Cualquier `.tflite` que pase `ModelContractVerification` corre en la app tal
+cual, sin cambios de código. EDGE valida exports bajo demanda: avisar en #25.
