@@ -123,6 +123,30 @@ Regla de composición: **una sola acción `Filled` por pantalla**; el resto `Tin
 El ancho lo decide el llamador: `fillMaxWidth()` para la acción principal, contenido
 natural para botones de barra o fila.
 
+Acciones destructivas: `destructive = true` pasa el contenido al color de error, al estilo
+de las acciones rojas de iOS. Solo existe en `Tinted` y `Plain` (la variante rellena
+degradaría el contraste); una petición `Filled` destructiva se presenta como `Tinted`.
+
+### `BotaSelectionMark`
+
+Marca de verificación para listas de selección única (país, nivel de rendimiento).
+Acompáñala siempre de `contentDescription` («Seleccionado») para lectores de pantalla.
+
+### `BotaRouteGlyph`
+
+Glifo geométrico por ruta de disposición (triángulo aprovechable, cuadrado no
+aprovechable, círculo orgánico, rombo peligroso, estrella recolección especial). La
+caneca se comunica por color, **texto e icono**, nunca solo por color (RNF-010). Se
+dibuja en el color del contenido circundante y siempre acompaña a un texto, así que es
+decorativo para lectores de pantalla.
+
+### Nota de contraste (RNF-010)
+
+`secondaryLabel` claro usa 76 % de opacidad (frente al 60 % de iOS) para cumplir AA
+(≥ 4,5:1) como texto normal sobre fondos claros. Los tonos semánticos del esquema claro
+son las variantes accesibles de iOS y superan AA sobre blanco; el esquema oscuro cumple
+con los valores originales.
+
 ### `BotaCard`
 
 ```kotlin

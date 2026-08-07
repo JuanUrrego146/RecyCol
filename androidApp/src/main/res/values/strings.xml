@@ -9,10 +9,24 @@
     <string name="action_continue">Continuar</string>
     <string name="action_change_country">Cambiar país</string>
 
-    <!-- Ajustes -->
+    <!-- Ajustes (RF-003, RF-031, RF-034 · CUS-001, CUS-008, CUS-009) -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_country_label">País</string>
     <string name="action_back">Atrás</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="settings_performance_label">Rendimiento</string>
+    <string name="performance_auto">Automático</string>
+    <string name="performance_low">Bajo</string>
+    <string name="performance_mid">Medio</string>
+    <string name="performance_high">Alto</string>
+    <string name="performance_effect_warning">En Automático, BotaBien mide tu teléfono al arrancar. Un nivel manual fuerza o limita funciones auxiliares; la clasificación por cámara funciona siempre.</string>
+    <string name="settings_history_clear">Borrar historial</string>
+    <string name="settings_history_confirm_title">¿Borrar el historial?</string>
+    <string name="settings_history_confirm_message">Se eliminarán todas las clasificaciones guardadas en este teléfono. Esta acción no se puede deshacer.</string>
+    <plurals name="settings_history_count">
+        <item quantity="one">1 clasificación guardada</item>
+        <item quantity="other">%d clasificaciones guardadas</item>
+    </plurals>
 
     <!-- Estados comunes -->
     <string name="loading_description">Cargando</string>
@@ -52,6 +66,7 @@
     <string name="result_detail_title">Resultado</string>
     <string name="result_manual_selection">Selección manual</string>
     <string name="result_unavailable_bin">Caneca ideal no disponible</string>
+    <string name="result_open_detail_action">Ver la justificación normativa</string>
     <string name="result_section_material">Material identificado</string>
     <string name="result_section_rule">Regla aplicada</string>
     <string name="result_section_regulation">Norma citada</string>

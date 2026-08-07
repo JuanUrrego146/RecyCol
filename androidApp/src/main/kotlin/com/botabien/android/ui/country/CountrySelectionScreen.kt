@@ -1,6 +1,5 @@
 package com.botabien.android.ui.country
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -23,18 +21,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.botabien.android.R
 import com.botabien.android.ui.AppDependencies
 import com.botabien.android.ui.components.BotaActivityIndicator
 import com.botabien.android.ui.components.BotaButton
 import com.botabien.android.ui.components.BotaCard
+import com.botabien.android.ui.components.BotaSelectionMark
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CountryProfile
 import java.util.Locale
@@ -205,34 +198,9 @@ private fun CountryRow(
                 )
             }
             if (selected) {
-                SelectionCheck(
-                    color = BotaTheme.colors.accent,
-                    modifier = Modifier.semantics { contentDescription = selectedDescription },
-                )
+                BotaSelectionMark(contentDescription = selectedDescription)
             }
         }
-    }
-}
-
-/** Marca de verificación dibujada con los tokens del design system. */
-@Composable
-private fun SelectionCheck(color: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(18.dp)) {
-        val stroke = size.minDimension * 0.14f
-        drawLine(
-            color = color,
-            start = Offset(size.width * 0.12f, size.height * 0.55f),
-            end = Offset(size.width * 0.40f, size.height * 0.82f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = color,
-            start = Offset(size.width * 0.40f, size.height * 0.82f),
-            end = Offset(size.width * 0.88f, size.height * 0.20f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
     }
 }
 

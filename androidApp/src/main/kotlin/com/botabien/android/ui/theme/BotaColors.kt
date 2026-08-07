@@ -73,7 +73,9 @@ internal val LightBotaColors = BotaColorScheme(
     groupedBackground = Color(0xFFF2F2F7),
     surfaceElevated = Color(0xFFFFFFFF),
     label = Color(0xFF000000),
-    secondaryLabel = Color(0x993C3C43),
+    // 76 % de opacidad (frente al 60 % de iOS) para garantizar contraste AA
+    // de texto normal sobre los fondos claros (RNF-010).
+    secondaryLabel = Color(0xC23C3C43),
     tertiaryLabel = Color(0x4D3C3C43),
     fill = Color(0x33787880),
     secondaryFill = Color(0x29787880),

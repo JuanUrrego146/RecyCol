@@ -53,6 +53,10 @@ enum class BotaButtonStyle {
  * @param style Variante de énfasis; por defecto [BotaButtonStyle.Filled].
  * @param enabled Deshabilita la interacción y atenúa el control.
  * @param compact Altura reducida para contextos densos (44 dp frente a 50 dp).
+ * @param destructive Acción destructiva: el contenido pasa al color de error,
+ *   al estilo de las acciones rojas de iOS. Para conservar el contraste AA,
+ *   un botón destructivo se presenta como [BotaButtonStyle.Tinted] o
+ *   [BotaButtonStyle.Plain]; la variante rellena no existe para destrucción.
  */
 @Composable
 fun BotaButton(
@@ -62,6 +66,7 @@ fun BotaButton(
     style: BotaButtonStyle = BotaButtonStyle.Filled,
     enabled: Boolean = true,
     compact: Boolean = false,
+    destructive: Boolean = false,
 ) {
     val colors = BotaTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
@@ -78,11 +83,18 @@ fun BotaButton(
         label = "botaButtonAlpha",
     )
 
+    val emphasisColor = if (destructive) colors.error else colors.accent
+    val effectiveStyle = if (destructive && style == BotaButtonStyle.Filled) {
+        BotaButtonStyle.Tinted
+    } else {
+        style
+    }
+
     val containerColor by animateColorAsState(
         targetValue = when {
             !enabled -> colors.secondaryFill
-            style == BotaButtonStyle.Filled -> colors.accent
-            style == BotaButtonStyle.Tinted -> colors.accent.copy(alpha = TINT_ALPHA)
+            effectiveStyle == BotaButtonStyle.Filled -> emphasisColor
+            effectiveStyle == BotaButtonStyle.Tinted -> emphasisColor.copy(alpha = TINT_ALPHA)
             else -> Color.Transparent
         },
         animationSpec = BotaMotion.pressSpring(),
@@ -90,8 +102,8 @@ fun BotaButton(
     )
     val contentColor = when {
         !enabled -> colors.tertiaryLabel
-        style == BotaButtonStyle.Filled -> colors.onAccent
-        else -> colors.accent
+        effectiveStyle == BotaButtonStyle.Filled -> colors.onAccent
+        else -> emphasisColor
     }
 
     Box(

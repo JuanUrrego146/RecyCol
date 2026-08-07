@@ -4,11 +4,15 @@ import com.botabien.domain.model.ClassificationOutcome
 import com.botabien.domain.model.ClassificationResult
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.WasteMaterial
+import com.botabien.android.ui.settings.InMemoryPerformancePreference
+import com.botabien.android.ui.settings.PerformancePreference
+import com.botabien.domain.port.ClassificationHistoryRepository
 import com.botabien.domain.usecase.ClassifyWasteUseCase
 import com.botabien.domain.usecase.ScanBinsUseCase
 import com.botabien.domain.usecase.SelectCountryUseCase
 import com.botabien.rules.DefaultRuleEngine
 import com.botabien.testing.FakeBinAvailabilityRepository
+import com.botabien.testing.FakeClassificationHistoryRepository
 import com.botabien.testing.FakeBinDetector
 import com.botabien.testing.FakeFrameQualityAnalyzer
 import com.botabien.testing.FakeProfileRepository
@@ -26,12 +30,18 @@ import com.botabien.testing.TestProfiles
  * @property classifyWaste clasificación por cámara (CUS-003 a CUS-006).
  * @property resolveManualDisposal resolución de una selección manual de
  *   material (RF-024, RF-025 · CUS-006).
+ * @property performance preferencia manual del nivel de rendimiento (RF-031);
+ *   seam provisional alineado al TierStore de EDGE (coordinación #94).
+ * @property history historial local (RF-032 a RF-034); puerto del contrato,
+ *   pendiente del caso de uso de la coordinación #94.
  */
 class AppDependencies(
     val selectCountry: SelectCountryUseCase,
     val scanBins: ScanBinsUseCase,
     val classifyWaste: ClassifyWasteUseCase,
     val resolveManualDisposal: ManualDisposalResolver,
+    val performance: PerformancePreference,
+    val history: ClassificationHistoryRepository,
 )
 
 /**
@@ -99,5 +109,7 @@ fun fakeAppDependencies(): AppDependencies {
                 needsUserDecision = false,
             )
         },
+        performance = InMemoryPerformancePreference(),
+        history = FakeClassificationHistoryRepository(),
     )
 }

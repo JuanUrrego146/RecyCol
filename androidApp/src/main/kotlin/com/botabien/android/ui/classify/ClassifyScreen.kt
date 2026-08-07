@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,13 +37,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.botabien.android.R
 import com.botabien.android.ui.AppDependencies
 import com.botabien.android.ui.components.BotaButton
 import com.botabien.android.ui.components.BotaButtonStyle
+import com.botabien.android.ui.components.BotaRouteGlyph
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
@@ -185,6 +190,7 @@ private fun LowConfidencePrompt(
                 text = stringResource(R.string.low_confidence_message),
                 style = BotaTheme.typography.subheadline,
                 color = BotaTheme.colors.onScrim,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
             BotaButton(
@@ -232,6 +238,9 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
                     text = hintLabel(current),
                     style = BotaTheme.typography.footnoteEmphasized,
                     color = BotaTheme.colors.onScrim,
+                    // Región viva: el lector de pantalla anuncia cada indicación
+                    // nueva sin que el usuario mueva el foco (RNF-010).
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
         }
@@ -259,6 +268,7 @@ private fun ResultOverlay(
         if (disposal != null) lastDisposal = disposal
 
         val interactionSource = remember { MutableInteractionSource() }
+        val openDetailLabel = stringResource(R.string.result_open_detail_action)
         lastDisposal?.let { current ->
             Row(
                 modifier = Modifier
@@ -269,6 +279,7 @@ private fun ResultOverlay(
                         interactionSource = interactionSource,
                         indication = null,
                         role = Role.Button,
+                        onClickLabel = openDetailLabel,
                         onClick = onClick,
                     )
                     .padding(BotaTheme.spacing.lg),
@@ -277,11 +288,18 @@ private fun ResultOverlay(
                 BinSwatch(colorHex = current.bin.colorHex)
                 Spacer(modifier = Modifier.width(BotaTheme.spacing.md))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = current.bin.displayName,
-                        style = BotaTheme.typography.headline,
-                        color = BotaTheme.colors.onScrim,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BotaRouteGlyph(
+                            route = current.route,
+                            color = BotaTheme.colors.onScrim,
+                        )
+                        Spacer(modifier = Modifier.width(BotaTheme.spacing.xs))
+                        Text(
+                            text = current.bin.displayName,
+                            style = BotaTheme.typography.headline,
+                            color = BotaTheme.colors.onScrim,
+                        )
+                    }
                     if (material != null) {
                         Spacer(modifier = Modifier.height(BotaTheme.spacing.xxs))
                         Text(
@@ -358,6 +376,7 @@ private fun OverlayAction(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .clip(BotaTheme.shapes.capsule)
             .background(BotaTheme.colors.scrim)
             .clickable(
@@ -370,6 +389,7 @@ private fun OverlayAction(
                 horizontal = BotaTheme.spacing.lg,
                 vertical = BotaTheme.spacing.sm,
             ),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
@@ -421,3 +441,6 @@ private const val TERTIARY_ON_SCRIM_ALPHA = 0.7f
 
 /** Diámetro de la muestra de color de caneca, como los tamaños fijos de control del DS. */
 private val BIN_SWATCH_SIZE = 40.dp
+
+/** Área táctil mínima de los controles sobre el visor (RNF-010). */
+private val MIN_TOUCH_TARGET = 44.dp
