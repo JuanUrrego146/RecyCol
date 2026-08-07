@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Arranque del runner self-hosted de BotaBien.
+# Arranque del runner self-hosted de RecyCol.
 #
 # Primera vez (volumen del agente vacío): registra el runner con RUNNER_TOKEN
 # (token de registro de un solo uso, caduca en 1 h — NO es un PAT; el contenedor
@@ -8,8 +8,8 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/JuanUrrego146/BotaBien}"
-RUNNER_NAME="${RUNNER_NAME:-botabien-runner}"
-RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,docker,botabien}"
+RUNNER_NAME="${RUNNER_NAME:-recycol-runner}"
+RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,docker,recycol}"
 
 cd /opt/actions-runner
 

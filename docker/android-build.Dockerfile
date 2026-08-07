@@ -1,4 +1,4 @@
-# Entorno de build Android/KMP de BotaBien.
+# Entorno de build Android/KMP de RecyCol.
 # Todas las versiones están fijadas: mismo resultado en cualquier máquina y en CI.
 #   - Gradle 8.13 + JDK 17 (imagen oficial de Gradle, base Eclipse Temurin)
 #   - Android SDK: platform 35, build-tools 34.0.0 (las que usa AGP 8.7)
