@@ -27,7 +27,7 @@ sys.path.insert(0, str(ML_DIR))
 
 from train.train_material import (  # noqa: E402
     MANIFESTS, MATERIALS, RUNS, VARIANTS, ManifestDataset, build_model,
-    evaluate, route_by_material,
+    evaluate, macro_route, route_by_material,
 )
 
 
@@ -93,6 +93,10 @@ def main() -> int:
         "variant": args.variant, "run": args.run, "arch": arch,
         "split": args.split, "n": int(confusion.sum()),
         "top1": round(float(top1), 4), "route": round(float(route_acc), 4),
+        # Ruta promediada por clase: el control tiene PLASTIC (921) y ORGANIC
+        # (847) sobrerrepresentados frente a TEXTILE (318), y el micro esconde
+        # el hundimiento de una clase entera.
+        "route_macro": round(macro_route(confusion, routes), 4),
         "rnf008": {"material_goal": 0.85, "route_goal": 0.95,
                    "material_met": bool(top1 >= 0.85), "route_met": bool(route_acc >= 0.95)},
         "per_class": per_class_table(confusion, routes),

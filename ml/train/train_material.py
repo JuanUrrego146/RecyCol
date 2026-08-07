@@ -75,9 +75,18 @@ def route_by_material() -> dict[str, str]:
 
 class ManifestDataset(Dataset):
     def __init__(self, manifest: Path, input_side: int, train: bool, epoch: int = 0,
-                 limit: int | None = None, use_augment: bool = True):
+                 limit: int | None = None, use_augment: bool = True,
+                 exclude: set[tuple[str, str]] | None = None):
         with manifest.open(encoding="utf-8") as handle:
             self.rows = list(csv.DictReader(handle))
+        if exclude:
+            # Exclusión declarativa por (dataset, material): el manifiesto de S22
+            # no se toca — la reproducibilidad de la partición se conserva y cada
+            # run deja constancia de lo que quitó en su metrics.json.
+            before = len(self.rows)
+            self.rows = [r for r in self.rows
+                         if (r["dataset"], r["material"]) not in exclude]
+            print(f"exclude {sorted(exclude)}: {before} -> {len(self.rows)} filas")
         if limit:
             self.rows = self.rows[:limit]
         self.input_side = input_side
@@ -157,6 +166,26 @@ def evaluate(model: nn.Module, loader: DataLoader, routes: dict[str, str],
     return top1, route_hits / max(total, 1), confusion
 
 
+def macro_route(confusion: np.ndarray, routes: dict[str, str]) -> float:
+    """Acierto de ruta promediado **por clase**, no por imagen.
+
+    La val interna está dominada por TEXTILE (586) y ORGANIC (472): con el
+    micro-promedio esas dos deciden el checkpoint y una clase minoritaria puede
+    hundirse sin que la métrica se entere. El macro da el mismo peso a cada
+    material, que es lo que exige la auditoría de #23 — acierto de caneca por
+    clase. El control (RealWaste) sigue sin intervenir en ninguna selección.
+    """
+    per_class = []
+    for t in range(len(MATERIALS)):
+        support = int(confusion[t].sum())
+        if support == 0:
+            continue
+        hits = sum(int(confusion[t, p]) for p in range(len(MATERIALS))
+                   if routes.get(MATERIALS[p]) == routes.get(MATERIALS[t]))
+        per_class.append(hits / support)
+    return float(np.mean(per_class)) if per_class else 0.0
+
+
 def run_epoch(model, loader, optimizer, criterion, device, scaler=None,
               route_cost: torch.Tensor | None = None, cost_weight: float = 0.0) -> float:
     model.train()
@@ -207,6 +236,12 @@ def main() -> int:
                         help="aborta si CUDA no está disponible: evita el fallo silencioso a CPU")
     parser.add_argument("--route-cost", type=float, default=0.0,
                         help="peso de la pérdida sensible a coste de ruta (0 = solo cross-entropy)")
+    parser.add_argument("--select", choices=["route", "route-macro"], default="route",
+                        help="criterio de checkpoint: ruta micro (histórico) o macro por clase")
+    parser.add_argument("--exclude", action="append", default=[], metavar="DATASET:MATERIAL",
+                        help="descarta filas de train y val (repetible); p. ej. "
+                             "garbage_dataset_v2:RESIDUAL — la carpeta trash de v2 que la "
+                             "auditoría de REGLAS (#23) señaló como envases sucios mal etiquetados")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
@@ -232,9 +267,18 @@ def main() -> int:
     phase1 = 1 if args.smoke else args.phase1_epochs
     phase2 = 1 if args.smoke else args.phase2_epochs
 
+    exclude = set()
+    for spec in args.exclude:
+        dataset_name, _, material = spec.partition(":")
+        if not material:
+            print(f"--exclude '{spec}': se espera DATASET:MATERIAL", file=sys.stderr)
+            return 2
+        exclude.add((dataset_name, material))
+
     train_ds = ManifestDataset(MANIFESTS / "train.csv", side, train=True, limit=limit,
-                               use_augment=not args.no_augment)
-    val_ds = ManifestDataset(MANIFESTS / "val.csv", side, train=False, limit=limit)
+                               use_augment=not args.no_augment, exclude=exclude)
+    val_ds = ManifestDataset(MANIFESTS / "val.csv", side, train=False, limit=limit,
+                             exclude=exclude)
     print(f"variant={args.variant} arch={arch} input={side} "
           f"train={len(train_ds)} val={len(val_ds)}")
 
@@ -250,9 +294,10 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     history = []
     best_route = 0.0
+    best_score = 0.0
 
     def train_phase(name: str, epochs: int, lr: float, full_net: bool):
-        nonlocal best_route
+        nonlocal best_route, best_score
         for param in model.parameters():
             param.requires_grad = full_net
         if not full_net:
@@ -270,16 +315,21 @@ def main() -> int:
             loss = run_epoch(model, loader, optimizer, criterion, device, scaler,
                              route_cost=cost_matrix, cost_weight=args.route_cost)
             top1, route_acc, confusion = evaluate(model, val_loader, routes, device)
+            route_macro = macro_route(confusion, routes)
+            score = route_macro if args.select == "route-macro" else route_acc
             vram_mb = (round(torch.cuda.max_memory_allocated() / 1e6)
                        if device == "cuda" else 0)
             history.append({"phase": name, "epoch": epoch, "loss": round(loss, 4),
                             "val_top1": round(float(top1), 4),
                             "val_route": round(float(route_acc), 4),
+                            "val_route_macro": round(route_macro, 4),
                             "seconds": round(time.time() - start, 1),
                             "vram_peak_mb": vram_mb})
             print(f"[{name} e{epoch}] loss={loss:.4f} top1={top1:.3f} "
-                  f"ruta={route_acc:.3f} ({history[-1]['seconds']}s, VRAM pico {vram_mb} MB)")
-            if route_acc > best_route:
+                  f"ruta={route_acc:.3f} ruta_macro={route_macro:.3f} "
+                  f"({history[-1]['seconds']}s, VRAM pico {vram_mb} MB)")
+            if score > best_score:
+                best_score = score
                 best_route = route_acc
                 torch.save(model.state_dict(), run_dir / "best.pt")
                 np.savetxt(run_dir / "confusion_val.csv", confusion, fmt="%d",
@@ -292,10 +342,14 @@ def main() -> int:
         json.dumps({"variant": args.variant, "arch": arch, "input": side,
                     "lr_phase1": args.lr_phase1, "lr_phase2": args.lr_phase2,
                     "batch_size": args.batch_size, "route_cost": args.route_cost,
+                    "select": args.select, "exclude": sorted(args.exclude),
+                    "train_rows": len(train_ds), "val_rows": len(val_ds),
                     "materials": MATERIALS, "history": history,
-                    "best_val_route": best_route}, indent=2),
+                    "best_val_route": best_route,
+                    "best_val_score": best_score}, indent=2),
         encoding="utf-8")
-    print(f"Resultados en {run_dir.relative_to(ML_DIR)} · mejor acierto de ruta: {best_route:.3f}")
+    print(f"Resultados en {run_dir.relative_to(ML_DIR)} · criterio {args.select} "
+          f"= {best_score:.3f} (ruta micro {best_route:.3f})")
     return 0
 
 
