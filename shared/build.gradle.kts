@@ -12,6 +12,8 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
+    // Carga de perfiles normativos desde JSON en shared/rules (S30, RF-002)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -28,6 +30,9 @@ kotlin {
             // Persistencia local (S36): el runtime de SQLDelight es multiplataforma
             // puro; los drivers concretos viven en cada plataforma (RNF-005).
             implementation(libs.sqldelight.runtime)
+            // Parseo y validación del catálogo de perfiles (S30); ya estaba en
+            // el version catalog, solo se amplía su alcance a commonMain.
+            implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

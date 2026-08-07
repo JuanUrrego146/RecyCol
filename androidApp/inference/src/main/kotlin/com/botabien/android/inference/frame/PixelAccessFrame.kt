@@ -21,6 +21,27 @@ interface PixelAccessFrame : ImageFrame {
      * empaquetado (un `Int` por píxel, orden por filas, tamaño `width * height`).
      */
     fun readArgbPixels(): IntArray
+
+    /**
+     * Devuelve una copia de la región cuadrada `[left, top, lado]` del frame,
+     * en el mismo formato de [readArgbPixels] y tamaño `side * side`.
+     *
+     * La implementación por defecto recorta sobre la copia completa; las
+     * implementaciones reales deberían sobrescribirla para copiar solo la
+     * región (en un frame 1080p el recorte típico ahorra varios MB por frame,
+     * RNF-007). El preprocesador solo lee la región que va a muestrear.
+     */
+    fun readArgbRegion(left: Int, top: Int, side: Int): IntArray {
+        require(left >= 0 && top >= 0 && side > 0 && left + side <= width && top + side <= height) {
+            "La región ($left, $top, lado $side) no cabe en un frame de ${width}x$height."
+        }
+        val full = readArgbPixels()
+        val region = IntArray(side * side)
+        for (row in 0 until side) {
+            System.arraycopy(full, (top + row) * width + left, region, row * side, side)
+        }
+        return region
+    }
 }
 
 /**

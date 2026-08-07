@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cadenas del módulo de cámara (agente CAM). Separadas de strings.xml
+     para no colisionar con el ámbito del agente FRONT. -->
+<resources>
+    <!-- Solicitudes de captura dirigida (RF-020); la clave viene del perfil normativo -->
+    <string name="camera_inspection_point_inside">Apunta la cámara al interior del envase</string>
+    <string name="camera_inspection_generic">Acerca la cámara a la zona indicada del residuo</string>
+</resources>
