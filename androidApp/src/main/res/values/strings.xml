@@ -47,8 +47,13 @@
     <string name="manual_entry_action">Manual</string>
     <string name="manual_selection_title">¿Qué residuo es?</string>
     <string name="manual_selection_subtitle">Elige el material y te digo dónde va según la normativa de tu país.</string>
-    <string name="low_confidence_message">No logro identificarlo con certeza. Prueba otro ángulo o elige el material.</string>
+    <string name="low_confidence_message">Me cuesta identificarlo desde aquí. ¿Me ayudas a elegir?</string>
     <string name="low_confidence_action">Elegir material</string>
+    <string name="disambiguation_title">Ayúdame a distinguirlo</string>
+    <string name="disambiguation_subtitle">Así de cerca puede ser más de una cosa. Dime cuál es y te digo dónde va.</string>
+    <string name="disambiguation_probable">Probable</string>
+    <string name="disambiguation_show_all">Es otra cosa…</string>
+    <string name="disambiguation_retry">Intentar otra toma</string>
     <string name="manual_inspection_question">¿Tiene residuos o líquidos adentro? De eso depende la caneca.</string>
     <string name="manual_inspection_clean">Está limpio y seco</string>
     <string name="manual_inspection_contaminated">Tiene residuos</string>
