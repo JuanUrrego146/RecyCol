@@ -2,6 +2,7 @@ package com.botabien.android.ui.classify
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -48,7 +53,9 @@ import com.botabien.android.R
 import com.botabien.android.ui.AppDependencies
 import com.botabien.android.ui.components.BotaButton
 import com.botabien.android.ui.components.BotaButtonStyle
+import com.botabien.android.ui.components.BotaGlassState
 import com.botabien.android.ui.components.BotaRouteGlyph
+import com.botabien.android.ui.components.botaGlass
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
@@ -105,6 +112,9 @@ fun ClassifyScreen(
         viewfinder(Modifier.fillMaxSize())
 
         GuideFrame(
+            // Mientras no haya decisión visible, la app sigue mirando: el marco
+            // respira. En cuanto decide, se asienta.
+            analyzing = state.outcome == null,
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth(GUIDE_WIDTH_FRACTION)
@@ -206,8 +216,13 @@ private fun LowConfidencePrompt(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(BotaTheme.shapes.large)
-                .background(BotaTheme.colors.scrim)
+                // El material se empaña: la app no lo tiene claro y el cristal
+                // lo dice antes que el texto. Es el flujo protagonista de la
+                // app, no un error, así que se ve dudando, no fallando.
+                .botaGlass(
+                    shape = BotaTheme.shapes.large,
+                    state = BotaGlassState.Uncertain,
+                )
                 .padding(BotaTheme.spacing.lg),
         ) {
             Text(
@@ -227,14 +242,22 @@ private fun LowConfidencePrompt(
     }
 }
 
-/** Marco guía de encuadre; mera ayuda visual, nunca bloquea la vista. */
+/**
+ * Marco guía de encuadre; mera ayuda visual, nunca bloquea la vista. Solo lleva
+ * el brillo del borde, sin relleno: atenuar el centro sería atenuar justo lo
+ * que el usuario está intentando enfocar.
+ *
+ * Mientras se analiza, ese borde respira. Es la forma más discreta de decir
+ * «te estoy mirando» sin ocupar sitio ni añadir texto.
+ */
 @Composable
-private fun GuideFrame(modifier: Modifier = Modifier) {
+private fun GuideFrame(analyzing: Boolean, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier.border(
-            width = BotaTheme.spacing.xxs,
-            color = BotaTheme.colors.onScrim.copy(alpha = GUIDE_ALPHA),
+        modifier = modifier.botaGlass(
             shape = BotaTheme.shapes.large,
+            state = if (analyzing) BotaGlassState.Analyzing else BotaGlassState.Settled,
+            rimWidth = BotaTheme.spacing.xxs,
+            filled = false,
         ),
     )
 }
@@ -251,8 +274,7 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
         if (current != null) {
             Box(
                 modifier = Modifier
-                    .clip(BotaTheme.shapes.capsule)
-                    .background(BotaTheme.colors.scrim)
+                    .botaGlass(shape = BotaTheme.shapes.capsule)
                     .padding(
                         horizontal = BotaTheme.spacing.lg,
                         vertical = BotaTheme.spacing.sm,
@@ -292,13 +314,38 @@ private fun ResultOverlay(
         if (disposal != null) lastDisposal = disposal
 
         val interactionSource = remember { MutableInteractionSource() }
+        val pressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (pressed) BotaMotion.PRESSED_SCALE else 1f,
+            animationSpec = BotaMotion.pressSpring(),
+            label = "resultOverlayScale",
+        )
         val openDetailLabel = stringResource(R.string.result_open_detail_action)
+
+        // Una decisión nueva se confirma también con el tacto: un golpe seco y
+        // corto, el equivalente a que algo encaje en su sitio.
+        val haptics = LocalHapticFeedback.current
+        LaunchedEffect(disposal?.bin?.id) {
+            if (disposal != null) {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        }
+
         lastDisposal?.let { current ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(BotaTheme.shapes.large)
-                    .background(BotaTheme.colors.scrim)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    // El cristal deja pasar el color de la caneca como un
+                    // lavado: la decisión se reconoce de un vistazo sin que el
+                    // color tape el texto que la explica (RNF-010).
+                    .botaGlass(
+                        shape = BotaTheme.shapes.large,
+                        tint = binColor(current.bin.colorHex),
+                    )
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -390,7 +437,10 @@ private fun DegradedNotice(text: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Botón discreto sobre el visor, construido con los tokens del velo. */
+/**
+ * Control que flota sobre el visor: una cápsula de cristal que se encoge al
+ * pulsarla, con la respuesta táctil de iOS en vez del ripple de Material.
+ */
 @Composable
 private fun OverlayAction(
     text: String,
@@ -398,11 +448,20 @@ private fun OverlayAction(
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) BotaMotion.PRESSED_SCALE else 1f,
+        animationSpec = BotaMotion.pressSpring(),
+        label = "overlayActionScale",
+    )
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
-            .clip(BotaTheme.shapes.capsule)
-            .background(BotaTheme.colors.scrim)
+            .botaGlass(shape = BotaTheme.shapes.capsule)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
