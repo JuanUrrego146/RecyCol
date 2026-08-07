@@ -66,16 +66,19 @@ class ColombiaProfileTest {
     }
 
     @Test
-    fun cubreLasTresCanecasDeLaResolucion2184() {
+    fun cubreLasTresCanecasDeLaResolucion2184MasLaRecoleccionEspecial() {
         val bins = profile.getValue("bins").jsonArray.associate {
             it.jsonObject.getValue("id").jsonPrimitive.content to
                 it.jsonObject.getValue("route").jsonPrimitive.content
         }
 
-        assertEquals(3, bins.size)
+        assertEquals(4, bins.size, "Tres canecas del código de colores más el punto de recolección especial")
         assertEquals("RECYCLABLE", bins["white"], "La caneca blanca es la corriente aprovechable")
         assertEquals("NON_RECYCLABLE", bins["black"], "La caneca negra es la corriente no aprovechable")
         assertEquals("ORGANIC", bins["green"], "La caneca verde es la corriente orgánica aprovechable")
+        // Pilas y RAEE quedan fuera del código de colores (decisión de v1,
+        // coordinación #54): el punto posconsumo se modela como destino propio.
+        assertEquals("SPECIAL_COLLECTION", bins["special"], "El punto de recolección posconsumo es un destino fuera del código de colores")
     }
 
     @Test

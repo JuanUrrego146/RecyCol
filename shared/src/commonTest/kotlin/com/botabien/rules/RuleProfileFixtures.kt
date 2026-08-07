@@ -87,5 +87,6 @@ object RuleProfileFixtures {
             ),
         ),
         conservativeBin = blackBin.id,
+        unavailableBinNotice = "No hay {ideal} disponible; usa {assigned}.",
     )
 }

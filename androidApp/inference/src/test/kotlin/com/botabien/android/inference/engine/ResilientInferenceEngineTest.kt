@@ -93,6 +93,31 @@ class ResilientInferenceEngineTest {
     }
 
     @Test
+    fun `la inferencia multi-salida tambien degrada a CPU cuando el delegado falla`() {
+        val engine = ResilientInferenceEngine(
+            preferredOrder = listOf(AccelerationMode.GPU, AccelerationMode.CPU),
+        ) { mode ->
+            if (mode == AccelerationMode.GPU) {
+                FakeEngine(mode, failOnRun = true)
+            } else {
+                object : InferenceEngine {
+                    override val accelerationMode = AccelerationMode.CPU
+                    override fun run(input: ByteBuffer) = floatArrayOf(1f)
+                    override fun runMultiOutput(input: ByteBuffer) =
+                        listOf(floatArrayOf(0.1f), floatArrayOf(0.9f))
+                    override fun close() = Unit
+                }
+            }
+        }
+
+        val outputs = engine.runMultiOutput(anyInput)
+
+        assertEquals(2, outputs.size)
+        assertEquals(0.9f, outputs[1][0])
+        assertEquals(AccelerationMode.CPU, engine.accelerationMode)
+    }
+
+    @Test
     fun `si la CPU tambien falla se lanza InferenceException`() {
         val engine = ResilientInferenceEngine(
             preferredOrder = listOf(AccelerationMode.CPU),
