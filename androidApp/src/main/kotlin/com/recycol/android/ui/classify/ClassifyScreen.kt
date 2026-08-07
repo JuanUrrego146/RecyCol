@@ -2,6 +2,7 @@ package com.recycol.android.ui.classify
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -118,6 +120,17 @@ fun ClassifyScreen(
         decisionKey = state.outcome?.disposal?.bin?.id,
     )
 
+    // Puente temporal mientras la detección automática de contaminación no
+    // transfiere a suciedad real (ver SoilQuestionCard): para los materiales que
+    // el perfil marca con inspección, se pregunta en vez de adivinar. Se
+    // recuerda lo respondido para no repetir la pregunta con cada fotograma.
+    var soilAnsweredFor by remember { mutableStateOf<WasteMaterial?>(null) }
+    val detectedMaterial = state.outcome?.classification?.material
+    val needsSoilAnswer = detectedMaterial != null &&
+        detectedMaterial in inspectionMaterials &&
+        soilAnsweredFor != detectedMaterial &&
+        state.outcome?.manualSelection != true
+
     fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
             val result = dependencies.resolveManualDisposal.resolve(material, contamination)
@@ -126,10 +139,33 @@ fun ClassifyScreen(
         }
     }
 
+    /**
+     * Respuesta a la pregunta de suciedad. A diferencia de la selección manual,
+     * **no navega al detalle**: el usuario está sosteniendo el objeto delante de
+     * la cámara y lo que quiere es ver la caneca, no leer una ficha.
+     */
+    fun answerSoil(material: WasteMaterial, contamination: ContaminationState) {
+        scope.launch {
+            soilAnsweredFor = material
+            val result = dependencies.resolveManualDisposal.resolve(material, contamination)
+            state.applyManualOutcome(result)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize().background(BotaTheme.colors.cameraBackdrop)) {
         viewfinder(Modifier.fillMaxSize())
 
         val hasDecision = state.outcome?.disposal != null
+        val decidedBin = state.outcome?.disposal?.bin
+
+        // El color entra por aquí: la pantalla se tiñe del color de la caneca
+        // decidida. Es el lenguaje visual del producto —blanco, negro, verde—
+        // así que además de dar color enseña. El tinte sale del perfil
+        // normativo, sigue siendo dato y no diseño.
+        BinTintWash(
+            color = decidedBin?.colorHex?.let(::binColor),
+            modifier = Modifier.fillMaxSize(),
+        )
 
         GuideFrame(
             // Mientras no haya decisión visible, la app sigue mirando: el marco
@@ -178,7 +214,12 @@ fun ClassifyScreen(
                 }
             }
             HintOverlay(
-                hint = state.hints.visible,
+                // Las indicaciones de captura solo mientras se busca. Con la
+                // pregunta en pantalla sobran —lo contesta el usuario, no la
+                // cámara— y con una decisión ya tomada son ruido: se quedaba un
+                // «apunta hacia adentro del recipiente» encima de la caneca ya
+                // resuelta.
+                hint = if (needsSoilAnswer || hasDecision) null else state.hints.visible,
                 modifier = Modifier.padding(top = BotaTheme.spacing.sm),
             )
         }
@@ -186,7 +227,12 @@ fun ClassifyScreen(
         // La orientación se calla cuando hay una indicación de captura: esa es
         // más concreta y no conviene apilar avisos (RF-018).
         ViewfinderGuidance(
-            visible = guidanceVisible && state.hints.visible == null,
+            // Nunca por detrás de una decisión ni de la pregunta de suciedad:
+            // se colaba difuminada bajo la tarjeta y se leía como un fantasma.
+            visible = guidanceVisible &&
+                state.hints.visible == null &&
+                !hasDecision &&
+                !needsSoilAnswer,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -196,8 +242,24 @@ fun ClassifyScreen(
                 ),
         )
 
+        // Mientras la pregunta de suciedad está en pantalla, la decisión se
+        // calla: todavía no está decidida, depende de lo que conteste.
+        if (needsSoilAnswer && detectedMaterial != null) {
+            SoilQuestionCard(
+                material = detectedMaterial,
+                onAnswer = { contamination -> answerSoil(detectedMaterial, contamination) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(
+                        start = BotaTheme.spacing.screenMargin,
+                        end = BotaTheme.spacing.screenMargin,
+                        bottom = BotaTheme.spacing.xxl,
+                    ),
+            )
+        }
+
         ResultOverlay(
-            disposal = state.outcome?.disposal,
+            disposal = if (needsSoilAnswer) null else state.outcome?.disposal,
             material = state.outcome?.classification?.material,
             onClick = { state.outcome?.let(onOpenResultDetail) },
             onCorrect = {
@@ -231,6 +293,23 @@ fun ClassifyScreen(
                     end = BotaTheme.spacing.screenMargin,
                     bottom = BotaTheme.spacing.xxl,
                 ),
+        )
+
+        // La recompensa: la flor del logo florece sobre lo que se acaba de
+        // clasificar. Solo cuando la decisión es firme — ver BloomBurst.
+        val disposal = state.outcome?.disposal
+        BloomBurst(
+            // El disparador lleva también si la decisión vino de una respuesta
+            // del usuario: sin eso, contestar a la pregunta de suciedad dejaba
+            // la misma caneca y la flor no volvía a salir justo en el momento
+            // que más lo merece, que es cuando el usuario acaba de resolverlo.
+            trigger = disposal?.bin?.id?.let { it to (state.outcome?.manualSelection == true) },
+            celebrate = disposal != null &&
+                !needsSoilAnswer &&
+                state.outcome?.needsUserDecision != true &&
+                !disposal.degradedByContamination &&
+                disposal.fallbackReason == null,
+            modifier = Modifier.align(Alignment.Center),
         )
 
         if (showManualSheet) {
@@ -295,6 +374,41 @@ private fun LowConfidencePrompt(
             )
         }
     }
+}
+
+/**
+ * Lavado de color de la caneca decidida, subiendo desde el borde inferior.
+ *
+ * El cristal es translúcido y neutro por naturaleza, así que el color tiene que
+ * venir de otro sitio. Viene de donde ya significa algo: **los colores de
+ * caneca**, que son el lenguaje del producto. La pantalla se tiñe de blanco, de
+ * negro o de verde según dónde vaya el residuo, y eso enseña además de decorar.
+ *
+ * Emana del borde inferior, que es donde está la tarjeta de decisión, y muere
+ * antes de la mitad de la pantalla: el texto de arriba conserva su fondo y su
+ * contraste intactos (RNF-010). El color se comunica siempre junto al nombre de
+ * la caneca y su glifo, nunca solo (RNF-010).
+ */
+@Composable
+private fun BinTintWash(color: Color?, modifier: Modifier = Modifier) {
+    val target = color ?: BotaTheme.colors.onScrim.copy(alpha = 0f)
+    val wash by animateColorAsState(
+        targetValue = if (color == null) target else target.copy(alpha = TINT_WASH_ALPHA),
+        animationSpec = tween(BotaMotion.DURATION_SLOW_MS, easing = BotaMotion.easeInOut),
+        label = "binTintWash",
+    )
+    val transparent = BotaTheme.colors.onScrim.copy(alpha = 0f)
+    Box(
+        modifier = modifier.background(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to transparent,
+                    TINT_WASH_START to transparent,
+                    1f to wash,
+                ),
+            ),
+        ),
+    )
 }
 
 /**
@@ -697,6 +811,15 @@ private val GUIDANCE_BOTTOM_INSET = 120.dp
  * respirar la pantalla, que era la queja.
  */
 private const val GUIDE_WIDTH_FRACTION = 0.62f
+
+/**
+ * Opacidad del lavado de color en el borde inferior. Suficiente para que la
+ * pantalla se sienta teñida, lejos de tapar la escena.
+ */
+private const val TINT_WASH_ALPHA = 0.30f
+
+/** Altura a la que arranca el lavado: por debajo, el contraste no se toca. */
+private const val TINT_WASH_START = 0.5f
 
 /** Grosor de las esquinas del marco. */
 private val GUIDE_STROKE = 3.dp

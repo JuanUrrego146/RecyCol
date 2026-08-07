@@ -55,6 +55,13 @@ data class BotaColorScheme(
     val scrim: Color,
     /** Contenido dibujado sobre [scrim]; constante entre temas. */
     val onScrim: Color,
+    /**
+     * Acento para lo que se dibuja **sobre el velo**, donde el fondo siempre es
+     * oscuro. El [accent] del esquema claro es un verde profundo calculado para
+     * contrastar sobre blanco, y sobre la cámara se apaga; este es el mismo
+     * verde de marca subido de luminosidad, constante entre temas.
+     */
+    val accentOnScrim: Color,
     /** Fondo del área de cámara: oscuro en ambos temas, como un visor real. */
     val cameraBackdrop: Color,
 
@@ -86,7 +93,8 @@ internal val LightBotaColors = BotaColorScheme(
     info = Color(0xFF0040DD),
     scrim = Color(0x8A000000),
     onScrim = Color(0xFFFFFFFF),
-    cameraBackdrop = Color(0xFF0A0A0C),
+    accentOnScrim = Color(0xFF30D158),
+    cameraBackdrop =Color(0xFF0A0A0C),
     isDark = false,
 )
 
@@ -112,7 +120,8 @@ internal val DarkBotaColors = BotaColorScheme(
     info = Color(0xFF409CFF),
     scrim = Color(0x8A000000),
     onScrim = Color(0xFFFFFFFF),
-    cameraBackdrop = Color(0xFF000000),
+    accentOnScrim = Color(0xFF30D158),
+    cameraBackdrop =Color(0xFF000000),
     isDark = true,
 )
 

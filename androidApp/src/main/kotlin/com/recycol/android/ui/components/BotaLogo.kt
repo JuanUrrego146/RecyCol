@@ -38,6 +38,9 @@ import kotlin.math.min
  * @param growth progreso del brote, de 0 (solo el bote con su tierra) a 1 (logo
  *   completo). Los valores intermedios los usa la animación de arranque; el
  *   logo estático se dibuja siempre con 1.
+ * @param showVessel `false` dibuja solo el brote —tallo, hojas y flor— sin bote
+ *   ni tierra. Lo usa la floración que celebra una clasificación acertada, que
+ *   es el mismo motivo del logo sin repetir el recipiente.
  * @param contentDescription texto para lectores de pantalla; `null` lo declara
  *   decorativo, que es lo correcto cuando el nombre de la app ya está al lado.
  */
@@ -46,6 +49,7 @@ fun BotaLogo(
     modifier: Modifier = Modifier,
     color: Color = BotaTheme.colors.accent,
     growth: Float = 1f,
+    showVessel: Boolean = true,
     contentDescription: String? = null,
 ) {
     val shapes = remember { BotaLogoShapes() }
@@ -62,7 +66,12 @@ fun BotaLogo(
         val factor = side / LOGO_VIEWPORT
         translate(left = (size.width - side) / 2f, top = (size.height - side) / 2f) {
             scale(scale = factor, pivot = Offset.Zero) {
-                drawLogo(shapes = shapes, color = color, growth = growth.coerceIn(0f, 1f))
+                drawLogo(
+                    shapes = shapes,
+                    color = color,
+                    growth = growth.coerceIn(0f, 1f),
+                    showVessel = showVessel,
+                )
             }
         }
     }
@@ -73,18 +82,25 @@ fun BotaLogo(
  * bote se pinta después de la tierra para que su trazo la recorte, y la flor
  * al final para que se superponga al tallo.
  */
-private fun DrawScope.drawLogo(shapes: BotaLogoShapes, color: Color, growth: Float) {
-    drawPath(path = shapes.soil, color = color, alpha = SOIL_ALPHA)
-    drawPath(
-        path = shapes.rim,
-        color = color,
-        style = Stroke(width = BODY_STROKE, cap = StrokeCap.Round),
-    )
-    drawPath(
-        path = shapes.body,
-        color = color,
-        style = Stroke(width = BODY_STROKE, cap = StrokeCap.Round, join = StrokeJoin.Round),
-    )
+private fun DrawScope.drawLogo(
+    shapes: BotaLogoShapes,
+    color: Color,
+    growth: Float,
+    showVessel: Boolean,
+) {
+    if (showVessel) {
+        drawPath(path = shapes.soil, color = color, alpha = SOIL_ALPHA)
+        drawPath(
+            path = shapes.rim,
+            color = color,
+            style = Stroke(width = BODY_STROKE, cap = StrokeCap.Round),
+        )
+        drawPath(
+            path = shapes.body,
+            color = color,
+            style = Stroke(width = BODY_STROKE, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+    }
 
     // El tallo se dibuja parcialmente midiendo su longitud: crece de la tierra
     // hacia arriba porque el trazado arranca en su base.
