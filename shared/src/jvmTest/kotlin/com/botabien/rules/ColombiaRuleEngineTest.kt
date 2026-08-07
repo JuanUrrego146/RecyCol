@@ -144,18 +144,40 @@ class ColombiaRuleEngineTest {
     }
 
     @Test
-    fun soloElCartonParaBebidasRequiereInspeccionEnColombia() {
+    fun elCartonYElCartonParaBebidasRequierenInspeccionEnColombia() {
         val requiring = WasteMaterial.entries.filter { profile.requiresInspection(it) }
 
-        assertEquals(listOf(WasteMaterial.BEVERAGE_CARTON), requiring)
+        // La caja de pizza (aprobada el 07/08/2026) y el vaso de café: el
+        // cartón no se decide sin ver el interior.
+        assertEquals(listOf(WasteMaterial.CARDBOARD, WasteMaterial.BEVERAGE_CARTON), requiring)
 
         // Para el resto, el estado desconocido resuelve igual que limpio.
-        (WasteMaterial.entries - WasteMaterial.BEVERAGE_CARTON).forEach { material ->
+        val inspected = setOf(WasteMaterial.CARDBOARD, WasteMaterial.BEVERAGE_CARTON)
+        (WasteMaterial.entries - inspected).forEach { material ->
             assertEquals(
                 resolve(material, ContaminationState.CLEAN).bin.id,
                 resolve(material, ContaminationState.UNKNOWN).bin.id,
                 "Destino desconocido de $material",
             )
         }
+    }
+
+    @Test
+    fun laCajaDePizzaSigueElMismoPatronQueElVasoDeCarton() {
+        val clean = resolve(WasteMaterial.CARDBOARD, ContaminationState.CLEAN)
+        val greasy = resolve(WasteMaterial.CARDBOARD, ContaminationState.CONTAMINATED)
+        val unverified = resolve(WasteMaterial.CARDBOARD, ContaminationState.UNKNOWN)
+
+        assertEquals(white, clean.bin.id, "Cartón limpio y seco: caneca blanca")
+        assertEquals(black, greasy.bin.id, "Con grasa o restos de queso: caneca negra")
+        assertTrue(greasy.degradedByContamination)
+        assertEquals(black, unverified.bin.id, "Interior sin mostrar: el sistema no adivina")
+        assertTrue(unverified.degradedByContamination)
+
+        assertEquals(
+            "inspection.show_box_interior",
+            profile.inspectionRuleFor(WasteMaterial.CARDBOARD)?.promptKey,
+            "La UI pide mostrar el interior de la caja con su propia clave de recurso",
+        )
     }
 }
