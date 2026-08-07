@@ -59,8 +59,8 @@ datasets:
       # El calzado se agrupa con textil posconsumo: es lo más cercano en la
       # taxonomía y la ruta final la decide el perfil normativo, no el modelo.
       shoes: TEXTILE
-      trash: RESIDUAL
-    discards: {}
+    discards:
+      trash: "Auditoría de REGLAS (#23, 06/08/2026): la carpeta contiene mayormente envases reciclables sucios etiquetados como residual; enseña 'envase degradado ⇒ RESIDUAL' y dispara los reciclables del dominio real a la caneca negra (la masa blanca→negra pasó de 447 a 866 en el control). RESIDUAL se nutre de TrashNet, RealWaste-Misc y TACO."
 
   garbage_classification_12:
     source: "https://www.kaggle.com/datasets/mostafaabla/garbage-classification"
@@ -139,6 +139,9 @@ datasets:
       "Egg carton": CARDBOARD
       "Meal carton": CARDBOARD
       "Other carton": CARDBOARD
+      # Pendiente de revisión por muestreo (auditoría REGLAS #23): material
+      # correcto pero contaminación casi segura; en runtime lo cubre el
+      # contaminatedFallback del perfil. Ídem "Wrapping paper" más abajo.
       "Pizza box": CARDBOARD
       "Toilet tube": CARDBOARD
       "Disposable plastic cup": PLASTIC
@@ -155,7 +158,6 @@ datasets:
       # Pañuelos y servilletas: papel sanitario no aprovechable en cualquier
       # normativa; visual y normativamente pertenece al ordinario.
       Tissues: RESIDUAL
-      "Garbage bag": PLASTIC
       "Single-use carrier bag": PLASTIC
       "Polypropylene bag": PLASTIC
       "Produce bag": PLASTIC
@@ -180,6 +182,7 @@ datasets:
       "Aluminium blister pack": "Multimaterial plástico+aluminio inseparable; ningún material de la taxonomía lo representa sin sesgar su ruta."
       "Carded blister pack": "Multimaterial cartón+plástico+aluminio; misma razón."
       "Plastified paper bag": "Multimaterial papel+plástico laminado; ni PAPER ni PLASTIC reflejan su ruta real."
+      "Garbage bag": "Auditoría de REGLAS (#23): bolsas llenas de basura — el material visible es plástico pero el objeto es residuo mixto con ruta negra; mismo mecanismo dañino que la carpeta trash de Garbage v2."
       "Crisp packet": "Multicapa metalizada (BOPP+aluminio): parece plástico o metal pero no es aprovechable como ninguno; forzarlo degradaría el acierto de ruta."
       "Retort pouch": "Multicapa metalizada; misma razón que Crisp packet."
       "Squeezable tube": "Tubo laminado multimaterial (p. ej. crema dental); material dominante indeterminable a la vista."
@@ -216,15 +219,28 @@ datasets:
   mendeley_rotten_fruits:
     source: "https://data.mendeley.com/datasets/bdd69gyhv8/1"      # CC BY 4.0
     label_kind: folder
-    # Solo las 3 200 imágenes originales; sus variantes augmentadas se excluyen
-    # porque la augmentación la hace el propio pipeline (S23).
+    # Se usa el zip "Original Image" (3 200 fotos); el de augmentadas del
+    # propio dataset se excluye porque la augmentación la hace S23. Fresco o
+    # podrido, el material es residuo orgánico: ambos estados aportan (fruta
+    # entera y cáscaras aparecen ante la caneca).
     labels:
-      # Fresco o podrido, el material sigue siendo residuo orgánico; ambos
-      # estados aportan (cáscaras y fruta entera aparecen ante la caneca).
-      fresh: ORGANIC
-      rotten: ORGANIC
-    discards:
-      augmented: "Variantes augmentadas del propio dataset: la augmentación se hace en S23 con parámetros del dominio móvil."
+      FreshApple: ORGANIC
+      FreshBanana: ORGANIC
+      FreshGrape: ORGANIC
+      FreshGuava: ORGANIC
+      FreshJujube: ORGANIC
+      FreshOrange: ORGANIC
+      FreshPomegranate: ORGANIC
+      FreshStrawberry: ORGANIC
+      RottenApple: ORGANIC
+      RottenBanana: ORGANIC
+      RottenGrape: ORGANIC
+      RottenGuava: ORGANIC
+      RottenJujube: ORGANIC
+      RottenOrange: ORGANIC
+      RottenPomegranate: ORGANIC
+      RottenStrawberry: ORGANIC
+    discards: {}
 
   open_images_v7:
     source: "https://storage.googleapis.com/openimages/web/factsfigures_v7.html"
