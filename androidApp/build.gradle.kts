@@ -38,6 +38,19 @@ android {
             isMinifyEnabled = false
         }
     }
+
+    lint {
+        // Versiones de AGP y de las dependencias están fijadas a propósito en
+        // gradle/libs.versions.toml (ámbito de CORE); subirlas es una decisión
+        // de esa issue, no algo que deba tumbar "Calidad" en cada release nueva
+        // río arriba. Suprimidas aquí, no ignoradas: el catálogo sigue siendo
+        // la fuente de verdad de qué versión se usa.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
+
+        // Ícono de lanzador: identidad visual (logo, icono, splash) en curso
+        // en #142, agente FRONT. Suprimido hasta que ese trabajo aterrice.
+        disable += "MissingApplicationIcon"
+    }
 }
 
 dependencies {

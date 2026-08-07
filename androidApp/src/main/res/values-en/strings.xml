@@ -31,6 +31,15 @@
     <!-- Estados comunes -->
     <string name="loading_description">Loading</string>
 
+    <!-- Pantalla de inicio de sesión (S38; CUS-010, RF-035) -->
+    <string name="auth_title">Sign in</string>
+    <string name="auth_future_version_subtitle">Accounts are coming in a future version. Today you can use the whole app as a guest.</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_unavailable_notice">Signing in with credentials isn\'t available yet. Continue as a guest.</string>
+    <string name="auth_continue_as_guest">Continue as guest</string>
+
     <!-- Cámara (RF-009 · CUS-003) -->
     <string name="camera_permission_message">BotaBien needs the camera to identify the waste item. The image is processed on your phone and never leaves it.</string>
     <string name="camera_permission_action">Allow camera</string>
