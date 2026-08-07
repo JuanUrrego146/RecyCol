@@ -3,8 +3,11 @@ package com.botabien.android.inference
 import com.botabien.android.inference.engine.AccelerationMode
 import com.botabien.android.inference.engine.InferenceEngine
 import com.botabien.android.inference.engine.InferenceException
+import com.botabien.android.inference.frame.PixelAccessFrame
 import com.botabien.android.inference.model.ModelCatalog
 import com.botabien.android.inference.model.ModelOutputOrder
+import com.botabien.android.inference.roi.CropRegion
+import com.botabien.android.inference.roi.RoiStrategy
 import com.botabien.domain.model.ContaminationState
 import com.botabien.domain.model.ImageFrame
 import com.botabien.domain.model.WasteMaterial
@@ -20,6 +23,14 @@ class LiteRtWasteClassifierTest {
         override val accelerationMode = AccelerationMode.CPU
         override fun run(input: ByteBuffer): FloatArray = scores
         override fun close() = Unit
+    }
+
+    private class RecordingRoi : RoiStrategy {
+        var calls = 0
+        override suspend fun findRegion(frame: PixelAccessFrame): CropRegion {
+            calls++
+            return CropRegion.centeredSquare(frame.width, frame.height)
+        }
     }
 
     private val frame = FakePixelFrame.solid(width = 32, height = 32, argb = 0xFF808080.toInt())
@@ -91,6 +102,41 @@ class LiteRtWasteClassifierTest {
 
         assertEquals(ContaminationState.CONTAMINATED, result.state)
         assertEquals(0.85f, result.confidence, absoluteTolerance = 0.0001f)
+    }
+
+    @Test
+    fun `la inspeccion recorta la toma dirigida con su propia estrategia (RF-021)`() = runTest {
+        val stageOneRoi = RecordingRoi()
+        val stageTwoRoi = RecordingRoi()
+        val subject = LiteRtWasteClassifier(
+            materialEngine = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
+            materialSpec = ModelCatalog.MATERIAL_LOW,
+            contaminationEngine = ScriptedEngine(floatArrayOf(0.8f, 0.2f)),
+            contaminationSpec = ModelCatalog.CONTAMINATION,
+            roiStrategy = stageOneRoi,
+            contaminationRoi = stageTwoRoi,
+        )
+
+        val result = subject.inspectContamination(frame)
+
+        assertEquals(ContaminationState.CLEAN, result.state)
+        assertEquals(1, stageTwoRoi.calls, "la etapa 2 recorta con su estrategia")
+        assertEquals(0, stageOneRoi.calls, "la etapa 1 no interviene en la inspección")
+    }
+
+    @Test
+    fun `cada etapa registra su latencia por separado`() = runTest {
+        val subject = classifier(
+            material = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
+            contamination = ScriptedEngine(floatArrayOf(0.3f, 0.7f)),
+        )
+
+        subject.classify(frame)
+        subject.classify(frame)
+        subject.inspectContamination(frame)
+
+        assertEquals(2L, subject.materialLatency.sampleCount)
+        assertEquals(1L, subject.contaminationLatency.sampleCount)
     }
 
     @Test
