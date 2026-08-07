@@ -1,0 +1,25 @@
+{
+  "profiles": [
+    {
+      "id": "co",
+      "country": "co",
+      "displayName": "Colombia — Resolución 2184 de 2019",
+      "file": "co.json",
+      "default": true
+    },
+    {
+      "id": "co-gtc24",
+      "country": "co",
+      "displayName": "Colombia — GTC 24 (universidades, hospitales e industria)",
+      "file": "co-gtc24.json",
+      "default": false
+    },
+    {
+      "id": "es",
+      "country": "es",
+      "displayName": "España — contenedores de recogida separada",
+      "file": "es.json",
+      "default": true
+    }
+  ]
+}

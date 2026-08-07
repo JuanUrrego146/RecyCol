@@ -1,12 +1,12 @@
 package com.botabien.android.inference.engine
 
 import android.os.Build
-import com.botabien.android.inference.model.ModelSpec
 import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.Tensor
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.nnapi.NnApiDelegate
@@ -26,9 +26,10 @@ internal object LiteRtEngines {
     /**
      * Crea un motor para [mode] sobre el contenido del modelo.
      *
+     * @param modelName nombre del modelo, solo para mensajes de error.
      * @throws IllegalStateException si la vía no está disponible en el dispositivo.
      */
-    fun create(model: ByteBuffer, spec: ModelSpec, mode: AccelerationMode): InferenceEngine {
+    fun create(model: ByteBuffer, modelName: String, mode: AccelerationMode): InferenceEngine {
         val options = Interpreter.Options()
         var delegate: Closeable? = null
         when (mode) {
@@ -58,7 +59,7 @@ internal object LiteRtEngines {
             }
         }
         return try {
-            LiteRtInferenceEngine(Interpreter(model, options), delegate, mode, spec)
+            LiteRtInferenceEngine(Interpreter(model, options), delegate, mode, modelName)
         } catch (failure: Exception) {
             runCatching { delegate?.close() }
             throw failure
@@ -69,35 +70,41 @@ internal object LiteRtEngines {
 /**
  * Motor sobre un [Interpreter] de LiteRT.
  *
- * Lee el tipo del tensor de salida en ejecución y decuantiza cuando es entero,
- * de modo que los consumidores siempre ven puntuaciones en `Float`.
+ * Lee la forma y el tipo de los tensores de salida en ejecución y decuantiza
+ * cuando son enteros, de modo que los consumidores siempre ven puntuaciones
+ * en `Float`. Soporta modelos de una salida (clasificadores) y de varias
+ * (detectores, RF-010).
  */
 private class LiteRtInferenceEngine(
     private val interpreter: Interpreter,
     private val delegate: Closeable?,
     override val accelerationMode: AccelerationMode,
-    private val spec: ModelSpec,
+    private val modelName: String,
 ) : InferenceEngine {
 
     override fun run(input: ByteBuffer): FloatArray {
         input.rewind()
         val outputTensor = interpreter.getOutputTensor(0)
-        val classes = spec.outputClasses
-        return when (val type = outputTensor.dataType()) {
-            DataType.FLOAT32 -> {
-                val output = Array(1) { FloatArray(classes) }
-                interpreter.run(input, output)
-                output[0]
-            }
-            DataType.UINT8, DataType.INT8 -> {
-                val output = ByteBuffer.allocateDirect(classes).order(ByteOrder.nativeOrder())
-                interpreter.run(input, output)
-                output.rewind()
-                dequantize(output, classes, type, outputTensor.quantizationParams())
-            }
-            else -> throw InferenceException(
-                "Tipo de salida no soportado: $type en ${spec.assetFileName}."
-            )
+        val output = ByteBuffer
+            .allocateDirect(outputTensor.numBytes())
+            .order(ByteOrder.nativeOrder())
+        interpreter.run(input, output)
+        return toFloatArray(output, outputTensor)
+    }
+
+    override fun runMultiOutput(input: ByteBuffer): List<FloatArray> {
+        input.rewind()
+        val outputCount = interpreter.outputTensorCount
+        val outputs = HashMap<Int, Any>(outputCount)
+        for (index in 0 until outputCount) {
+            val tensor = interpreter.getOutputTensor(index)
+            outputs[index] = ByteBuffer
+                .allocateDirect(tensor.numBytes())
+                .order(ByteOrder.nativeOrder())
+        }
+        interpreter.runForMultipleInputsOutputs(arrayOf(input), outputs)
+        return (0 until outputCount).map { index ->
+            toFloatArray(outputs[index] as ByteBuffer, interpreter.getOutputTensor(index))
         }
     }
 
@@ -106,14 +113,22 @@ private class LiteRtInferenceEngine(
         delegate?.close()
     }
 
-    private fun dequantize(
-        output: ByteBuffer,
-        classes: Int,
-        type: DataType,
-        params: org.tensorflow.lite.Tensor.QuantizationParams,
-    ): FloatArray = FloatArray(classes) { index ->
-        val raw = output.get(index).toInt()
-        val quantized = if (type == DataType.UINT8) raw and 0xFF else raw
-        params.scale * (quantized - params.zeroPoint)
+    private fun toFloatArray(buffer: ByteBuffer, tensor: Tensor): FloatArray {
+        buffer.rewind()
+        val elements = tensor.shape().fold(1) { acc, dimension -> acc * dimension }
+        return when (val type = tensor.dataType()) {
+            DataType.FLOAT32 -> FloatArray(elements).also { buffer.asFloatBuffer().get(it) }
+            DataType.UINT8, DataType.INT8 -> {
+                val params = tensor.quantizationParams()
+                FloatArray(elements) { index ->
+                    val raw = buffer.get(index).toInt()
+                    val quantized = if (type == DataType.UINT8) raw and 0xFF else raw
+                    params.scale * (quantized - params.zeroPoint)
+                }
+            }
+            else -> throw InferenceException(
+                "Tipo de salida no soportado: $type en $modelName."
+            )
+        }
     }
 }
