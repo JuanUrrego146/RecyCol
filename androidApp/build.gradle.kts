@@ -65,6 +65,13 @@ dependencies {
     // Fakes deterministas del contrato M0: las pruebas validan contra los puertos
     testImplementation(project(":shared:testing"))
 
+    // Capa de datos (S36): driver SQLite, preferencias e inyección de dependencias
+    implementation(libs.sqldelight.android.driver)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)

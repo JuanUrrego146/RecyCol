@@ -1,0 +1,23 @@
+-- Historial local de clasificaciones (CUS-009, RF-032; esquema definido en S36,
+-- repositorio en S37). Invariante de privacidad (RNF-012): el esquema solo
+-- admite el resultado —material, caneca y momento—; no existe ninguna columna
+-- capaz de contener un frame de cámara y no debe añadirse jamás.
+
+CREATE TABLE classification_record (
+    id TEXT NOT NULL PRIMARY KEY,
+    material TEXT NOT NULL,
+    bin_id TEXT NOT NULL,
+    timestamp_millis INTEGER NOT NULL
+);
+
+insertRecord:
+INSERT INTO classification_record(id, material, bin_id, timestamp_millis)
+VALUES (?, ?, ?, ?);
+
+selectAllByRecency:
+SELECT id, material, bin_id, timestamp_millis
+FROM classification_record
+ORDER BY timestamp_millis DESC;
+
+deleteAll:
+DELETE FROM classification_record;
