@@ -47,8 +47,16 @@
     <string name="manual_entry_action">Manual</string>
     <string name="manual_selection_title">What is this item?</string>
     <string name="manual_selection_subtitle">Choose the material and I will tell you where it goes under your country\'s regulation.</string>
-    <string name="low_confidence_message">I can\'t identify it with confidence. Try another angle or choose the material.</string>
+    <string name="low_confidence_message">I\'m having trouble identifying it from here. Help me choose?</string>
     <string name="low_confidence_action">Choose material</string>
+    <string name="disambiguation_title">Help me tell it apart</string>
+    <string name="disambiguation_subtitle">This close it could be more than one thing. Tell me which and I\'ll tell you where it goes.</string>
+    <string name="disambiguation_probable">Likely</string>
+    <string name="disambiguation_show_all">It\'s something else…</string>
+    <string name="disambiguation_retry">Try another shot</string>
+    <string name="manual_inspection_question">Does it have residue or liquid inside? The bin depends on it.</string>
+    <string name="manual_inspection_clean">It\'s clean and dry</string>
+    <string name="manual_inspection_contaminated">It has residue</string>
 
     <!-- Resultado de clasificación (RF-013 · CUS-003) -->
     <string name="result_degraded_by_contamination">Reassigned due to contamination</string>

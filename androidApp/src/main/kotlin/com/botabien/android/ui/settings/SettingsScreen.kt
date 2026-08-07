@@ -73,24 +73,26 @@ class SettingsState(
 
     /** Carga país activo, preferencia de rendimiento y tamaño del historial. */
     fun load() {
-        performanceTier = dependencies.performance.read()
         scope.launch {
+            performanceTier = dependencies.adjustPerformance.manualOverride()
             activeCountry = dependencies.selectCountry.activeProfileOrNull()
                 ?.let { countryDisplayName(it.isoCode) }
-            historyCount = dependencies.history.history().size
+            historyCount = dependencies.manageHistory.entries().size
         }
     }
 
     /** Fija el nivel manual de rendimiento; `null` vuelve al automático. */
     fun setPerformance(tier: DeviceTier?) {
-        dependencies.performance.write(tier)
-        performanceTier = tier
+        scope.launch {
+            dependencies.adjustPerformance.setManualOverride(tier)
+            performanceTier = tier
+        }
     }
 
     /** Borra el historial local; solo se invoca tras confirmación explícita. */
     fun clearHistory() {
         scope.launch {
-            dependencies.history.clear()
+            dependencies.manageHistory.clear()
             historyCount = 0
         }
     }

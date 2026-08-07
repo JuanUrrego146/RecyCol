@@ -1,13 +1,11 @@
 package com.botabien.android.ui
 
-import com.botabien.domain.model.ClassificationOutcome
-import com.botabien.domain.model.ClassificationResult
-import com.botabien.domain.model.ContaminationState
-import com.botabien.domain.model.WasteMaterial
-import com.botabien.android.ui.settings.InMemoryPerformancePreference
-import com.botabien.android.ui.settings.PerformancePreference
-import com.botabien.domain.port.ClassificationHistoryRepository
+import com.botabien.domain.model.DeviceTier
+import com.botabien.domain.port.TierPreferenceRepository
+import com.botabien.domain.usecase.AdjustPerformanceUseCase
 import com.botabien.domain.usecase.ClassifyWasteUseCase
+import com.botabien.domain.usecase.ManageHistoryUseCase
+import com.botabien.domain.usecase.ResolveManualDisposalUseCase
 import com.botabien.domain.usecase.ScanBinsUseCase
 import com.botabien.domain.usecase.SelectCountryUseCase
 import com.botabien.rules.DefaultRuleEngine
@@ -28,35 +26,19 @@ import com.botabien.testing.TestProfiles
  *   de país reinicia por sí solo las canecas confirmadas (coordinación #65).
  * @property scanBins escaneo y confirmación de canecas (CUS-002).
  * @property classifyWaste clasificación por cámara (CUS-003 a CUS-006).
- * @property resolveManualDisposal resolución de una selección manual de
- *   material (RF-024, RF-025 · CUS-006).
- * @property performance preferencia manual del nivel de rendimiento (RF-031);
- *   seam provisional alineado al TierStore de EDGE (coordinación #94).
- * @property history historial local (RF-032 a RF-034); puerto del contrato,
- *   pendiente del caso de uso de la coordinación #94.
+ * @property resolveManualDisposal selección manual de material (RF-024,
+ *   RF-025 · CUS-006, coordinación #94).
+ * @property adjustPerformance ajuste manual del nivel de rendimiento (RF-031).
+ * @property manageHistory consulta y borrado del historial (RF-032 a RF-034).
  */
 class AppDependencies(
     val selectCountry: SelectCountryUseCase,
     val scanBins: ScanBinsUseCase,
     val classifyWaste: ClassifyWasteUseCase,
-    val resolveManualDisposal: ManualDisposalResolver,
-    val performance: PerformancePreference,
-    val history: ClassificationHistoryRepository,
+    val resolveManualDisposal: ResolveManualDisposalUseCase,
+    val adjustPerformance: AdjustPerformanceUseCase,
+    val manageHistory: ManageHistoryUseCase,
 )
-
-/**
- * Resolución de la selección manual de material (CUS-006), aprobada por Juan:
- * el usuario elige el material —por baja confianza o por decisión propia— y
- * recibe la caneca según la normativa (p. ej. ELECTRONIC → punto de
- * recolección especial).
- *
- * Seam provisional hasta el caso de uso de la coordinación #94: la decisión
- * la toma íntegramente el RuleEngine con el perfil activo y las canecas
- * disponibles (invariante 2); aquí no vive ninguna regla propia.
- */
-fun interface ManualDisposalResolver {
-    suspend fun resolve(material: WasteMaterial): ClassificationOutcome
-}
 
 /**
  * Composición provisional sobre los fakes deterministas de `shared/testing/`,
@@ -92,24 +74,29 @@ fun fakeAppDependencies(): AppDependencies {
             profiles = profiles,
             binAvailability = binAvailability,
         ),
-        resolveManualDisposal = ManualDisposalResolver { material ->
-            val profile = checkNotNull(profiles.activeProfileOrNull()) {
-                "No hay perfil normativo activo: el onboarding no se completó"
-            }
-            val disposal = ruleEngine.resolve(
-                material = material,
-                contamination = ContaminationState.UNKNOWN,
-                availableBins = binAvailability.availableBins(),
-                profile = profile,
-            )
-            ClassificationOutcome(
-                classification = ClassificationResult(material, confidence = 1f),
-                disposal = disposal,
-                hints = emptyList(),
-                needsUserDecision = false,
-            )
-        },
-        performance = InMemoryPerformancePreference(),
-        history = FakeClassificationHistoryRepository(),
+        resolveManualDisposal = ResolveManualDisposalUseCase(
+            ruleEngine = ruleEngine,
+            profiles = profiles,
+            binAvailability = binAvailability,
+        ),
+        adjustPerformance = AdjustPerformanceUseCase(InMemoryTierPreference()),
+        manageHistory = ManageHistoryUseCase(FakeClassificationHistoryRepository()),
     )
+}
+
+/**
+ * Doble en memoria de [TierPreferenceRepository] para la composición sobre
+ * fakes: la implementación real es el adaptador de EDGE sobre su TierStore
+ * (S18) y persiste entre reinicios. Se retira cuando `shared/testing` ofrezca
+ * un FakeTierPreferenceRepository (pedido en la revisión del PR #96).
+ */
+private class InMemoryTierPreference : TierPreferenceRepository {
+
+    private var value: DeviceTier? = null
+
+    override suspend fun manualOverride(): DeviceTier? = value
+
+    override suspend fun setManualOverride(tier: DeviceTier?) {
+        value = tier
+    }
 }
