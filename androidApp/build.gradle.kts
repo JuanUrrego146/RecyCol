@@ -72,6 +72,10 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.android)
 
+    // Pantalla de sesión (S38): ViewModel en Compose e inyección en composables
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.koin.androidx.compose)
+
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)

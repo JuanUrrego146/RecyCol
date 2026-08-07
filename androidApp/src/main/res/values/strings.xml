@@ -17,6 +17,15 @@
     <!-- Estados comunes -->
     <string name="loading_description">Cargando</string>
 
+    <!-- Pantalla de inicio de sesión (S38; CUS-010, RF-035) -->
+    <string name="auth_title">Inicia sesión</string>
+    <string name="auth_future_version_subtitle">La cuenta llegará en una versión futura. Hoy puedes usar toda la aplicación como invitado.</string>
+    <string name="auth_email_label">Correo</string>
+    <string name="auth_password_label">Contraseña</string>
+    <string name="auth_sign_in">Iniciar sesión</string>
+    <string name="auth_unavailable_notice">El inicio de sesión con credenciales aún no está disponible. Continúa como invitado.</string>
+    <string name="auth_continue_as_guest">Continuar como invitado</string>
+
     <!-- Cámara (RF-009 · CUS-003) -->
     <string name="camera_permission_message">BotaBien necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
     <string name="camera_permission_action">Permitir cámara</string>
