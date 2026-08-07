@@ -28,20 +28,22 @@ class WasteClassifierFactoryTest {
     }
 
     @Test
-    fun `sin modelos empaquetados la fabrica sirve el stub determinista`() {
-        val classifier = WasteClassifierFactory.create(
+    fun `sin modelos empaquetados se sirve el stub determinista`() {
+        val classifier = WasteClassifierFactory.createForTier(
             provider = FakeModelProvider(available = emptySet()),
             policy = FakePolicy(DeviceTier.MID),
+            tier = DeviceTier.MID,
         )
 
         assertIs<StubWasteClassifier>(classifier)
     }
 
     @Test
-    fun `con el modelo de material presente la fabrica sirve el clasificador real`() {
-        val classifier = WasteClassifierFactory.create(
+    fun `con el modelo de material presente se sirve el clasificador real`() {
+        val classifier = WasteClassifierFactory.createForTier(
             provider = FakeModelProvider(available = setOf("material_mid.tflite")),
             policy = FakePolicy(DeviceTier.MID),
+            tier = DeviceTier.MID,
         )
 
         // La construcción es perezosa: crear el clasificador real no toca LiteRT,
@@ -89,16 +91,18 @@ class WasteClassifierFactoryTest {
 
         DeviceTier.entries.forEach { tier ->
             assertIs<LiteRtWasteClassifier>(
-                WasteClassifierFactory.create(
+                WasteClassifierFactory.createForTier(
                     provider = FakeModelProvider(available = allModels),
                     policy = FakePolicy(tier),
+                    tier = tier,
                 ),
                 "gama $tier con modelos empaquetados",
             )
             assertIs<StubWasteClassifier>(
-                WasteClassifierFactory.create(
+                WasteClassifierFactory.createForTier(
                     provider = FakeModelProvider(available = emptySet()),
                     policy = FakePolicy(tier),
+                    tier = tier,
                 ),
                 "gama $tier sin modelos: el stub mantiene la clasificación viva",
             )

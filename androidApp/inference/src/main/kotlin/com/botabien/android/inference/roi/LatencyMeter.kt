@@ -39,6 +39,20 @@ class LatencyMeter(
         }
     }
 
+    /**
+     * Par inicio/fin para medir tramos que suspenden (donde [measure] no
+     * sirve porque su bloque no puede suspender): tomar la marca con
+     * [startSample] y registrar con [finishSample].
+     */
+    fun startSample(): Long = clock()
+
+    /** Registra la muestra iniciada en [startMark] y devuelve su duración. */
+    fun finishSample(startMark: Long): Long {
+        val elapsed = clock() - startMark
+        record(elapsed)
+        return elapsed
+    }
+
     @Synchronized
     private fun record(elapsedMillis: Long) {
         lastMillis = elapsedMillis

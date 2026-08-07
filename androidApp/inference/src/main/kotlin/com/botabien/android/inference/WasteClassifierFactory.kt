@@ -10,30 +10,39 @@ import com.botabien.android.inference.roi.DetectorRoi
 import com.botabien.android.inference.roi.GuideFrameRoi
 import com.botabien.android.inference.roi.RoiStrategy
 import com.botabien.android.inference.tier.BenchmarkedTierPolicy
+import com.botabien.domain.model.DeviceTier
 import com.botabien.domain.model.Feature
 import com.botabien.domain.port.DeviceTierPolicy
 import com.botabien.domain.port.WasteClassifier
 
 /**
- * Construye el [WasteClassifier] de producción para la gama resuelta.
+ * Construye el [WasteClassifier] de producción.
  *
- * Selecciona la variante de modelo de la gama (matriz de
- * `context-for-vibe-coding.md`), envuelve cada modelo en un motor con
- * respaldo NNAPI → GPU → CPU y decide entre el clasificador real y el stub
- * según haya o no modelos empaquetados. La estrategia de aislamiento del
- * objeto (RF-010) se elige consultando la política de gama (invariante 5):
- * detector si `OBJECT_DETECTION` está habilitada y el modelo existe; marco
- * guía fijo en cualquier otro caso. La carga del modelo y la creación del
- * intérprete son perezosas: ocurren en la primera inferencia.
+ * Lo que se expone es un [TierAwareWasteClassifier] (coordinación #102): la
+ * política de gama se consulta en cada clasificación y el clasificador
+ * concreto —variante de modelo según la matriz del proyecto, motor con
+ * respaldo NNAPI → GPU → CPU, estrategia de ROI— se reconstruye cuando la
+ * gama cambia (resolución tardía del benchmark, degradación en uso o ajuste
+ * manual). Sin modelos empaquetados se sirve el stub determinista (S27 trae
+ * los reales). La carga del modelo y la creación del intérprete son
+ * perezosas: ocurren en la primera inferencia.
  */
 object WasteClassifierFactory {
 
-    fun create(context: Context, policy: DeviceTierPolicy): WasteClassifier =
-        create(AssetModelProvider(context.applicationContext), policy)
+    fun create(context: Context, policy: DeviceTierPolicy): WasteClassifier {
+        val provider = AssetModelProvider(context.applicationContext)
+        return TierAwareWasteClassifier(policy) { tier ->
+            createForTier(provider, policy, tier)
+        }
+    }
 
-    /** Variante inyectable para pruebas: mismo cableado, proveedor arbitrario. */
-    internal fun create(provider: ModelProvider, policy: DeviceTierPolicy): WasteClassifier {
-        val materialSpec = ModelCatalog.materialSpecFor(policy.tier)
+    /** Clasificador concreto para una gama; lo recambia el adaptador (#102). */
+    internal fun createForTier(
+        provider: ModelProvider,
+        policy: DeviceTierPolicy,
+        tier: DeviceTier,
+    ): WasteClassifier {
+        val materialSpec = ModelCatalog.materialSpecFor(tier)
         if (!provider.isAvailable(materialSpec.assetFileName)) {
             // Sin modelo de material no hay etapa 1 posible: la app sigue
             // funcionando contra el stub determinista hasta que ML publique (S27).
@@ -53,9 +62,9 @@ object WasteClassifierFactory {
             contaminationEngine = contaminationEngine,
             contaminationSpec = contaminationSpec,
             roiStrategy = roiStrategyFor(provider, policy),
-            // Cierra el lazo de degradación en uso (S17/S20): la latencia
-            // observada de la etapa de material alimenta a la política.
-            onMaterialLatencyMillis = (policy as? BenchmarkedTierPolicy)
+            // Señal extremo a extremo (ROI + preprocesado + inferencia) para la
+            // degradación de gama en uso (coordinación #103).
+            onClassifyLatencyMillis = (policy as? BenchmarkedTierPolicy)
                 ?.let { benchmarked -> benchmarked::reportObservedLatencyMillis },
         )
     }

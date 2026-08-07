@@ -40,6 +40,12 @@ Reglas del contrato:
 
 ## Estructura
 
+- `TierAwareWasteClassifier` — el `WasteClassifier` que se inyecta
+  (coordinación #102): consulta la política de gama en cada llamada y
+  recambia el clasificador concreto (modelo + ROI) cuando la gama cambia —
+  resolución tardía del benchmark, degradación en uso o ajuste manual — sin
+  reiniciar el proceso ni el grafo de Koin. Libera intérpretes y delegados
+  del clasificador saliente.
 - `frame/` — `PixelAccessFrame`: acceso a píxeles sobre el `ImageFrame` del
   dominio. Punto de encuentro con `androidApp/camera/` (el wrapper del agente
   CAM debe implementarlo). `BitmapImageFrame` para capturas puntuales y pruebas.
