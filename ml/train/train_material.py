@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 import time
@@ -307,7 +308,15 @@ def main() -> int:
             (p for p in model.parameters() if p.requires_grad), lr=lr, weight_decay=1e-4
         )
         for epoch in range(epochs):
-            train_ds.epoch = hash((name, epoch)) & 0xFFFF  # varía la augmentación
+            # Varía la augmentación por época de forma REPRODUCIBLE. Antes esto
+            # era hash((name, epoch)), y hash() de Python está aleatorizado por
+            # proceso salvo PYTHONHASHSEED (que la imagen no fija): cada
+            # ejecución augmentaba distinto, así que dos runs de la misma
+            # configuración no eran comparables y la reproducibilidad que
+            # declara el módulo era falsa. md5 es estable entre procesos.
+            train_ds.epoch = int(
+                hashlib.md5(f"{name}|{epoch}".encode("utf-8")).hexdigest(), 16
+            ) & 0xFFFF
             loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
                                 num_workers=args.workers, pin_memory=pin,
                                 generator=torch.Generator().manual_seed(TORCH_SEED + epoch))
