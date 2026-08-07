@@ -4,8 +4,8 @@ import com.recycol.android.inference.engine.AccelerationMode
 import com.recycol.android.inference.engine.InferenceEngine
 import com.recycol.android.inference.engine.InferenceException
 import com.recycol.android.inference.frame.PixelAccessFrame
-import com.recycol.android.inference.model.ModelCatalog
 import com.recycol.android.inference.model.ModelOutputOrder
+import com.recycol.android.inference.model.ModelSpec
 import com.recycol.android.inference.roi.CropRegion
 import com.recycol.android.inference.roi.LatencyMeter
 import com.recycol.android.inference.roi.RoiStrategy
@@ -36,6 +36,27 @@ class LiteRtWasteClassifierTest {
 
     private val frame = FakePixelFrame.solid(width = 32, height = 32, argb = 0xFF808080.toInt())
 
+    // Specs de prueba locales, no las de ModelCatalog: estas pruebas fijan a
+    // mano valores tipo "probabilidad" (0.85, 0.9...) y esperan que crucen
+    // sin tocar — es la lógica de mapeo/recorte de LiteRtWasteClassifier lo
+    // que se prueba, no el softmax de un modelo concreto. Acoplarlas a
+    // ModelCatalog.MATERIAL_LOW/CONTAMINATION (outputsProbabilities=false,
+    // porque los artefactos reales de M4 emiten logits) haría que estas
+    // aserciones dependieran de la aritmética del softmax en vez de la del
+    // clasificador.
+    private val materialSpec = ModelSpec(
+        assetFileName = "test-material.tflite",
+        inputSize = 224,
+        quantizedInput = true,
+        outputClasses = ModelOutputOrder.MATERIALS.size,
+    )
+    private val contaminationSpec = ModelSpec(
+        assetFileName = "test-contamination.tflite",
+        inputSize = 224,
+        quantizedInput = true,
+        outputClasses = ModelOutputOrder.CONTAMINATION.size,
+    )
+
     private fun materialScores(winner: WasteMaterial, confidence: Float): FloatArray {
         val rest = (1f - confidence) / (ModelOutputOrder.MATERIALS.size - 1)
         return FloatArray(ModelOutputOrder.MATERIALS.size) { index ->
@@ -48,9 +69,9 @@ class LiteRtWasteClassifierTest {
         contamination: InferenceEngine? = null,
     ) = LiteRtWasteClassifier(
         materialEngine = material,
-        materialSpec = ModelCatalog.MATERIAL_LOW,
+        materialSpec = materialSpec,
         contaminationEngine = contamination,
-        contaminationSpec = ModelCatalog.CONTAMINATION,
+        contaminationSpec = contaminationSpec,
     )
 
     @Test
@@ -111,9 +132,9 @@ class LiteRtWasteClassifierTest {
         val stageTwoRoi = RecordingRoi()
         val subject = LiteRtWasteClassifier(
             materialEngine = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
-            materialSpec = ModelCatalog.MATERIAL_LOW,
+            materialSpec = materialSpec,
             contaminationEngine = ScriptedEngine(floatArrayOf(0.8f, 0.2f)),
-            contaminationSpec = ModelCatalog.CONTAMINATION,
+            contaminationSpec = contaminationSpec,
             roiStrategy = stageOneRoi,
             contaminationRoi = stageTwoRoi,
         )
@@ -137,9 +158,9 @@ class LiteRtWasteClassifierTest {
         }
         val subject = LiteRtWasteClassifier(
             materialEngine = ScriptedEngine(materialScores(WasteMaterial.PLASTIC, 0.9f)),
-            materialSpec = ModelCatalog.MATERIAL_LOW,
+            materialSpec = materialSpec,
             contaminationEngine = ScriptedEngine(floatArrayOf(0.8f, 0.2f)),
-            contaminationSpec = ModelCatalog.CONTAMINATION,
+            contaminationSpec = contaminationSpec,
             roiStrategy = slowRoi,
             onClassifyLatencyMillis = { reported += it },
             classifyLatency = LatencyMeter(clock = { now }),

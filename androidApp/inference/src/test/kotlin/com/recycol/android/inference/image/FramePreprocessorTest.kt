@@ -1,7 +1,9 @@
 package com.recycol.android.inference.image
 
 import com.recycol.android.inference.FakePixelFrame
+import com.recycol.android.inference.model.InputLayout
 import com.recycol.android.inference.model.ModelSpec
+import com.recycol.android.inference.model.NormalizedInt8Quantization
 import com.recycol.android.inference.roi.CropRegion
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -159,5 +161,62 @@ class FramePreprocessorTest {
         assertEquals(224 * 224 * 3, buffer.remaining())
         assertEquals(0xFF.toByte(), buffer.get(0))
         assertEquals(0xFF.toByte(), buffer.get(buffer.remaining() - 1))
+    }
+
+    /**
+     * Valores de referencia calculados con `ai_edge_litert`/numpy sobre la
+     * escala y punto cero reales de los artefactos de M4 (mismo cálculo que
+     * `ml/eval/evaluate_tflite.py`): un píxel gris uniforme (128,128,128)
+     * cuantiza a R=-10, G=-3, B=9. Verificado fuera de este repo antes de
+     * escribir la prueba, para no confiar solo en la propia aritmética.
+     */
+    private val m4Quantization = NormalizedInt8Quantization(scale = 0.018649335950613022f, zeroPoint = -14)
+
+    @Test
+    fun `la cuantizacion INT8 normalizada coincide con la referencia de ml-eval`() {
+        val frame = FakePixelFrame.solid(width = 4, height = 4, argb = 0xFF808080.toInt())
+        val spec = ModelSpec(
+            assetFileName = "material_mid.tflite",
+            inputSize = 2,
+            quantizedInput = false,
+            outputClasses = 11,
+            normalizedInt8Quantization = m4Quantization,
+        )
+
+        val buffer = preprocessor.preprocess(frame, spec)
+
+        assertEquals(2 * 2 * 3, buffer.remaining())
+        assertEquals((-10).toByte(), buffer.get(0), "R")
+        assertEquals((-3).toByte(), buffer.get(1), "G")
+        assertEquals(9.toByte(), buffer.get(2), "B")
+    }
+
+    @Test
+    fun `el layout CHW escribe los tres planos separados en vez de intercalados`() {
+        val frame = FakePixelFrame.solid(width = 4, height = 4, argb = 0xFF808080.toInt())
+        val spec = ModelSpec(
+            assetFileName = "material_mid.tflite",
+            inputSize = 2,
+            quantizedInput = false,
+            outputClasses = 11,
+            inputLayout = InputLayout.CHW,
+            normalizedInt8Quantization = m4Quantization,
+        )
+
+        val buffer = preprocessor.preprocess(frame, spec)
+        val planeElements = 2 * 2
+
+        assertEquals(2 * 2 * 3, buffer.remaining())
+        // Plano R: los primeros `planeElements` bytes, todos el mismo valor
+        // porque el frame es de color sólido.
+        for (index in 0 until planeElements) {
+            assertEquals((-10).toByte(), buffer.get(index), "R[$index]")
+        }
+        for (index in 0 until planeElements) {
+            assertEquals((-3).toByte(), buffer.get(planeElements + index), "G[$index]")
+        }
+        for (index in 0 until planeElements) {
+            assertEquals(9.toByte(), buffer.get(2 * planeElements + index), "B[$index]")
+        }
     }
 }

@@ -9,10 +9,13 @@ import kotlin.test.assertTrue
 class ModelCatalogTest {
 
     @Test
-    fun `cada gama tiene su variante de la matriz de gamas`() {
+    fun `gama alta y media comparten el modelo ganador contra control`() {
         assertEquals("material_low.tflite", ModelCatalog.materialSpecFor(DeviceTier.LOW).assetFileName)
         assertEquals("material_mid.tflite", ModelCatalog.materialSpecFor(DeviceTier.MID).assetFileName)
-        assertEquals("material_high.tflite", ModelCatalog.materialSpecFor(DeviceTier.HIGH).assetFileName)
+        // Reasignado (ml/REPORTE_METRICAS.md): mid domina a high en ruta contra
+        // control y en tamaño, así que high también lo usa. MATERIAL_HIGH se
+        // conserva en el catálogo pero ninguna gama lo recibe hoy.
+        assertEquals("material_mid.tflite", ModelCatalog.materialSpecFor(DeviceTier.HIGH).assetFileName)
     }
 
     @Test
@@ -20,7 +23,12 @@ class ModelCatalogTest {
         DeviceTier.entries.forEach { tier ->
             val spec = ModelCatalog.materialSpecFor(tier)
             assertEquals(WasteMaterial.entries.size, spec.outputClasses, "clases de $tier")
-            assertTrue(spec.quantizedInput, "las variantes de gama son INT8 con entrada UINT8")
+            assertTrue(spec.inputLayout == InputLayout.CHW, "los artefactos de M4 declaran CHW, no HWC")
+            assertEquals(
+                0.018649335950613022f,
+                spec.normalizedInt8Quantization?.scale,
+                "escala de cuantización medida sobre el artefacto real",
+            )
         }
     }
 

@@ -17,7 +17,12 @@ object SyntheticFrames {
             height = height,
             timestampMillis = 0L,
             luma = luma,
-            rotationDegrees = 0,
+            // Gris equivalente: estos frames existen para las heurísticas de
+            // calidad, que solo miran la luminancia.
+            argb = IntArray(width * height) { i ->
+                val level = luma[i].toInt() and 0xFF
+                (0xFF shl 24) or (level shl 16) or (level shl 8) or level
+            },
         )
 
     /** Gris uniforme: escena plana sin detalle. */
