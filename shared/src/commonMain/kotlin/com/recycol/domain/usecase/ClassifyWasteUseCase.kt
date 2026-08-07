@@ -34,6 +34,7 @@ class ClassifyWasteUseCase(
     private val profiles: ProfileRepository,
     private val binAvailability: BinAvailabilityRepository,
     private val thresholds: ConfidenceThresholds = ConfidenceThresholds(),
+    private val qualityThresholds: QualityThresholds = QualityThresholds(),
 ) {
 
     /**
@@ -128,18 +129,8 @@ class ClassifyWasteUseCase(
 
     private fun captureHintsFor(quality: FrameQuality): List<CaptureHint> = buildList {
         if (quality.lensSoiling) add(CaptureHint.CLEAN_LENS)
-        if (quality.luminance < MIN_LUMINANCE) add(CaptureHint.MORE_LIGHT)
-        if (quality.sharpness < MIN_SHARPNESS) add(CaptureHint.MOVE_CLOSER)
+        if (quality.luminance < qualityThresholds.luminance) add(CaptureHint.MORE_LIGHT)
+        if (quality.sharpness < qualityThresholds.sharpness) add(CaptureHint.MOVE_CLOSER)
         if (!quality.objectCentered) add(CaptureHint.CENTER_OBJECT)
-    }
-
-    companion object {
-        /*
-         * Umbrales de calidad mínima del frame. La medición de las métricas es
-         * del agente CAM (S11); la política anti-saturación de indicaciones,
-         * de S13. Calibración fina con dispositivos reales: S39.
-         */
-        private const val MIN_SHARPNESS = 0.35f
-        private const val MIN_LUMINANCE = 0.20f
     }
 }

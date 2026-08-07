@@ -2,6 +2,8 @@ package com.recycol.android.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import com.recycol.android.camera.FrameQualityProbe
+import com.recycol.android.camera.FrameQualityThresholds
 import com.recycol.android.camera.HeuristicFrameQualityAnalyzer
 import com.recycol.android.inference.bins.ColorRegionBinDetector
 import com.recycol.domain.port.BinAvailabilityRepository
@@ -12,6 +14,7 @@ import com.recycol.domain.port.WasteClassifier
 import com.recycol.domain.usecase.AdjustPerformanceUseCase
 import com.recycol.domain.usecase.ClassifyWasteUseCase
 import com.recycol.domain.usecase.ManageHistoryUseCase
+import com.recycol.domain.usecase.QualityThresholds
 import com.recycol.domain.usecase.ResolveManualDisposalUseCase
 import com.recycol.domain.usecase.ScanBinsUseCase
 import com.recycol.domain.usecase.SelectCountryUseCase
@@ -73,11 +76,17 @@ fun rememberAppDependencies(): AppDependencies {
                 binAvailability = binAvailability,
             ),
             classifyWaste = ClassifyWasteUseCase(
-                qualityAnalyzer = HeuristicFrameQualityAnalyzer(),
+                qualityAnalyzer = FrameQualityProbe(HeuristicFrameQualityAnalyzer()),
                 classifier = classifier,
                 ruleEngine = ruleEngine,
                 profiles = profiles,
                 binAvailability = binAvailability,
+                // La calibración vive en el módulo de cámara, que es quien
+                // sabe con qué escala mide (ver FrameQualityThresholds).
+                qualityThresholds = QualityThresholds(
+                    sharpness = FrameQualityThresholds.BLURRY_BELOW,
+                    luminance = FrameQualityThresholds.UNDEREXPOSED_BELOW,
+                ),
             ),
             resolveManualDisposal = ResolveManualDisposalUseCase(
                 ruleEngine = ruleEngine,
