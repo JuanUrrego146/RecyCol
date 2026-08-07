@@ -101,6 +101,9 @@
     <string name="material_electronic">Electrónico</string>
     <string name="material_residual">No aprovechable</string>
 
+    <string name="result_not_this_action">No es esto</string>
+    <string name="result_open_detail_hint">Toca para ver por qué</string>
+
     <!-- Barra superior y orientación del visor (RF-009, RF-018 · CUS-003) -->
     <string name="banner_change_country_action">Cambiar de país</string>
     <string name="guidance_title">Apunta a un residuo</string>

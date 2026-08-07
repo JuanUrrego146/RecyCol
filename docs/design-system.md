@@ -278,6 +278,25 @@ escena oscura y uniforme —la cámara tapada, por ejemplo— cualquier cristal 
 una caja gris. No es un defecto que se pueda corregir subiendo la intensidad; es la
 naturaleza del material.
 
+**Ojo: `BotaButton` no vale sobre cristal.** Sus tres estilos tiñen el contenido con el
+verde de marca, calculado para contrastar sobre fondos **claros**. Sobre el velo oscuro
+de la cámara ese verde se queda por debajo de AA y casi no se lee — se detectó en una
+captura del dispositivo, no compilando. Las acciones que van sobre cristal usan
+`BotaTheme.colors.onScrim` como color de contenido, con `headline` y 44 dp de área
+táctil. Si esto se repite en más pantallas, merece un estilo propio en el design system.
+
+**Composición sobre la cámara: los estados se turnan, no se acumulan.** La regla que
+salió de ver la pantalla amontonada en el dispositivo:
+
+- Con decisión visible → el marco de encuadre se apaga (no hay nada que encuadrar), la
+  orientación desaparece y la entrada manual se repliega dentro de la tarjeta como
+  «No es esto».
+- Sin decisión → manda la orientación, el marco respira y la entrada manual está a mano.
+
+Y la jerarquía de la decisión: **el material es antetítulo pequeño y la caneca es el
+titular** (`title2`). Lo que hay que hacer con el residuo importa más que lo que el
+modelo cree que es.
+
 **Por qué no desenfoca el fondo.** `PreviewView` monta un `SurfaceView`, que el sistema
 compone en una capa aparte y **no se puede capturar** en un `GraphicsLayer`: un desenfoque
 sobre el visor no vería la cámara, vería un agujero. Es además la doctrina de Apple para

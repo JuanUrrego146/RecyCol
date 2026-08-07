@@ -92,6 +92,9 @@
     <string name="material_electronic">Electronics</string>
     <string name="material_residual">Non-recoverable</string>
 
+    <string name="result_not_this_action">That\'s not it</string>
+    <string name="result_open_detail_hint">Tap to see why</string>
+
     <!-- Top bar and viewfinder guidance (RF-009, RF-018 · CUS-003) -->
     <string name="banner_change_country_action">Change country</string>
     <string name="guidance_title">Point at a waste item</string>
