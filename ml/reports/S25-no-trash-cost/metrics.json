@@ -1,0 +1,182 @@
+{
+  "variant": "low",
+  "arch": "mobilenet_v3_small",
+  "input": 224,
+  "lr_phase1": 0.001,
+  "lr_phase2": 0.0001,
+  "batch_size": 64,
+  "route_cost": 0.5,
+  "select": "route-macro",
+  "exclude": [
+    "garbage_dataset_v2:RESIDUAL"
+  ],
+  "train_rows": 16826,
+  "val_rows": 3037,
+  "materials": [
+    "PLASTIC",
+    "PAPER",
+    "CARDBOARD",
+    "BEVERAGE_CARTON",
+    "GLASS",
+    "METAL",
+    "ORGANIC",
+    "TEXTILE",
+    "BATTERY",
+    "ELECTRONIC",
+    "RESIDUAL"
+  ],
+  "history": [
+    {
+      "phase": "phase1_head",
+      "epoch": 0,
+      "loss": 1.2552,
+      "val_top1": 0.8288,
+      "val_route": 0.9506,
+      "val_route_macro": 0.9062,
+      "seconds": 142.3,
+      "vram_peak_mb": 199
+    },
+    {
+      "phase": "phase1_head",
+      "epoch": 1,
+      "loss": 0.9452,
+      "val_top1": 0.8383,
+      "val_route": 0.9552,
+      "val_route_macro": 0.9146,
+      "seconds": 224.8,
+      "vram_peak_mb": 199
+    },
+    {
+      "phase": "phase1_head",
+      "epoch": 2,
+      "loss": 0.8662,
+      "val_top1": 0.8419,
+      "val_route": 0.947,
+      "val_route_macro": 0.9086,
+      "seconds": 151.0,
+      "vram_peak_mb": 199
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 0,
+      "loss": 0.661,
+      "val_top1": 0.8719,
+      "val_route": 0.9595,
+      "val_route_macro": 0.9223,
+      "seconds": 125.7,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 1,
+      "loss": 0.5577,
+      "val_top1": 0.8782,
+      "val_route": 0.9677,
+      "val_route_macro": 0.9344,
+      "seconds": 124.3,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 2,
+      "loss": 0.4971,
+      "val_top1": 0.8874,
+      "val_route": 0.9707,
+      "val_route_macro": 0.9411,
+      "seconds": 122.3,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 3,
+      "loss": 0.4599,
+      "val_top1": 0.893,
+      "val_route": 0.9694,
+      "val_route_macro": 0.9473,
+      "seconds": 123.4,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 4,
+      "loss": 0.4017,
+      "val_top1": 0.8969,
+      "val_route": 0.9756,
+      "val_route_macro": 0.9491,
+      "seconds": 124.2,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 5,
+      "loss": 0.3805,
+      "val_top1": 0.8989,
+      "val_route": 0.9766,
+      "val_route_macro": 0.9465,
+      "seconds": 126.3,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 6,
+      "loss": 0.3482,
+      "val_top1": 0.8897,
+      "val_route": 0.9783,
+      "val_route_macro": 0.955,
+      "seconds": 125.5,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 7,
+      "loss": 0.3295,
+      "val_top1": 0.9052,
+      "val_route": 0.9789,
+      "val_route_macro": 0.946,
+      "seconds": 125.3,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 8,
+      "loss": 0.2966,
+      "val_top1": 0.9029,
+      "val_route": 0.976,
+      "val_route_macro": 0.9482,
+      "seconds": 127.1,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 9,
+      "loss": 0.2872,
+      "val_top1": 0.8976,
+      "val_route": 0.9756,
+      "val_route_macro": 0.9562,
+      "seconds": 123.8,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 10,
+      "loss": 0.2664,
+      "val_top1": 0.8986,
+      "val_route": 0.9753,
+      "val_route_macro": 0.9425,
+      "seconds": 129.4,
+      "vram_peak_mb": 610
+    },
+    {
+      "phase": "phase2_full",
+      "epoch": 11,
+      "loss": 0.2592,
+      "val_top1": 0.9032,
+      "val_route": 0.9789,
+      "val_route_macro": 0.9444,
+      "seconds": 123.2,
+      "vram_peak_mb": 610
+    }
+  ],
+  "best_val_route": 0.9756338491932829,
+  "best_val_score": 0.9561871656400921
+}

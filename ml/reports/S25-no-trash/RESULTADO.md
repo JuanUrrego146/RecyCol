@@ -7,6 +7,13 @@ ORGANIC que trajo v2.
 
 Fecha: 07/08/2026 · variante `low` (MobileNetV3-Small 224) · RTX 3060 Ti.
 
+> **Actualización posterior — léase junto a
+> [`PALANCAS-Y-VARIANZA.md`](PALANCAS-Y-VARIANZA.md).** Al repetir esta misma
+> configuración con la augmentación ya determinista, la ruta salió **70,6 %**.
+> Los dos runs promedian **69,6 %** y la varianza entre ejecuciones idénticas es
+> **±2,16 pp**: el 68,5 % de abajo es una medición de dos, no un número exacto.
+> La conclusión no cambia — cambia la precisión con la que se puede afirmar.
+
 ## Diseño
 
 Una sola variable cambiada respecto a `full-v2`:
