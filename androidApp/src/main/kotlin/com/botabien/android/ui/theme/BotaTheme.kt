@@ -30,6 +30,14 @@ object BotaTheme {
 
     val shapes: BotaShapes
         @Composable @ReadOnlyComposable get() = LocalBotaShapes.current
+
+    /**
+     * Grado de material de cristal que este dispositivo puede permitirse. Las
+     * superficies de cristal lo consultan solas; una pantalla solo necesita
+     * leerlo si va a degradarlo todavía más en un subárbol concreto.
+     */
+    val glass: BotaGlassMaterial
+        @Composable @ReadOnlyComposable get() = LocalGlassMaterial.current
 }
 
 /**
@@ -47,12 +55,16 @@ fun BotaBienTheme(
     val typography = DefaultBotaTypography
     val spacing = BotaSpacing()
     val shapes = BotaShapes()
+    // Se resuelve una vez en la raíz: el material de cristal es un token más,
+    // no una decisión que cada pantalla vuelva a tomar por su cuenta.
+    val glass = rememberGlassMaterial()
 
     CompositionLocalProvider(
         LocalBotaColors provides colors,
         LocalBotaTypography provides typography,
         LocalBotaSpacing provides spacing,
         LocalBotaShapes provides shapes,
+        LocalGlassMaterial provides glass,
     ) {
         MaterialTheme(
             colorScheme = colors.toMaterialColorScheme(),

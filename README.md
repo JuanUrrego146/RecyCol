@@ -1,4 +1,4 @@
-# BotaBien
+# RecyCol
 
 Aplicación móvil que, usando la cámara y redes neuronales que corren **100% en el dispositivo**, te dice en qué caneca va cualquier residuo según la norma vigente de tu país.
 
@@ -6,7 +6,7 @@ Aplicación móvil que, usando la cámara y redes neuronales que corren **100% e
 
 Separar residuos correctamente falla por dos razones: la gente no sabe a qué caneca corresponde cada material, y las reglas reales son más sutiles de lo que parecen. Un vaso de cartón de café aparenta ser papel reciclable, pero lleva recubrimiento de polietileno y suele tener residuo líquido dentro: en Colombia va a la caneca **negra**, no a la blanca. El código de colores de la Resolución 2184 de 2019 exige explícitamente que lo aprovechable esté "limpio y seco", y esa condición es invisible desde afuera del objeto.
 
-BotaBien resuelve ambas cosas. Una primera red clasifica el material del residuo; una segunda etapa inspecciona si está contaminado y degrada la decisión cuando corresponde, pidiéndole activamente al usuario la toma que hace falta ("apunta hacia adentro del vaso"). El resultado no se calcula contra una tabla fija sino contra un **perfil normativo intercambiable**: el modelo predice materiales, y un motor de reglas independiente traduce material a caneca según el país activo. Agregar un país nuevo es agregar un archivo de perfil, no reentrenar la red.
+RecyCol resuelve ambas cosas. Una primera red clasifica el material del residuo; una segunda etapa inspecciona si está contaminado y degrada la decisión cuando corresponde, pidiéndole activamente al usuario la toma que hace falta ("apunta hacia adentro del vaso"). El resultado no se calcula contra una tabla fija sino contra un **perfil normativo intercambiable**: el modelo predice materiales, y un motor de reglas independiente traduce material a caneca según el país activo. Agregar un país nuevo es agregar un archivo de perfil, no reentrenar la red.
 
 Todo ocurre sin conexión a internet. No se envían imágenes a ningún servidor, no hay dependencia de APIs externas y la aplicación funciona desde gama baja hasta gama alta, habilitando funciones de forma escalonada según la capacidad real del dispositivo.
 
@@ -66,7 +66,7 @@ Kotlin Multiplatform permite compartir exactamente lo que debe compartirse — d
 
 | Documento | Leer en GitHub | Formato de entrega |
 |---|---|---|
-| Análisis y especificación de requerimientos | [ver en línea](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.md) | [descargar .docx](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) |
+| Análisis y especificación de requerimientos | [ver en línea](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.md) | [descargar .docx](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.docx) |
 | Arquitectura y diagramas | [ver en línea](docs/arquitectura.md) | — |
 | Plan de trabajo | [ver en línea](plan/plan_de_trabajo.md) | — |
 | **Contexto único del proyecto** | [ver en línea](CONTEXTO.md) | — |
@@ -83,8 +83,8 @@ Los diagramas de `docs/arquitectura.md` están en notación Mermaid, que GitHub 
 ## Cómo empezar
 
 ```bash
-git clone https://github.com/<usuario>/BotaBien.git
-cd BotaBien
+git clone https://github.com/<usuario>/RecyCol.git
+cd RecyCol
 ./gradlew :androidApp:assembleDebug     # compilar la app Android
 ./gradlew :shared:allTests              # pruebas del dominio compartido
 ```

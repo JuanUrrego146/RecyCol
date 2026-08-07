@@ -1,8 +1,8 @@
-# Arquitectura — BotaBien
+# Arquitectura — RecyCol
 
 ## Visión general
 
-BotaBien es una aplicación móvil de clasificación de residuos que ejecuta toda su inteligencia en el dispositivo. La cámara alimenta un pipeline de dos etapas: una red clasifica el material del residuo y una segunda inspecciona contaminación. El resultado del modelo nunca es una caneca: es un material con su confianza. La traducción material a caneca la hace un motor de reglas que consume un perfil normativo intercambiable por país, lo que permite escalar a otras normativas sin tocar los modelos ni el código.
+RecyCol es una aplicación móvil de clasificación de residuos que ejecuta toda su inteligencia en el dispositivo. La cámara alimenta un pipeline de dos etapas: una red clasifica el material del residuo y una segunda inspecciona contaminación. El resultado del modelo nunca es una caneca: es un material con su confianza. La traducción material a caneca la hace un motor de reglas que consume un perfil normativo intercambiable por país, lo que permite escalar a otras normativas sin tocar los modelos ni el código.
 
 La aplicación se estructura en Kotlin Multiplatform con un módulo `shared` que no conoce ninguna plataforma. Ahí viven el dominio, el motor de reglas, los perfiles y la persistencia. Cámara, inferencia e interfaz son específicas de cada plataforma y se conectan al dominio mediante puertos. Esta separación es lo que hace que la fase iOS sea una implementación de adaptadores y no una reescritura.
 
@@ -57,7 +57,7 @@ flowchart LR
     U(("Usuario"))
     S(("Sistema"))
 
-    subgraph BotaBien
+    subgraph RecyCol
         UC1(["CUS-001 Configurar país y perfil"])
         UC2(["CUS-002 Escanear canecas disponibles"])
         UC3(["CUS-003 Clasificar residuo con la cámara"])

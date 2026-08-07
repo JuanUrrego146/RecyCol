@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BotaBien</string>
+    <string name="app_name">RecyCol</string>
 
     <!-- Selección de país (RF-001, RF-003 · CUS-001) -->
     <string name="country_selection_title">Elige tu país</string>
-    <string name="country_selection_subtitle">BotaBien aplica la normativa de separación de residuos del país que elijas.</string>
+    <string name="country_selection_subtitle">RecyCol aplica la normativa de separación de residuos del país que elijas.</string>
     <string name="country_selected_description">Seleccionado</string>
     <string name="action_continue">Continuar</string>
     <string name="action_change_country">Cambiar país</string>
@@ -19,7 +19,7 @@
     <string name="performance_low">Bajo</string>
     <string name="performance_mid">Medio</string>
     <string name="performance_high">Alto</string>
-    <string name="performance_effect_warning">En Automático, BotaBien mide tu teléfono al arrancar. Un nivel manual fuerza o limita funciones auxiliares; la clasificación por cámara funciona siempre.</string>
+    <string name="performance_effect_warning">En Automático, RecyCol mide tu teléfono al arrancar. Un nivel manual fuerza o limita funciones auxiliares; la clasificación por cámara funciona siempre.</string>
     <string name="settings_history_clear">Borrar historial</string>
     <string name="settings_history_confirm_title">¿Borrar el historial?</string>
     <string name="settings_history_confirm_message">Se eliminarán todas las clasificaciones guardadas en este teléfono. Esta acción no se puede deshacer.</string>
@@ -41,7 +41,7 @@
     <string name="auth_continue_as_guest">Continuar como invitado</string>
 
     <!-- Cámara (RF-009 · CUS-003) -->
-    <string name="camera_permission_message">BotaBien necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
+    <string name="camera_permission_message">RecyCol necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
     <string name="camera_permission_action">Permitir cámara</string>
     <string name="camera_error_message">No se pudo iniciar la cámara. Inténtalo de nuevo.</string>
 
@@ -100,4 +100,12 @@
     <string name="material_battery">Pilas y baterías</string>
     <string name="material_electronic">Electrónico</string>
     <string name="material_residual">No aprovechable</string>
+
+    <string name="result_not_this_action">No es esto</string>
+    <string name="result_open_detail_hint">Toca para ver por qué</string>
+
+    <!-- Barra superior y orientación del visor (RF-009, RF-018 · CUS-003) -->
+    <string name="banner_change_country_action">Cambiar de país</string>
+    <string name="guidance_title">Apunta a un residuo</string>
+    <string name="guidance_body">Encuádralo dentro del marco y te digo en qué caneca va.</string>
 </resources>

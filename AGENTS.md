@@ -1,7 +1,7 @@
 # Instrucciones para agentes
 
 **Lee [`CONTEXTO.md`](CONTEXTO.md) antes de escribir una sola línea de código.**
-Es el documento único del proyecto: qué es BotaBien, reglas de trabajo del
+Es el documento único del proyecto: qué es RecyCol, reglas de trabajo del
 enjambre, estado real por milestone, arquitectura e invariantes, contratos entre
 agentes, decisiones de producto ya tomadas, estado de ML y riesgos abiertos.
 

@@ -473,19 +473,19 @@ Thumbs.db
 CODEOWNERS = """# Ámbitos exclusivos por agente. Escribir fuera del propio ámbito
 # requiere una issue de coordinación explícita.
 
-/gradle/                    @BotaBien/core
-/shared/domain/port/        @BotaBien/core
-/shared/testing/            @BotaBien/core
-/androidApp/ui/             @BotaBien/front
-/androidApp/camera/         @BotaBien/cam
-/androidApp/inference/      @BotaBien/edge
-/androidApp/inference/bins/ @BotaBien/bins
-/ml/                        @BotaBien/ml
-/shared/rules/              @BotaBien/rules
-/shared/resources/profiles/ @BotaBien/rules
-/shared/data/               @BotaBien/data
-/benchmark/                 @BotaBien/qa
-/iosApp/                    @BotaBien/release
+/gradle/                    @RecyCol/core
+/shared/domain/port/        @RecyCol/core
+/shared/testing/            @RecyCol/core
+/androidApp/ui/             @RecyCol/front
+/androidApp/camera/         @RecyCol/cam
+/androidApp/inference/      @RecyCol/edge
+/androidApp/inference/bins/ @RecyCol/bins
+/ml/                        @RecyCol/ml
+/shared/rules/              @RecyCol/rules
+/shared/resources/profiles/ @RecyCol/rules
+/shared/data/               @RecyCol/data
+/benchmark/                 @RecyCol/qa
+/iosApp/                    @RecyCol/release
 /docs/                      @juanurrego
 /plan/                      @juanurrego
 """
@@ -516,12 +516,12 @@ def build():
     L = []
     a = L.append
     a("#!/usr/bin/env bash")
-    a("# Crea el repositorio privado BotaBien en GitHub con labels, milestones e issues.")
+    a("# Crea el repositorio privado RecyCol en GitHub con labels, milestones e issues.")
     a("# Requisitos: gh instalado y autenticado (gh auth login), git configurado.")
-    a("# Uso: cd BotaBien && bash setup_repo.sh")
+    a("# Uso: cd RecyCol && bash setup_repo.sh")
     a("set -euo pipefail")
     a("")
-    a('REPO_NAME="BotaBien"')
+    a('REPO_NAME="RecyCol"')
     a('DESC="Clasificacion de residuos por camara con redes neuronales en el dispositivo, segun la norma de cada pais"')
     a("")
     a('if ! command -v gh >/dev/null 2>&1; then')
@@ -529,7 +529,7 @@ def build():
     a('fi')
     a('gh auth status >/dev/null 2>&1 || { echo "ERROR: ejecuta primero: gh auth login"; exit 1; }')
     a('cd "$(dirname "$0")"')
-    a('[ -f "README.md" ] || { echo "ERROR: ejecuta el script desde dentro de la carpeta BotaBien."; exit 1; }')
+    a('[ -f "README.md" ] || { echo "ERROR: ejecuta el script desde dentro de la carpeta RecyCol."; exit 1; }')
     a("")
     a('echo "==> 1/5 Creando repositorio privado"')
     a('git init -b main 2>/dev/null || true')

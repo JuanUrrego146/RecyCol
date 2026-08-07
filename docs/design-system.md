@@ -1,4 +1,4 @@
-# Design system — BotaBien
+# Design system — RecyCol
 
 Sistema de diseño de la capa de interfaz Android (`androidApp/ui/`). Implementa RNF-009:
 estética minimalista de inspiración iOS — limpia, con mucho aire, tipografía cuidada y
@@ -101,6 +101,65 @@ más `screenMargin` (20 dp) como margen horizontal estándar de toda pantalla.
 - Muelles: `pressSpring()` para respuesta táctil, `surfaceSpring()` para hojas y
   superposiciones.
 - Constantes táctiles: `PRESSED_SCALE 0.96 · PRESSED_ALPHA 0.75`.
+- Arranque: `DURATION_LAUNCH_SETTLE_MS 200 · DURATION_LAUNCH_GROWTH_MS 620 ·
+  DURATION_LAUNCH_HOLD_MS 100 · DURATION_LAUNCH_EXIT_MS 260`, con la curva `growth`.
+  Son exclusivas de la entrada de marca; ninguna pantalla las usa.
+
+## Marca
+
+### Logo
+
+Un bote de basura lleno de tierra del que brota una flor: el residuo bien clasificado
+se convierte en vida. El brote domina la composición —ocupa dos tercios del alto— para
+que lo primero que se lea sea la flor y no la basura.
+
+Es **monocromático por diseño**. La profundidad sale de la opacidad de la tierra (33 %) y
+de la segunda hoja (55 %), nunca de un segundo tono: por eso la variante monocroma del
+icono de lanzador es el mismo dibujo sin retocar nada.
+
+El logo existe en tres formatos porque cada consumidor exige el suyo, y
+`BotaLogoResourcesTest` **rompe el build si divergen**:
+
+| Dónde | Para qué |
+|---|---|
+| `BotaLogoPaths` (en `BotaLogo.kt`) | **Origen de verdad** de las curvas |
+| `drawable/ic_launcher_foreground.xml` · `ic_launcher_monochrome.xml` | Capas del icono adaptativo, en el lienzo de 108 dp |
+| `docs/brand/botabien-logo.svg` | Maestro para usos externos: favicon, tienda, presentaciones |
+
+No hay un `VectorDrawable` suelto del logo: no lo consumía nadie, y un recurso sin
+consumidor es código muerto que además ensucia el Lint. Si algún día hace falta uno
+—por ejemplo para `windowSplashScreenAnimatedIcon`— se añade **con** su consumidor y
+su fila en esta tabla.
+
+```kotlin
+BotaLogo(
+    modifier = Modifier.size(108.dp),
+    color = BotaTheme.colors.accent,  // por defecto, el acento del tema
+    growth = 1f,                      // 0 = solo el bote con su tierra; 1 = logo completo
+)
+```
+
+`growth` existe para la entrada de marca: reparte un único progreso entre el tallo, las
+dos hojas y la flor con tramos solapados, de modo que el gesto se lea continuo. El logo
+estático se dibuja siempre con `1f`, que es el valor por defecto.
+
+El icono de lanzador es vectorial en todas las densidades: con `minSdk 26` todos los
+dispositivos entienden el icono adaptativo, así que no hay mapas de bits que mantener.
+
+### Entrada de marca (`BotaLaunchScreen`)
+
+`MainActivity` **envuelve** la raíz con ella en vez de precederla: el contenido se compone
+desde el primer fotograma por debajo del velo, así que la animación tapa el arranque sin
+alargarlo. Dura ~1,1 s en total y no vuelve a aparecer al rotar.
+
+Respeta el ajuste de sistema de animaciones (`ANIMATOR_DURATION_SCALE == 0`, que es como
+Android expone «reducir movimiento»): en ese caso el logo aparece quieto, se sostiene
+220 ms y se retira. Se conserva la marca y se elimina el movimiento.
+
+El fondo del velo es `BotaTheme.colors.background`, el mismo de la app, para que la
+retirada no tenga salto de color. El tema de ventana (`Theme.BotaBien`, con su variante
+`-night`) fija ese mismo color como `windowBackground` y elimina el destello blanco que
+había al abrir la app en oscuro.
 
 ## Componentes
 
@@ -157,6 +216,101 @@ BotaCard(onClick = { /* opcional: tarjeta pulsable */ }) {
 
 Superficie plana sin sombra. Se usa sobre `groupedBackground` para que el contraste de
 fondos —no un borde— delimite la tarjeta.
+
+### `BotaGlass` — el material de cristal
+
+Superficie translúcida para lo que **flota sobre contenido**: el cromo de la cámara, el
+marco de encuadre, la tarjeta de decisión. Es el lenguaje de iOS 26: atenuación que
+sostiene la legibilidad, lavado de luz cenital y brillo especular en el borde.
+
+```kotlin
+BotaGlass(
+    shape = BotaTheme.shapes.large,
+    tint = binColor(disposal.bin.colorHex), // opcional: el color de caneca, como lavado
+    state = BotaGlassState.Settled,         // Settled | Analyzing | Uncertain
+) { /* contenido */ }
+
+Modifier.botaGlass(shape = BotaTheme.shapes.capsule)  // para lo que ya tiene disposición
+```
+
+**Reglas**
+
+1. **Cristal solo en la capa que flota.** Nunca en la capa de contenido, y nunca cristal
+   sobre cristal. Si algo no tiene nada detrás que dejar pasar, es una `BotaCard`.
+2. **La atenuación no se negocia.** Va siempre, incluso en el material más transparente:
+   es lo único que sostiene el contraste del texto cuando detrás hay vídeo en vivo
+   (RNF-010).
+3. **El tinte es dato.** El color de caneca sale del perfil (`BinDefinition.colorHex`) y
+   atraviesa el cristal como lavado al 16 %, nunca como color de fondo. El design system
+   sigue sin conocer ningún color de caneca.
+4. **El grado no lo elige el llamador**, lo resuelve el tema.
+
+**Las cuatro capas.** Las cuatro hacen falta; quitar una lo devuelve a parecer un velo gris:
+
+1. **Atenuación** — sostiene el contraste del texto sobre vídeo en vivo.
+2. **Luz cenital** — el material parece iluminado desde arriba.
+3. **Canto biselado** — bandas de luz pegadas al borde superior e inferior. Es lo que da
+   sensación de *grosor*; sin ellas la superficie parece pintada sobre la pantalla.
+4. **Brillo especular** en el contorno, más el sombreado exterior que la despega del fondo.
+
+La primera versión llevaba solo 1, 2 y un contorno de 1 px, y **en el dispositivo no se
+distinguía del velo plano anterior**. El bisel y la sombra son lo que marcó la diferencia.
+
+**Grados** (`BotaTheme.glass`, resuelto una vez en `BotaBienTheme`)
+
+| Grado | Cuándo | Qué hace |
+|---|---|---|
+| `Clear` | Por defecto | Translúcido, atenuado y tintado, con canto y brillo en el borde |
+| `Veil` | Animaciones desactivadas por el usuario | Superficie opaca y borde tenue |
+
+La jerarquía y la legibilidad **son idénticas en los dos grados**; solo cambia el material.
+
+**Solo se degrada por preferencia, no por potencia**, y es un cambio deliberado: sin
+desenfoque de fondo el cristal son dos degradados y un borde, o sea lo que cuesta
+cualquier superficie plana. La versión inicial degradaba también con poca memoria o con
+el ahorro de energía activo, lo que no ahorraba nada y dejaba sin material a cualquiera
+con el ahorro de batería encendido. Si algún día se añade desenfoque real —eso sí
+cuesta— la degradación por gama vuelve a tener sentido: consúltese `DeviceTierPolicy`
+por caso de uso y degrádese el subárbol con `LocalGlassMaterial`.
+
+**Sobre qué fondo se ve.** El material necesita algo detrás que dejar pasar: sobre una
+escena oscura y uniforme —la cámara tapada, por ejemplo— cualquier cristal se lee como
+una caja gris. No es un defecto que se pueda corregir subiendo la intensidad; es la
+naturaleza del material.
+
+**Ojo: `BotaButton` no vale sobre cristal.** Sus tres estilos tiñen el contenido con el
+verde de marca, calculado para contrastar sobre fondos **claros**. Sobre el velo oscuro
+de la cámara ese verde se queda por debajo de AA y casi no se lee — se detectó en una
+captura del dispositivo, no compilando. Las acciones que van sobre cristal usan
+`BotaTheme.colors.onScrim` como color de contenido, con `headline` y 44 dp de área
+táctil. Si esto se repite en más pantallas, merece un estilo propio en el design system.
+
+**Composición sobre la cámara: los estados se turnan, no se acumulan.** La regla que
+salió de ver la pantalla amontonada en el dispositivo:
+
+- Con decisión visible → el marco de encuadre se apaga (no hay nada que encuadrar), la
+  orientación desaparece y la entrada manual se repliega dentro de la tarjeta como
+  «No es esto».
+- Sin decisión → manda la orientación, el marco respira y la entrada manual está a mano.
+
+Y la jerarquía de la decisión: **el material es antetítulo pequeño y la caneca es el
+titular** (`title2`). Lo que hay que hacer con el residuo importa más que lo que el
+modelo cree que es.
+
+**Por qué no desenfoca el fondo.** `PreviewView` monta un `SurfaceView`, que el sistema
+compone en una capa aparte y **no se puede capturar** en un `GraphicsLayer`: un desenfoque
+sobre el visor no vería la cámara, vería un agujero. Es además la doctrina de Apple para
+su variante *clear*, la que se usa sobre contenido rico en medios. El desenfoque real
+llegará donde el fondo sí lo compone Compose —cabeceras sobre contenido con scroll—, y
+pasar el visor a `TextureView` para desenfocarlo es una decisión de rendimiento de cámara
+que corresponde a CAM, no a FRONT.
+
+**Estado por material** (`BotaGlassState`)
+
+- `Settled` — en reposo, con o sin decisión.
+- `Analyzing` — el borde respira, lento y sin llamar la atención.
+- `Uncertain` — el material se empaña y el borde pierde definición. Baja confianza es el
+  flujo protagonista de la app, así que el cristal se ve **dudando, no fallando**.
 
 ### `BotaBottomSheet`
 

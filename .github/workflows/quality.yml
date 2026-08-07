@@ -1,4 +1,4 @@
-# Pipeline de calidad de BotaBien (agente QA, issue #50).
+# Pipeline de calidad de RecyCol (agente QA, issue #50).
 # Complementa a ci.yml (compilación y pruebas de shared, agente CORE) con:
 # pruebas unitarias de androidApp, Android Lint, invariantes de arquitectura
 # por análisis estático y validación del esquema de reportes de latencia.

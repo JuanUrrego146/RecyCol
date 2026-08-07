@@ -1,4 +1,4 @@
-# Runner self-hosted de GitHub Actions para BotaBien (agente QA, coordinación en el PR).
+# Runner self-hosted de GitHub Actions para RecyCol (agente QA, coordinación en el PR).
 #
 # Deriva de la imagen de build del proyecto (CORE, docker/android-build.Dockerfile):
 # mismo JDK 17, Gradle 8.13 y Android SDK fijados — lo que verifica CI es
@@ -6,7 +6,7 @@
 #
 # La versión del agente está fijada; para actualizarla, cambiar RUNNER_VERSION
 # y reconstruir (ver README.md de este directorio).
-FROM botabien/android-build:1.0.0
+FROM recycol/android-build:1.0.0
 
 ARG RUNNER_VERSION=2.336.0
 
