@@ -11,6 +11,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    // Carga de perfiles normativos desde JSON en shared/rules (S30, RF-002)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -24,6 +26,9 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
+            // Parseo y validación del catálogo de perfiles (S30); ya estaba en
+            // el version catalog, solo se amplía su alcance a commonMain.
+            implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

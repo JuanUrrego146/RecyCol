@@ -45,6 +45,20 @@ object ModelCatalog {
         outputClasses = ModelOutputOrder.CONTAMINATION.size,
     )
 
+    /**
+     * Detector de objeto para el recorte del área de interés en gama media y
+     * alta (RF-010). Genérico y agnóstico a la clase; puede ser un
+     * EfficientDet-Lite0 o SSD-MobileNet de referencia mientras ML no
+     * publique uno propio. Opcional: si falta, todas las gamas usan el marco
+     * guía fijo y nada deja de funcionar.
+     */
+    val DETECTOR = DetectorModelSpec(
+        assetFileName = "detector.tflite",
+        inputSize = 320,
+        quantizedInput = true,
+        maxDetections = 10,
+    )
+
     /** Variante de la etapa 1 que corresponde a la gama resuelta. */
     fun materialSpecFor(tier: DeviceTier): ModelSpec = when (tier) {
         DeviceTier.LOW -> MATERIAL_LOW

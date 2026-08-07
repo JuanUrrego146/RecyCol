@@ -38,17 +38,12 @@ class ResilientInferenceEngine(
         get() = ensureEngine().accelerationMode
 
     @Synchronized
-    override fun run(input: ByteBuffer): FloatArray {
-        val engine = ensureEngine()
-        return try {
-            engine.run(input)
-        } catch (failure: Exception) {
-            if (engine.accelerationMode == AccelerationMode.CPU) {
-                throw InferenceException("La inferencia falló en CPU, sin más respaldos.", failure)
-            }
-            fallBackToCpu(engine, input)
-        }
-    }
+    override fun run(input: ByteBuffer): FloatArray =
+        executeWithFallback(input) { engine, buffer -> engine.run(buffer) }
+
+    @Synchronized
+    override fun runMultiOutput(input: ByteBuffer): List<FloatArray> =
+        executeWithFallback(input) { engine, buffer -> engine.runMultiOutput(buffer) }
 
     @Synchronized
     override fun close() {
@@ -56,8 +51,27 @@ class ResilientInferenceEngine(
         active = null
     }
 
+    private fun <R> executeWithFallback(
+        input: ByteBuffer,
+        invoke: (InferenceEngine, ByteBuffer) -> R,
+    ): R {
+        val engine = ensureEngine()
+        return try {
+            invoke(engine, input)
+        } catch (failure: Exception) {
+            if (engine.accelerationMode == AccelerationMode.CPU) {
+                throw InferenceException("La inferencia falló en CPU, sin más respaldos.", failure)
+            }
+            fallBackToCpu(engine, input, invoke)
+        }
+    }
+
     /** El delegado falló en caliente: degradar a CPU de forma permanente y reintentar. */
-    private fun fallBackToCpu(failed: InferenceEngine, input: ByteBuffer): FloatArray {
+    private fun <R> fallBackToCpu(
+        failed: InferenceEngine,
+        input: ByteBuffer,
+        invoke: (InferenceEngine, ByteBuffer) -> R,
+    ): R {
         runCatching { failed.close() }
         val cpu = try {
             buildEngine(AccelerationMode.CPU)
@@ -70,7 +84,7 @@ class ResilientInferenceEngine(
         }
         active = cpu
         input.rewind()
-        return cpu.run(input)
+        return invoke(cpu, input)
     }
 
     @Synchronized

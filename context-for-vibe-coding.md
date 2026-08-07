@@ -2,7 +2,13 @@
 
 Aplicación Android (portable a iOS) que clasifica residuos por cámara con redes neuronales que corren íntegramente en el dispositivo, y devuelve la caneca correcta según el perfil normativo del país activo. Detecta además si un reciclable está contaminado y degrada la decisión cuando corresponde.
 
-La especificación completa está en `docs/F_Analisis_de_Requerimientos_V1,0_BotaBien.docx` y los diagramas en `docs/arquitectura.md`. **Consúltalos antes de diseñar cualquier módulo.** El plan y el orden de trabajo están en `plan/plan_de_trabajo.md`.
+> **⚠️ PROYECTO COMERCIAL, no académico** (Juan, 06/08/2026). Toda fuente de
+> datos, librería o activo debe tener licencia apta para **uso comercial**; «solo
+> investigación» o «no comercial» descalifica. La única excepción registrada es
+> Garbage Dataset v2, en uso con **riesgo legal abierto** (#77): obligatoria una
+> revisión legal antes de cualquier lanzamiento comercial.
+
+La especificación completa está en `docs/F_Analisis_de_Requerimientos_V1,0_BotaBien.docx` y los diagramas en `docs/arquitectura.md`. **Consúltalos antes de diseñar cualquier módulo.** El plan y el orden de trabajo están en `plan/plan_de_trabajo.md`. Las reglas operativas del enjambre —worktrees, CI self-hosted, cadena de mando, regla anti-parón— están en `AGENTS.md` y son obligatorias.
 
 ## Stack y convenciones (obligatorias)
 
@@ -11,6 +17,7 @@ La especificación completa está en `docs/F_Analisis_de_Requerimientos_V1,0_Bot
 - Entrenamiento: Python 3.11, PyTorch, exportación a LiteRT. Vive en `ml/`, aislado del código de la app.
 - **Identificadores en inglés** (`WasteCategory`, `classifyWaste`), `camelCase` para funciones y propiedades, `PascalCase` para clases, `SCREAMING_SNAKE_CASE` para constantes. **Documentación, comentarios KDoc, textos de UI y mensajes de commit en español.**
 - Paradigma: Clean Architecture por capas + orientación a objetos. Dominio puro sin frameworks.
+- **CI en runners propios**: los checks corren en runners self-hosted dockerizados sobre la misma imagen `botabien/android-build` del proyecto (ver `.github/runner/README.md`). La protección de rama exige el check «Compilar y probar» en verde para fusionar a `main`; si los runners propios caen, el respaldo es `gh workflow run ci-respaldo.yml --ref <rama>`. No canceles runs de `main` ni redispares checks en masa.
 - Inyección de dependencias con Koin. Concurrencia con corrutinas y `Flow`. Nada de `GlobalScope`.
 - No introducir dependencias nuevas sin justificarlo en el PR y añadirlas al version catalog.
 
@@ -109,7 +116,11 @@ Mientras una implementación real no exista, cada agente trabaja contra un *fake
 - La contaminación se sintetiza: segmentación del objeto limpio con U²-Net y composición de texturas de líquido, grasa y residuo alimenticio sobre su superficie, siguiendo el enfoque de EcoBin. Es la única vía viable sin etiquetado manual.
 - Augmentación agresiva orientada al dominio móvil real: desenfoque gaussiano y de movimiento, variación de brillo y temperatura de color, ruido, artefactos JPEG, oclusión parcial y perspectiva.
 - **Validación cruzada por dataset**: se entrena sobre unos y se valida sobre otro no visto. Una métrica medida sobre el mismo dataset de entrenamiento no cuenta como evidencia de generalización.
-- Toda fuente usada se documenta con su licencia en `ml/DATASETS.md` antes de incorporarse.
+- Toda fuente usada se documenta con su licencia en `ml/DATASETS.md` antes de incorporarse. **Criterio comercial**: la licencia debe permitir uso comercial; una fuente «research only»/«non-commercial» no entra, sin excepciones nuevas (la única heredada es Garbage Dataset v2, con riesgo abierto en #77).
+- **`ELECTRONIC` queda fuera de las clases entrenadas de v1**: ninguna fuente aprobada tiene e-waste (decisión de Juan en #54). El material existe en la taxonomía y en los perfiles; se llega a él por selección manual y desambiguación.
+- **Entrenamiento en GPU**: la RTX 3060 Ti de la máquina de Juan está disponible dentro del contenedor de ML vía Docker/WSL2 (~6–15 h por ciclo completo, frente a 60–150 h en CPU). Directriz de Juan: la preparación de datos (S22–S24) corre con urgencia; el entrenamiento y la evaluación (S25–S28) se toman el tiempo necesario — barrido de hiperparámetros, validación cruzada por dataset, matriz de confusión por clase, comparación de arquitecturas y verificación de exactitud pre/post INT8 son obligatorios, no opcionales.
+- **Dónde vive el trabajo de ML**: los reportes versionados en `ml/reports/<sesión>/` (métricas, matrices de confusión, evaluación de control); los artefactos pesados —datasets, checkpoints `.pt`, logs de corridas— en `ml/runs/` y `ml/data/`, **fuera de git por diseño** (`.gitignore`). El agente ML trabaja en el worktree `BotaBien-ml`. Para conocer su estado no mires `main`: mira sus reportes, su rama y el tablero #123.
+- **⚠️ HALLAZGO CRÍTICO (baseline `low`, 06/08/2026)**: el primer modelo entrenado da **88,9 % de material / 98,4 % de ruta en validación interna, pero solo 39,3 % / 65,9 % contra el control RealWaste** (fotos reales jamás vistas). **RNF-008 no se cumple hoy.** Es una brecha de generalización — el modelo aprende los datasets, no el mundo real — y es **el riesgo número uno del proyecto ahora mismo, por encima de la síntesis de contaminación**. Toda decisión de S23–S28 se evalúa por cuánto cierra esta brecha; el reporte de referencia está en `ml/reports/S25-baseline-low/`.
 
 ## Política de gama de dispositivo
 
@@ -125,6 +136,14 @@ Mientras una implementación real no exista, cada agente trabaja contra un *fake
 | Análisis de calidad de imagen | Nitidez y luz | Completo | Completo |
 
 La clasificación por cámara está disponible en las tres gamas sin excepción. Lo que se degrada es la fluidez y las funciones auxiliares, nunca la función principal.
+
+## Decisiones de producto vigentes (autorizadas por Juan, 06/08/2026)
+
+Estas decisiones están cerradas; reabrirlas exige pasar otra vez por Juan (vía CORE).
+
+1. **Electrónicos y pilas → punto de recolección especial** (#54). `ELECTRONIC` y `BATTERY` van a un destino con ruta `SPECIAL_COLLECTION` («Punto de recolección especial»), fuera del código de colores de la Resolución 2184. **Sin detección automática en v1** (no hay datos): se llega por selección manual y por la opción «¿es un aparato electrónico o una pila?» en la desambiguación de baja confianza. Los destinos `SPECIAL_COLLECTION` están **exentos de la restricción por canecas disponibles**: nunca se degradan a otra caneca.
+2. **Aviso de caneca no disponible** (#61/#78). Cuando la caneca ideal no está entre las disponibles, el motor emite `FallbackReason.UNAVAILABLE_BIN` y el aviso con la frase aprobada, declarada como dato en cada perfil: **«No hay {ideal} disponible; usa {assigned}.»** El motor sustituye los marcadores por los nombres visibles; la UI solo muestra.
+3. **Garbage Dataset v2 sigue en uso con riesgo legal abierto** (#77). Entrena los modelos para no frenar M4, pero su cadena de derechos no está acreditada imagen a imagen: **revisión legal obligatoria antes de cualquier lanzamiento comercial**. Disparador programado antes de S28.
 
 ## Definición de "hecho"
 
