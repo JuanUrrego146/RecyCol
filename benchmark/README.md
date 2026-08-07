@@ -1,4 +1,4 @@
-# Banco de latencia por gama — BotaBien
+# Banco de latencia por gama — RecyCol
 
 Ámbito del agente QA (M8). Este directorio define **cómo se mide y se reporta**
 la latencia de clasificación por gama de dispositivo. El módulo instrumentado

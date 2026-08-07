@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Crea el repositorio privado BotaBien en GitHub con labels, milestones e issues.
+# Crea el repositorio privado RecyCol en GitHub con labels, milestones e issues.
 # Requisitos: gh instalado y autenticado (gh auth login), git configurado.
-# Uso: cd BotaBien && bash setup_repo.sh
+# Uso: cd RecyCol && bash setup_repo.sh
 set -euo pipefail
 
-REPO_NAME="BotaBien"
+REPO_NAME="RecyCol"
 DESC="Clasificacion de residuos por camara con redes neuronales en el dispositivo, segun la norma de cada pais"
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -12,7 +12,7 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 gh auth status >/dev/null 2>&1 || { echo "ERROR: ejecuta primero: gh auth login"; exit 1; }
 cd "$(dirname "$0")"
-[ -f "README.md" ] || { echo "ERROR: ejecuta el script desde dentro de la carpeta BotaBien."; exit 1; }
+[ -f "README.md" ] || { echo "ERROR: ejecuta el script desde dentro de la carpeta RecyCol."; exit 1; }
 
 echo "==> 1/5 Creando repositorio privado"
 git init -b main 2>/dev/null || true

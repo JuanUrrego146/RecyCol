@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Genera la vista Markdown del documento de requerimientos de BotaBien.
+"""Genera la vista Markdown del documento de requerimientos de RecyCol.
 
 El documento oficial es el .docx que produce gen_doc.py. Este script genera,
 a partir de la misma fuente de datos (gen_doc_data.py), una vista legible
@@ -16,8 +16,8 @@ from gen_doc_data import (FECHA, RESPONSABLE, PROYECTO, EQUIPO, VERSIONES, DEFIN
                           RF, RNF, OBSERVACIONES, APROBACIONES)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DOCX_NAME = "F_Analisis_de_Requerimientos_V1,0_BotaBien.docx"
-OUT = os.path.join(ROOT, "docs", "F_Analisis_de_Requerimientos_V1,0_BotaBien.md")
+DOCX_NAME = "F_Analisis_de_Requerimientos_V1,0_RecyCol.docx"
+OUT = os.path.join(ROOT, "docs", "F_Analisis_de_Requerimientos_V1,0_RecyCol.md")
 
 CUS_IDS = [c[0] for c in CASOS_USO]
 

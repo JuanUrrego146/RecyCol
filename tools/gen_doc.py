@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Genera el documento de analisis y especificacion de requerimientos de BotaBien."""
+"""Genera el documento de analisis y especificacion de requerimientos de RecyCol."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -16,7 +16,7 @@ from gen_doc_data import (FECHA, RESPONSABLE, PROYECTO, EQUIPO, VERSIONES, DEFIN
                           RF, RNF, OBSERVACIONES, APROBACIONES)
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                   "docs", "F_Analisis_de_Requerimientos_V1,0_BotaBien.docx")
+                   "docs", "F_Analisis_de_Requerimientos_V1,0_RecyCol.docx")
 
 CUS_IDS = [c[0] for c in CASOS_USO]
 
