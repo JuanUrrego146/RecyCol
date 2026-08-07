@@ -51,8 +51,13 @@ class AppDependencies(
  * hasta que el usuario elige país en el onboarding (RF-001).
  */
 fun fakeAppDependencies(): AppDependencies {
+    // El perfil de prueba viene con un código ISO inventado, y eso hacía que
+    // la primera pantalla de la aplicación —y luego la barra superior— dijeran
+    // «Región desconocida». Se le pone el de Colombia para que la composición
+    // provisional se parezca a lo que verá el usuario; el contenido normativo
+    // del perfil no cambia y sigue siendo el de `shared/testing`.
     val profiles = FakeProfileRepository(
-        catalog = listOf(TestProfiles.threeBins),
+        catalog = listOf(TestProfiles.threeBins.copy(isoCode = DEMO_ISO_CODE)),
         initiallyActive = null,
     )
     val binAvailability = FakeBinAvailabilityRepository()
@@ -100,3 +105,9 @@ private class InMemoryTierPreference : TierPreferenceRepository {
         value = tier
     }
 }
+
+/**
+ * País de la composición provisional. Desaparece con los fakes, cuando RULES
+ * publique el catálogo real y el usuario elija de verdad entre países.
+ */
+private const val DEMO_ISO_CODE = "CO"

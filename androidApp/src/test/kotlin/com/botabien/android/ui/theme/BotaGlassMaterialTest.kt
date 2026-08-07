@@ -4,46 +4,21 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * El material de cristal es lo único de la interfaz que puede costar fluidez en
- * la cámara, así que la regla que decide cuándo se renuncia a él se prueba
- * entera: son pocas combinaciones y equivocarse se paga en el dispositivo del
- * usuario, donde ya no se ve.
+ * La regla que decide el material se prueba entera porque ya se equivocó una
+ * vez: degradaba a superficie opaca con el ahorro de energía activo o en
+ * dispositivos de poca memoria, y como el cristal no lleva desenfoque —son dos
+ * degradados y un borde— esa precaución no ahorraba nada y dejaba sin material
+ * a cualquiera con el ahorro de batería encendido, que es muchísima gente.
+ *
+ * Ahora solo degrada la preferencia explícita del usuario.
  */
 class BotaGlassMaterialTest {
 
     @Test
-    fun `sin ninguna senal en contra sirve el cristal transparente`() {
+    fun `por defecto sirve el cristal transparente`() {
         assertEquals(
             BotaGlassMaterial.Clear,
-            glassMaterialFor(
-                lowRamDevice = false,
-                savingPower = false,
-                animationsDisabled = false,
-            ),
-        )
-    }
-
-    @Test
-    fun `un dispositivo de poca memoria renuncia a la translucidez`() {
-        assertEquals(
-            BotaGlassMaterial.Veil,
-            glassMaterialFor(
-                lowRamDevice = true,
-                savingPower = false,
-                animationsDisabled = false,
-            ),
-        )
-    }
-
-    @Test
-    fun `el ahorro de energia renuncia a la translucidez`() {
-        assertEquals(
-            BotaGlassMaterial.Veil,
-            glassMaterialFor(
-                lowRamDevice = false,
-                savingPower = true,
-                animationsDisabled = false,
-            ),
+            glassMaterialFor(animationsDisabled = false),
         )
     }
 
@@ -56,28 +31,7 @@ class BotaGlassMaterialTest {
     fun `las animaciones desactivadas renuncian a la translucidez`() {
         assertEquals(
             BotaGlassMaterial.Veil,
-            glassMaterialFor(
-                lowRamDevice = false,
-                savingPower = false,
-                animationsDisabled = true,
-            ),
+            glassMaterialFor(animationsDisabled = true),
         )
-    }
-
-    @Test
-    fun `basta una senal aunque las demas permitan el cristal`() {
-        val combinations = listOf(
-            Triple(true, true, false),
-            Triple(true, false, true),
-            Triple(false, true, true),
-            Triple(true, true, true),
-        )
-        combinations.forEach { (lowRam, savingPower, animationsOff) ->
-            assertEquals(
-                BotaGlassMaterial.Veil,
-                glassMaterialFor(lowRam, savingPower, animationsOff),
-                "memoria=$lowRam energia=$savingPower animaciones=$animationsOff",
-            )
-        }
     }
 }

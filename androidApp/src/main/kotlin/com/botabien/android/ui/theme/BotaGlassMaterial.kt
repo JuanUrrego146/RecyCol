@@ -1,15 +1,12 @@
 package com.botabien.android.ui.theme
 
-import android.app.ActivityManager
 import android.content.Context
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.getSystemService
 
 /**
  * Grados del material de cristal. El nombre describe lo que el material
@@ -22,40 +19,43 @@ enum class BotaGlassMaterial {
     /**
      * Cristal transparente, el equivalente de la variante *clear* del lenguaje
      * de Apple: translúcido y tintado, con una capa de atenuación que sostiene
-     * la legibilidad, y el borde rematado con un brillo especular.
+     * la legibilidad, refracción en el canto y brillo especular en el borde.
      *
      * Es el material del cromo que flota sobre la cámara, donde el propio vídeo
      * aporta el color y el movimiento de detrás. No desenfoca: el visor monta un
      * `SurfaceView`, que el sistema compone en una capa aparte y **no se puede
-     * capturar** para desenfocarlo. Sobre contenido en movimiento, además, el
-     * desenfoque aporta menos de lo que cuesta.
+     * capturar** para desenfocarlo.
      */
     Clear,
 
     /**
-     * Sin translucidez: superficie tintada opaca con el borde apenas insinuado.
-     * Es lo que se sirve en gama baja, con el ahorro de energía activo o cuando
-     * el usuario tiene las animaciones desactivadas. Cuesta lo mismo que
-     * cualquier fondo plano y mantiene la jerarquía intacta.
+     * Sin translucidez: superficie tintada opaca con el borde apenas insinuado,
+     * para quien ha pedido al sistema que no haya efectos.
      */
     Veil,
 }
 
 /**
- * Material vigente para el subárbol. El valor por defecto es el más barato a
- * propósito: si alguien olvida proveerlo, la app se ve sobria pero **nunca se
- * arrastra**, que es el fallo que de verdad se nota en gama baja.
+ * Material vigente para el subárbol.
  */
 val LocalGlassMaterial: ProvidableCompositionLocal<BotaGlassMaterial> =
-    staticCompositionLocalOf { BotaGlassMaterial.Veil }
+    staticCompositionLocalOf { BotaGlassMaterial.Clear }
 
 /**
- * Resuelve hasta dónde puede llegar el cristal en este dispositivo.
+ * Resuelve el material para este dispositivo.
  *
- * Mide **capacidad y preferencia de dibujo**, que no es la gama del dispositivo
- * para inferencia: esa la decide `DeviceTierPolicy` y llega por caso de uso.
- * Cuando una pantalla disponga de ella podrá degradar más todavía envolviendo su
- * subárbol en [LocalGlassMaterial]; lo que se resuelve aquí es el techo.
+ * **Solo degrada por preferencia del usuario, no por potencia**, y eso es un
+ * cambio deliberado respecto a la primera versión: sin desenfoque de fondo el
+ * cristal son dos degradados y un borde, o sea lo mismo que cuesta cualquier
+ * superficie plana. Degradarlo en dispositivos modestos o con el ahorro de
+ * energía activo no ahorraba nada y dejaba la aplicación sin su material a
+ * mucha gente —el ahorro de batería lo lleva encendido medio mundo— a cambio
+ * de un beneficio inexistente.
+ *
+ * Si algún día se añade desenfoque real, ese sí cuesta, y entonces la
+ * degradación por gama vuelve a tener sentido: consúltese a `DeviceTierPolicy`
+ * por caso de uso y degrádese el subárbol correspondiente con
+ * [LocalGlassMaterial].
  */
 @Composable
 fun rememberGlassMaterial(): BotaGlassMaterial {
@@ -64,15 +64,13 @@ fun rememberGlassMaterial(): BotaGlassMaterial {
 }
 
 /**
- * Lee del sistema las tres señales que deciden el material.
- *
- * Android no expone un ajuste equivalente al «reducir transparencia» de iOS, así
- * que se atiende a las que sí existen y apuntan a lo mismo: memoria escasa,
- * ahorro de energía y animaciones desactivadas por el usuario.
+ * Lee del sistema la única señal que importa: si el usuario ha desactivado las
+ * animaciones. Android no expone un ajuste equivalente al «reducir
+ * transparencia» de iOS, y esta es la señal más cercana que existe — quien
+ * apaga las animaciones no quiere efectos, y la translucidez lo es tanto como
+ * el movimiento.
  */
 private fun resolveGlassMaterial(context: Context): BotaGlassMaterial = glassMaterialFor(
-    lowRamDevice = context.getSystemService<ActivityManager>()?.isLowRamDevice == true,
-    savingPower = context.getSystemService<PowerManager>()?.isPowerSaveMode == true,
     animationsDisabled = Settings.Global.getFloat(
         context.contentResolver,
         Settings.Global.ANIMATOR_DURATION_SCALE,
@@ -80,24 +78,9 @@ private fun resolveGlassMaterial(context: Context): BotaGlassMaterial = glassMat
     ) == 0f,
 )
 
-/**
- * La decisión en sí, sin depender del sistema para poder probarla.
- *
- * Cualquiera de las tres señales basta para renunciar a la translucidez: no se
- * ponderan ni se combinan, porque las tres significan lo mismo desde el punto de
- * vista del usuario —este aparato no está para efectos— y equivocarse hacia el
- * material barato solo cuesta un poco de belleza, mientras que equivocarse hacia
- * el caro cuesta fluidez en la cámara.
- */
-internal fun glassMaterialFor(
-    lowRamDevice: Boolean,
-    savingPower: Boolean,
-    animationsDisabled: Boolean,
-): BotaGlassMaterial = if (lowRamDevice || savingPower || animationsDisabled) {
-    BotaGlassMaterial.Veil
-} else {
-    BotaGlassMaterial.Clear
-}
+/** La decisión en sí, sin depender del sistema para poder probarla. */
+internal fun glassMaterialFor(animationsDisabled: Boolean): BotaGlassMaterial =
+    if (animationsDisabled) BotaGlassMaterial.Veil else BotaGlassMaterial.Clear
 
 /** Escala de animación del sistema cuando el ajuste no está definido. */
 private const val DEFAULT_ANIMATOR_SCALE = 1f

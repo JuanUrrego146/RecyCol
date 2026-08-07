@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,6 +57,7 @@ import com.botabien.android.ui.components.BotaButtonStyle
 import com.botabien.android.ui.components.BotaGlassState
 import com.botabien.android.ui.components.BotaRouteGlyph
 import com.botabien.android.ui.components.botaGlass
+import com.botabien.android.ui.country.countryDisplayName
 import com.botabien.android.ui.theme.BotaMotion
 import com.botabien.android.ui.theme.BotaTheme
 import com.botabien.domain.model.CaptureHint
@@ -94,11 +96,19 @@ fun ClassifyScreen(
         state.start(frames)
         onDispose { state.stop() }
     }
+    var countryName by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(dependencies) {
-        inspectionMaterials = dependencies.selectCountry.activeProfileOrNull()
-            ?.inspectionRules?.map { it.material }?.toSet()
-            ?: emptySet()
+        val profile = dependencies.selectCountry.activeProfileOrNull()
+        inspectionMaterials = profile?.inspectionRules?.map { it.material }?.toSet() ?: emptySet()
+        countryName = profile?.isoCode?.let(::countryDisplayName)
     }
+
+    // La orientación se rige por la decisión visible: mientras no haya ninguna
+    // hay que decirle al usuario qué hacer, y si lleva mucho rato con la misma
+    // en pantalla es que se ha quedado parado y conviene recordárselo.
+    val guidanceVisible = rememberGuidanceVisible(
+        decisionKey = state.outcome?.disposal?.bin?.id,
+    )
 
     fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
@@ -121,30 +131,49 @@ fun ClassifyScreen(
                 .aspectRatio(1f),
         )
 
-        OverlayAction(
-            text = stringResource(R.string.settings_title),
-            onClick = onOpenSettings,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(BotaTheme.spacing.screenMargin),
-        )
-
-        OverlayAction(
-            text = stringResource(R.string.manual_entry_action),
-            onClick = {
-                sheetCandidates = emptyList()
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(BotaTheme.spacing.screenMargin),
-        )
-
-        HintOverlay(
-            hint = state.hints.visible,
+        // Todo el cromo superior en una sola columna: la barra manda y lo demás
+        // cuelga de ella. Antes eran dos cápsulas sueltas en las esquinas, que
+        // no daban ninguna sensación de estructura sobre el vídeo.
+        Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = BotaTheme.spacing.xxxl * 2),
+                .padding(BotaTheme.spacing.screenMargin),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ClassifyTopBanner(
+                countryName = countryName,
+                onOpenSettings = onOpenSettings,
+            )
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+            // Alineada al mismo borde que la cápsula de país, para que cuelgue
+            // de la barra en vez de quedarse suelta en la esquina contraria.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                OverlayAction(
+                    text = stringResource(R.string.manual_entry_action),
+                    onClick = {
+                        sheetCandidates = emptyList()
+                        showManualSheet = true
+                    },
+                )
+            }
+            Spacer(modifier = Modifier.height(BotaTheme.spacing.sm))
+            HintOverlay(hint = state.hints.visible)
+        }
+
+        // La orientación se calla cuando hay una indicación de captura: esa es
+        // más concreta y no conviene apilar avisos (RF-018).
+        ViewfinderGuidance(
+            visible = guidanceVisible && state.hints.visible == null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = BotaTheme.spacing.screenMargin,
+                    end = BotaTheme.spacing.screenMargin,
+                    bottom = GUIDANCE_BOTTOM_INSET,
+                ),
         )
 
         ResultOverlay(
@@ -516,6 +545,12 @@ internal fun materialLabel(material: WasteMaterial): String = stringResource(
         WasteMaterial.RESIDUAL -> R.string.material_residual
     }
 )
+
+/**
+ * Altura reservada bajo la orientación para que no la tape la tarjeta de
+ * decisión durante el momento en que conviven.
+ */
+private val GUIDANCE_BOTTOM_INSET = 148.dp
 
 private const val GUIDE_WIDTH_FRACTION = 0.72f
 private const val GUIDE_ALPHA = 0.45f
