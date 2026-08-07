@@ -45,7 +45,7 @@
       "material": "CARDBOARD",
       "targetBin": "white",
       "contaminatedFallback": "black",
-      "justification": "El cartón limpio y seco es aprovechable y va en la caneca blanca; contaminado con grasa o líquidos va en la negra."
+      "justification": "El cartón limpio y seco es aprovechable y va en la caneca blanca; contaminado con grasa o líquidos —la caja de pizza con grasa o restos de queso, casi siempre— va en la negra."
     },
     {
       "material": "BEVERAGE_CARTON",
@@ -100,6 +100,11 @@
     {
       "material": "BEVERAGE_CARTON",
       "promptKey": "inspection.point_inside",
+      "requiresInteriorView": true
+    },
+    {
+      "material": "CARDBOARD",
+      "promptKey": "inspection.show_box_interior",
       "requiresInteriorView": true
     }
   ],
