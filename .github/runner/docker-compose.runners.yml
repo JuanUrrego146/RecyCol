@@ -1,4 +1,4 @@
-# Flota de runners self-hosted de BotaBien. Uso (desde este directorio):
+# Flota de runners self-hosted de RecyCol. Uso (desde este directorio):
 #
 #   Levantar (la primera vez exporta los tokens de registro, ver README.md):
 #     docker compose -f docker-compose.runners.yml up -d --build
@@ -18,12 +18,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: botabien/actions-runner:2.336.0
-    container_name: botabien-runner-1
+    image: recycol/actions-runner:2.336.0
+    container_name: recycol-runner-1
     restart: unless-stopped
     environment:
-      RUNNER_NAME: botabien-runner-1
-      RUNNER_LABELS: self-hosted,linux,docker,botabien
+      RUNNER_NAME: recycol-runner-1
+      RUNNER_LABELS: self-hosted,linux,docker,recycol
       RUNNER_TOKEN: ${RUNNER_TOKEN_1:-}
       GRADLE_USER_HOME: /opt/gradle-cache
     volumes:
@@ -35,15 +35,15 @@ services:
   # Segundo ejecutor SOLO para olas de PRs (perfil "ola"): con 4 GB aguanta
   # builds con caché caliente, no un pipeline frío.
   runner-2:
-    image: botabien/actions-runner:2.336.0
-    container_name: botabien-runner-2
+    image: recycol/actions-runner:2.336.0
+    container_name: recycol-runner-2
     restart: unless-stopped
     profiles: ["ola"]
     depends_on:
       - runner-1
     environment:
-      RUNNER_NAME: botabien-runner-2
-      RUNNER_LABELS: self-hosted,linux,docker,botabien
+      RUNNER_NAME: recycol-runner-2
+      RUNNER_LABELS: self-hosted,linux,docker,recycol
       RUNNER_TOKEN: ${RUNNER_TOKEN_2:-}
       GRADLE_USER_HOME: /opt/gradle-cache
     volumes:

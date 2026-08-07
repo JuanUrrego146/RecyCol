@@ -40,7 +40,7 @@ jobs:
       - name: Publicar APK como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
-          name: botabien-debug-apk
+          name: recycol-debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk
           retention-days: 14
           if-no-files-found: error

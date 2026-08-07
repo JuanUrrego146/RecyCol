@@ -30,7 +30,7 @@ solo_produccion() {
   grep -vE '/src/(test|androidTest)/|/(commonTest|jvmTest|androidUnitTest|androidInstrumentedTest)/' || true
 }
 
-echo "== Invariantes de arquitectura de BotaBien =="
+echo "== Invariantes de arquitectura de RecyCol =="
 
 # Convención del proyecto: nada de GlobalScope, ni en producción ni en pruebas.
 reportar "Sin GlobalScope en ningún código Kotlin" \
