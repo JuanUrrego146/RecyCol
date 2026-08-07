@@ -1,0 +1,110 @@
+{
+  "files": {
+    "contamination.tflite": 1.9,
+    "material_high.tflite": 9.35,
+    "material_low.tflite": 1.91,
+    "material_mid.tflite": 4.84
+  },
+  "total_mb": 18.0,
+  "budget_mb": 150,
+  "within_budget": true,
+  "output_order": {
+    "material": [
+      "PLASTIC",
+      "PAPER",
+      "CARDBOARD",
+      "BEVERAGE_CARTON",
+      "GLASS",
+      "METAL",
+      "ORGANIC",
+      "TEXTILE",
+      "BATTERY",
+      "ELECTRONIC",
+      "RESIDUAL"
+    ],
+    "contamination": [
+      "CLEAN",
+      "CONTAMINATED"
+    ]
+  },
+  "quantization_loss": {
+    "low": {
+      "run": "no-trash-seed",
+      "float_top1": 0.4622,
+      "float_route": 0.7063,
+      "int8_top1": 0.1585,
+      "int8_route": 0.6113,
+      "delta_top1_pp": -30.37,
+      "delta_route_pp": -9.5,
+      "entrada": {
+        "shape": [
+          1,
+          3,
+          224,
+          224
+        ],
+        "dtype": "int8",
+        "layout": "NCHW",
+        "side": 224,
+        "scale": 0.018649335950613022,
+        "zero_point": -14,
+        "cumple_contrato_edge": false,
+        "nota_contrato": "el contrato S15 exige [1,lado,lado,3] UINT8 y el artefacto declara [1, 3, 224, 224] int8 (NCHW): EDGE debe declararlo en su ModelSpec o hay que reexportar"
+      }
+    },
+    "mid": {
+      "run": "no-trash",
+      "float_top1": 0.5059,
+      "float_route": 0.7416,
+      "int8_top1": 0.4937,
+      "int8_route": 0.7439,
+      "delta_top1_pp": -1.22,
+      "delta_route_pp": 0.23,
+      "entrada": {
+        "shape": [
+          1,
+          3,
+          224,
+          224
+        ],
+        "dtype": "int8",
+        "layout": "NCHW",
+        "side": 224,
+        "scale": 0.018649335950613022,
+        "zero_point": -14,
+        "cumple_contrato_edge": false,
+        "nota_contrato": "el contrato S15 exige [1,lado,lado,3] UINT8 y el artefacto declara [1, 3, 224, 224] int8 (NCHW): EDGE debe declararlo en su ModelSpec o hay que reexportar"
+      }
+    },
+    "high": {
+      "run": "no-trash",
+      "float_top1": 0.4926,
+      "float_route": 0.6979,
+      "int8_top1": 0.4726,
+      "int8_route": 0.6768,
+      "delta_top1_pp": -2.0,
+      "delta_route_pp": -2.11,
+      "entrada": {
+        "shape": [
+          1,
+          3,
+          260,
+          260
+        ],
+        "dtype": "int8",
+        "layout": "NCHW",
+        "side": 260,
+        "scale": 0.018649335950613022,
+        "zero_point": -14,
+        "cumple_contrato_edge": false,
+        "nota_contrato": "el contrato S15 exige [1,lado,lado,3] UINT8 y el artefacto declara [1, 3, 260, 260] int8 (NCHW): EDGE debe declararlo en su ModelSpec o hay que reexportar"
+      }
+    }
+  },
+  "contrato_edge": {
+    "exigido": "[1, lado, lado, 3] UINT8 RGB",
+    "declarado_por_los_artefactos": "[1, 3, lado, lado] INT8 (NCHW)",
+    "cumple": false,
+    "nota": "litert-torch exporta con el layout y el tipo del modelo PyTorch de origen. Antes de cablear en la app hay que reexportar con firma UINT8 NHWC o declarar esta firma en el ModelSpec de EDGE."
+  }
+}

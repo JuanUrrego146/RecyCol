@@ -73,14 +73,26 @@ def preprocess(path: Path, layout: dict) -> np.ndarray:
     with Image.open(path) as img:
         image = img.convert("RGB").resize((layout["side"], layout["side"]), Image.BILINEAR)
     if layout["dtype"] == "uint8":
-        # Entrada cuantizada: el modelo lleva la normalización dentro y recibe
-        # los bytes RGB tal cual, que es lo que le llega desde la cámara.
+        # Contrato S15: el modelo lleva la normalización dentro y recibe los
+        # bytes RGB tal cual, que es lo que le llega desde la cámara.
         array = np.asarray(image, dtype=np.uint8)
-    else:
-        array = np.asarray(image, dtype=np.float32) / 255.0
-        array = ((array - IMAGENET_MEAN) / IMAGENET_STD).astype(np.float32)
+        if layout["layout"] == "NCHW":
+            array = np.transpose(array, (2, 0, 1))
+        return array[np.newaxis, ...]
+
+    # Resto de firmas: el modelo espera la entrada normalizada igual que en
+    # entrenamiento. Si además viene cuantizada (int8), se aplica su propia
+    # escala y punto cero — leerlos del artefacto en vez de asumirlos es lo que
+    # evita medir una "pérdida de cuantización" que en realidad sería un error
+    # de preprocesado nuestro.
+    array = np.asarray(image, dtype=np.float32) / 255.0
+    array = ((array - IMAGENET_MEAN) / IMAGENET_STD).astype(np.float32)
     if layout["layout"] == "NCHW":
         array = np.transpose(array, (2, 0, 1))
+    if layout["dtype"] == "int8":
+        scale = layout["scale"] or 1.0
+        array = np.clip(np.round(array / scale) + layout["zero_point"], -128, 127)
+        array = array.astype(np.int8)
     return array[np.newaxis, ...]
 
 

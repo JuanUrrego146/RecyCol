@@ -96,7 +96,11 @@ def export_variant(kind: str, run: str = "no-trash") -> Path:
         except ImportError:
             import ai_edge_torch as edge_torch
             from ai_edge_torch.quantize import pt2e_quantizer, quant_config
-        from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+        # La API PT2E se migró de torch.ao a torchao a partir de torch 2.9.
+        try:
+            from torchao.quantization.pt2e.quantize_pt2e import convert_pt2e, prepare_pt2e
+        except ImportError:
+            from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
     except ImportError as error:
         raise SystemExit(
             "Falta el conversor a LiteRT en el contenedor. litert-torch exige "
@@ -111,7 +115,10 @@ def export_variant(kind: str, run: str = "no-trash") -> Path:
     quantizer = pt2e_quantizer.PT2EQuantizer().set_global(
         pt2e_quantizer.get_symmetric_quantization_config(is_per_channel=True)
     )
-    captured = torch.export.export_for_training(model, sample).module()
+    # torch.export.export_for_training se consolidó en torch.export.export a
+    # partir de torch 2.12; se prueban las dos por si la imagen es vieja.
+    export_for_training = getattr(torch.export, "export_for_training", torch.export.export)
+    captured = export_for_training(model, sample).module()
     prepared = prepare_pt2e(captured, quantizer)
     for batch in calibration_batches(side):
         prepared(batch)

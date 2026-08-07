@@ -48,6 +48,27 @@ def main() -> int:
         "jamás usadas en entrenamiento ni selección). La métrica que manda es el",
         "**acierto de ruta de disposición** (RNF-008: ≥85 % material, ≥95 % ruta).",
         "",
+    ]
+    if best:
+        lines += [
+            "## Resumen",
+            "",
+            f"- **Modelo ganador: `{best['variant']}/{best['run']}` ({best['arch']})** — "
+            f"contra control, top-1 **{best['top1']:.1%}** y ruta **{best['route']:.1%}**.",
+            "- **RNF-008 no se cumple** (exige 85 % / 95 %). La brecha que queda es de "
+            "**dominio**, no de arquitectura ni de cuantización: el mismo checkpoint pasa "
+            "del 98 % de ruta en val interna al 74 % contra control.",
+            "- **El hallazgo que desbloqueó M4**: la carpeta `trash` de Garbage v2 son "
+            "envases sucios etiquetados como residual, y enseñaban «envase degradado ⇒ "
+            "caneca negra». Excluirla subió la ruta de 61,4 % a ~70 % en la misma variante.",
+            "- **La val interna no predice el control.** Ocurrió tres veces: con `full-v2` "
+            "(mejor val, peor control), con EfficientNet-B2 (mejor val de todas, peor "
+            "control que MobileNetV3-Large) y con la etapa 2 de contaminación (94 % en "
+            "sintético, inútil en dominio real). Cualquier decisión tomada solo con val "
+            "interna es sospechosa por defecto.",
+            "- **La varianza entre dos ejecuciones idénticas es 2,16 pp de ruta.** "
+            "Diferencias menores de ~2 pp entre runs no significan nada.",
+            "",
         "## Clasificador de material — todas las condiciones evaluadas",
         "",
         "| Variante/run | Top-1 material | Acierto de ruta | Ruta macro (por clase) |",
@@ -130,8 +151,68 @@ def main() -> int:
             f"- Artefactos: {', '.join(f'{k} ({v} MB)' for k, v in export['files'].items())}.",
             f"- Total {export['total_mb']} MB — presupuesto {export['budget_mb']} MB: "
             f"{'DENTRO' if export['within_budget'] else 'EXCEDIDO'}.",
-            "- Orden de salida conforme al contrato EDGE (S15). Validación contra el "
-            "runtime real: pendiente de EDGE (issue #25).",
+        ]
+        quant = export.get("quantization_loss") or {}
+        if quant:
+            lines += [
+                "",
+                "### Pérdida por cuantización INT8",
+                "",
+                "Medida con el intérprete de LiteRT sobre el **mismo split y el mismo "
+                "run** que el checkpoint float, así que la resta aísla el efecto del "
+                "INT8 y lo separa de la pérdida de dominio.",
+                "",
+                "| Variante | float top-1 | INT8 top-1 | Δ | float ruta | INT8 ruta | Δ |",
+                "|---|---|---|---|---|---|---|",
+            ]
+            for variant, q in quant.items():
+                lines.append(
+                    f"| {variant} | {q['float_top1']:.1%} | {q['int8_top1']:.1%} | "
+                    f"{q['delta_top1_pp']:+.1f} pp | {q['float_route']:.1%} | "
+                    f"{q['int8_route']:.1%} | {q['delta_route_pp']:+.1f} pp |"
+                )
+            frag = [v for v, q in quant.items() if q["delta_top1_pp"] < -10]
+            solido = [v for v, q in quant.items() if q["delta_route_pp"] > -3]
+            if solido:
+                lines += [
+                    "",
+                    f"**La brecha contra control no la causa el INT8.** {', '.join(solido)} "
+                    "cuantiza sin pérdida apreciable de ruta, así que la distancia entre la "
+                    "val interna y el control es de **dominio**, no de precisión numérica. "
+                    "Era la pregunta que la separación float/INT8 venía a responder.",
+                ]
+            if frag:
+                lines += [
+                    "",
+                    f"⚠️ **{', '.join(frag)} se degrada gravemente al cuantizar** (más de 10 pp "
+                    "de top-1). Con el mismo pipeline de evaluación para las tres variantes, "
+                    "que unas aguanten y otra no señala al modelo, no a la medición: "
+                    "MobileNetV3-Small (hard-swish y bloques SE) es conocido por cuantizar "
+                    "mal. **Afecta justo a la gama baja**, que es donde el modelo pequeño "
+                    "hace falta. Alternativas: cuantización por canal más agresiva, "
+                    "entrenamiento consciente de cuantización (QAT), o servir a la gama baja "
+                    "el modelo de gama media si la latencia lo permite.",
+                ]
+        contrato = export.get("contrato_edge")
+        if contrato and not contrato.get("cumple", True):
+            lines += [
+                "",
+                "### ⚠️ Los artefactos NO cumplen el contrato de entrada de S15",
+                "",
+                f"- Exigido por el contrato: `{contrato['exigido']}`.",
+                f"- Declarado por los artefactos: `{contrato['declarado_por_los_artefactos']}`.",
+                f"- {contrato['nota']}",
+                "",
+                "**Los `.tflite` no se pueden cablear en la app tal cual.** El orden de "
+                "salida sí es el del contrato; lo que no encaja es el layout y el tipo de "
+                "entrada. Se detecta aquí, y no al integrar, porque "
+                "`eval/evaluate_tflite.py` lee la firma real del artefacto en vez de "
+                "asumirla.",
+            ]
+        lines += [
+            "",
+            "- Validación en dispositivo real (latencia y memoria por gama): pendiente, "
+            "exige hardware Android — banco de EDGE (issue #25) y S41 de QA.",
         ]
 
     lines += [
@@ -144,6 +225,20 @@ def main() -> int:
         "real solo tiene control indirecto.",
         "- La carpeta trash de Garbage v2 quedó excluida por la auditoría de REGLAS "
         "(#23): enseñaba envase-degradado⇒RESIDUAL.",
+        "- **RESIDUAL es la clase más débil** (2,8 % de top-1, 37,2 % de ruta): al retirar "
+        "la carpeta `trash` se le quitaron 350 ejemplos. El error va en la dirección menos "
+        "grave —residuo señalado como reciclable en vez de al revés— pero es deuda abierta.",
+        "- **La gama alta llevaría hoy el peor modelo de los tres.** El contrato asigna "
+        "EfficientNet-Lite2 a `high`, y EfficientNet-B2 rinde 4,4 pp por debajo de "
+        "MobileNetV3-Large contra control pese a tener la mejor val. Cambiarlo toca el "
+        "contrato congelado de S15: decisión de producto con issue de coordinación.",
+        "- **Las palancas sensibles a coste de ruta empeoran** (−5,9 pp, 2,7 veces la "
+        "varianza). Se descarta esa configuración, no la idea: optimizar la ruta en el "
+        "dominio de entrenamiento, donde ya está al 98 %, solo rigidiza el modelo.",
+        "- La reproducibilidad de la augmentación estaba rota (`hash()` de Python, "
+        "aleatorizado por proceso). Corregido, pero **todo run anterior a esa corrección "
+        "se midió sin saber la varianza**, incluido el barrido de arquitectura, cuyo "
+        "ganador se decidió por 0,13 pp — muy por debajo del ruido.",
     ]
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print(f"Escrito {OUT.relative_to(ML_DIR)} y copias en {REPORTS.relative_to(ML_DIR)}")
