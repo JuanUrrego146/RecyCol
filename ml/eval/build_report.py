@@ -50,11 +50,16 @@ def main() -> int:
         "",
         "## Clasificador de material — todas las condiciones evaluadas",
         "",
-        "| Variante/run | Top-1 material | Acierto de ruta |",
-        "|---|---|---|",
+        "| Variante/run | Top-1 material | Acierto de ruta | Ruta macro (por clase) |",
+        "|---|---|---|---|",
     ]
     for e in evals:
-        lines.append(f"| {e['variant']}/{e['run']} ({e['arch']}) | {e['top1']:.1%} | {e['route']:.1%} |")
+        # La ruta macro se añadió con la auditoría de REGLAS (#23): los evals
+        # anteriores no la traen y se marcan con guion en vez de inventar un 0.
+        macro = e.get("route_macro")
+        macro_text = f"{macro:.1%}" if macro is not None else "—"
+        lines.append(f"| {e['variant']}/{e['run']} ({e['arch']}) | {e['top1']:.1%} | "
+                     f"{e['route']:.1%} | {macro_text} |")
 
     if best:
         goal = best["rnf008"]
@@ -90,6 +95,11 @@ def main() -> int:
             f"- Umbral elegido (prioriza no llamar limpio a lo contaminado): "
             f"{threshold.get('threshold')} — recall contaminado {threshold.get('recall'):.1%}, "
             f"precisión {threshold.get('precision'):.1%} (validación del sintético).",
+            *([] if threshold.get("meets_min_recall", True) else
+              [f"- ⚠️ **Ningún umbral alcanzó el recall mínimo exigido "
+               f"({threshold.get('min_recall'):.0%})**: se eligió el de mayor recall. "
+               "La etapa 2 no es fiable tal cual; aplica el plan B (preguntar al "
+               "usuario) antes de cablearla."]),
             f"- Control indirecto de transferencia: tasa de 'contaminado' en val limpia "
             f"{control.get('trashnet_like_clean')} vs control RealWaste {control.get('realwaste_control')} "
             "(RealWaste debería puntuar claramente más alto; no existe etiqueta real de "

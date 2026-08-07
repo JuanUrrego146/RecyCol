@@ -106,17 +106,28 @@ def contamination_scores(model: nn.Module, loader: DataLoader,
 
 
 def pick_threshold(scores: np.ndarray, labels: np.ndarray, min_recall: float = 0.92):
-    """Umbral más exigente que aún detecta ≥ min_recall de los contaminados."""
-    best = {"threshold": 0.5, "recall": 0.0, "precision": 0.0}
+    """Umbral más exigente que aún detecta ≥ min_recall de los contaminados.
+
+    Si ningún umbral llega a ``min_recall`` — el escenario del riesgo abierto,
+    que la contaminación sintética no transfiera — se devuelve el de **mayor
+    recall**, no el más alto de la rejilla: con el recall por los suelos, subir
+    el umbral es exactamente lo contrario de la prioridad declarada (no llamar
+    limpio a lo contaminado). ``meets_min_recall`` deja constancia de en cuál de
+    los dos casos se eligió, para que S28 no lo reporte como si nada.
+    """
+    candidates = []
     for threshold in np.arange(0.05, 0.95, 0.01):
         predicted = scores >= threshold
         true_positive = int(np.sum(predicted & (labels == 1)))
         recall = true_positive / max(int(np.sum(labels == 1)), 1)
         precision = true_positive / max(int(np.sum(predicted)), 1)
-        if recall >= min_recall and threshold > best["threshold"] or best["recall"] < min_recall:
-            best = {"threshold": round(float(threshold), 2), "recall": round(recall, 4),
-                    "precision": round(precision, 4)}
-    return best
+        candidates.append({"threshold": round(float(threshold), 2),
+                           "recall": round(recall, 4),
+                           "precision": round(precision, 4)})
+    viable = [c for c in candidates if c["recall"] >= min_recall]
+    best = (max(viable, key=lambda c: c["threshold"]) if viable
+            else max(candidates, key=lambda c: (c["recall"], c["threshold"])))
+    return {**best, "min_recall": min_recall, "meets_min_recall": bool(viable)}
 
 
 def proxy_control(model: nn.Module, manifest: Path, limit: int, threshold: float) -> float:

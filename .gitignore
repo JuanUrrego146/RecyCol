@@ -32,6 +32,10 @@ venv/
 ml/data/
 ml/runs/
 ml/checkpoints/
+# Logs crudos de entrenamiento: se conservan en el worktree para vigilar un run
+# vivo, pero lo que se publica son los reportes de ml/reports/, no la salida
+# por consola.
+ml/reports/logs/
 *.tflite
 *.onnx
 *.pt
