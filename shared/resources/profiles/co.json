@@ -20,6 +20,12 @@
       "displayName": "Caneca verde",
       "colorHex": "#2E7D32",
       "route": "ORGANIC"
+    },
+    {
+      "id": "special",
+      "displayName": "Punto de recolección especial",
+      "colorHex": "#795548",
+      "route": "SPECIAL_COLLECTION"
     }
   ],
   "rules": [
@@ -73,15 +79,15 @@
     },
     {
       "material": "BATTERY",
-      "targetBin": "black",
+      "targetBin": "special",
       "contaminatedFallback": null,
-      "justification": "Las pilas no van en la corriente aprovechable; el manejo ideal es un punto de recolección posconsumo. Entre las canecas del código de colores, la negra es la única admisible."
+      "justification": "Las pilas y baterías no van en las canecas del código de colores: se entregan en un punto de recolección posconsumo, por fuera de la Resolución 2184."
     },
     {
       "material": "ELECTRONIC",
-      "targetBin": "black",
+      "targetBin": "special",
       "contaminatedFallback": null,
-      "justification": "Los aparatos eléctricos y electrónicos no van en la corriente aprovechable doméstica; el manejo ideal es un punto de recolección posconsumo. Entre las canecas del código de colores, la negra es la única admisible."
+      "justification": "Los aparatos eléctricos y electrónicos (RAEE) no van en las canecas del código de colores: se entregan en un punto de recolección posconsumo, por fuera de la Resolución 2184."
     },
     {
       "material": "RESIDUAL",
@@ -97,5 +103,6 @@
       "requiresInteriorView": true
     }
   ],
-  "conservativeBin": "black"
+  "conservativeBin": "black",
+  "unavailableBinNotice": "No hay {ideal} disponible; usa {assigned}."
 }

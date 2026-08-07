@@ -25,4 +25,56 @@
     <string name="auth_sign_in">Iniciar sesión</string>
     <string name="auth_unavailable_notice">El inicio de sesión con credenciales aún no está disponible. Continúa como invitado.</string>
     <string name="auth_continue_as_guest">Continuar como invitado</string>
+
+    <!-- Cámara (RF-009 · CUS-003) -->
+    <string name="camera_permission_message">BotaBien necesita la cámara para identificar el residuo. La imagen se procesa en tu teléfono y nunca sale de él.</string>
+    <string name="camera_permission_action">Permitir cámara</string>
+    <string name="camera_error_message">No se pudo iniciar la cámara. Inténtalo de nuevo.</string>
+
+    <!-- Indicaciones de captura (RF-017 · CUS-004) -->
+    <string name="hint_move_closer">Acércate un poco</string>
+    <string name="hint_more_light">Busca más luz</string>
+    <string name="hint_clean_lens">Limpia el lente de la cámara</string>
+    <string name="hint_center_object">Centra el objeto en el marco</string>
+    <string name="hint_point_inside">Apunta hacia adentro del recipiente</string>
+
+    <!-- Selección manual y baja confianza (RF-023, RF-024, RF-025 · CUS-006) -->
+    <string name="manual_entry_action">Manual</string>
+    <string name="manual_selection_title">¿Qué residuo es?</string>
+    <string name="manual_selection_subtitle">Elige el material y te digo dónde va según la normativa de tu país.</string>
+    <string name="low_confidence_message">No logro identificarlo con certeza. Prueba otro ángulo o elige el material.</string>
+    <string name="low_confidence_action">Elegir material</string>
+
+    <!-- Resultado de clasificación (RF-013 · CUS-003) -->
+    <string name="result_degraded_by_contamination">Reclasificado por contaminación</string>
+
+    <!-- Detalle del resultado (RF-026, RF-027, RF-028 · CUS-007) -->
+    <string name="result_detail_title">Resultado</string>
+    <string name="result_manual_selection">Selección manual</string>
+    <string name="result_unavailable_bin">Caneca ideal no disponible</string>
+    <string name="result_section_material">Material identificado</string>
+    <string name="result_section_rule">Regla aplicada</string>
+    <string name="result_section_regulation">Norma citada</string>
+    <string name="result_confidence_format">Confianza del %1$d %%</string>
+    <string name="result_orientative_notice">Esta recomendación es orientativa y no sustituye la normativa local vigente ni las indicaciones de tu operador de aseo.</string>
+
+    <!-- Rutas de disposición (RNF-011) -->
+    <string name="route_recyclable">Aprovechable</string>
+    <string name="route_non_recyclable">No aprovechable</string>
+    <string name="route_organic">Orgánico</string>
+    <string name="route_hazardous">Peligroso</string>
+    <string name="route_special_collection">Recolección especial</string>
+
+    <!-- Materiales (RNF-011) -->
+    <string name="material_plastic">Plástico</string>
+    <string name="material_paper">Papel</string>
+    <string name="material_cardboard">Cartón</string>
+    <string name="material_beverage_carton">Cartón para bebidas</string>
+    <string name="material_glass">Vidrio</string>
+    <string name="material_metal">Metal</string>
+    <string name="material_organic">Orgánico</string>
+    <string name="material_textile">Textil</string>
+    <string name="material_battery">Pilas y baterías</string>
+    <string name="material_electronic">Electrónico</string>
+    <string name="material_residual">No aprovechable</string>
 </resources>

@@ -13,3 +13,9 @@ Antes de empezar una issue:
 5. Trabaja contra los fakes de `shared/testing/` si tu módulo depende de otro agente.
 
 No modifiques archivos fuera de tu ámbito sin una issue de coordinación.
+
+**Obligatorio además**: la sección «Operación del enjambre» de `AGENTS.md`
+(worktree propio, prohibido `git add -A`, CI self-hosted con verde obligatorio,
+cadena de mando Juan→CORE→agentes, regla anti-parón, **tablero de estado #123**)
+y el aviso de **proyecto comercial** al inicio de `context-for-vibe-coding.md`.
+Al completar un hito, publícalo en el tablero #123 (qué / dónde / qué sigue).
