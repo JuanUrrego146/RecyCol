@@ -115,6 +115,19 @@ def build_model(arch: str) -> nn.Module:
     return model
 
 
+def route_cost_matrix(routes: dict[str, str]) -> torch.Tensor:
+    """Matriz [C,C] de coste por confusión: ~0 dentro de la misma ruta de
+    disposición, 1.0 al cruzar de caneca (auditoría de REGLAS en #23: el error
+    intra-blanca es gratis para el usuario; el cruce blanca↔negra/verde es el
+    error caro que gobierna RNF-008)."""
+    cost = torch.ones(len(MATERIALS), len(MATERIALS))
+    for i, a in enumerate(MATERIALS):
+        for j, b in enumerate(MATERIALS):
+            if routes.get(a) == routes.get(b):
+                cost[i, j] = 0.0
+    return cost
+
+
 def class_weights(rows: list[dict]) -> torch.Tensor:
     counts = np.zeros(len(MATERIALS))
     for row in rows:
@@ -144,9 +157,21 @@ def evaluate(model: nn.Module, loader: DataLoader, routes: dict[str, str],
     return top1, route_hits / max(total, 1), confusion
 
 
-def run_epoch(model, loader, optimizer, criterion, device, scaler=None) -> float:
+def run_epoch(model, loader, optimizer, criterion, device, scaler=None,
+              route_cost: torch.Tensor | None = None, cost_weight: float = 0.0) -> float:
     model.train()
     total_loss = 0.0
+
+    def compute_loss(logits, labels):
+        loss = criterion(logits, labels)
+        if route_cost is not None and cost_weight > 0.0:
+            # Coste esperado de cruzar de caneca: E[p·C[y]] — penaliza la masa
+            # de probabilidad puesta en materiales de otra ruta.
+            probabilities = torch.softmax(logits.float(), dim=1)
+            expected = (probabilities * route_cost[labels]).sum(dim=1).mean()
+            loss = loss + cost_weight * expected
+        return loss
+
     for batch, labels in loader:
         batch = batch.to(device, non_blocking=True)
         labels = labels.to(device)
@@ -155,12 +180,12 @@ def run_epoch(model, loader, optimizer, criterion, device, scaler=None) -> float
             # Precisión mixta (AMP): en Ampere acelera y reduce VRAM, clave
             # para los 8 GB de la 3060 Ti.
             with torch.autocast(device_type="cuda", dtype=torch.float16):
-                loss = criterion(model(batch), labels)
+                loss = compute_loss(model(batch), labels)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
         else:
-            loss = criterion(model(batch), labels)
+            loss = compute_loss(model(batch), labels)
             loss.backward()
             optimizer.step()
         total_loss += loss.item() * len(labels)
@@ -180,6 +205,8 @@ def main() -> int:
                         help="ablación: entrena sin la augmentación de S23")
     parser.add_argument("--require-gpu", action="store_true",
                         help="aborta si CUDA no está disponible: evita el fallo silencioso a CPU")
+    parser.add_argument("--route-cost", type=float, default=0.0,
+                        help="peso de la pérdida sensible a coste de ruta (0 = solo cross-entropy)")
     parser.add_argument("--batch-size", type=int, default=None,
                         help="por defecto 64 en GPU, 32 en CPU")
     parser.add_argument("--workers", type=int, default=4)
@@ -216,6 +243,7 @@ def main() -> int:
     criterion = nn.CrossEntropyLoss(weight=class_weights(train_ds.rows).to(device))
     model = build_model(arch).to(device)
     scaler = torch.amp.GradScaler("cuda") if device == "cuda" else None
+    cost_matrix = route_cost_matrix(routes).to(device) if args.route_cost > 0 else None
 
     run_name = args.run_name or ("smoke" if args.smoke else "full")
     run_dir = RUNS / f"material_{args.variant}" / run_name
@@ -239,7 +267,8 @@ def main() -> int:
                                 num_workers=args.workers, pin_memory=pin,
                                 generator=torch.Generator().manual_seed(TORCH_SEED + epoch))
             start = time.time()
-            loss = run_epoch(model, loader, optimizer, criterion, device, scaler)
+            loss = run_epoch(model, loader, optimizer, criterion, device, scaler,
+                             route_cost=cost_matrix, cost_weight=args.route_cost)
             top1, route_acc, confusion = evaluate(model, val_loader, routes, device)
             vram_mb = (round(torch.cuda.max_memory_allocated() / 1e6)
                        if device == "cuda" else 0)
@@ -262,7 +291,7 @@ def main() -> int:
     (run_dir / "metrics.json").write_text(
         json.dumps({"variant": args.variant, "arch": arch, "input": side,
                     "lr_phase1": args.lr_phase1, "lr_phase2": args.lr_phase2,
-                    "batch_size": args.batch_size,
+                    "batch_size": args.batch_size, "route_cost": args.route_cost,
                     "materials": MATERIALS, "history": history,
                     "best_val_route": best_route}, indent=2),
         encoding="utf-8")

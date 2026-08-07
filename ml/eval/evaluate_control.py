@@ -50,6 +50,19 @@ def per_class_table(confusion: np.ndarray, routes: dict[str, str]) -> list[dict]
     return rows
 
 
+def route_confusion(confusion: np.ndarray, routes: dict[str, str]) -> dict:
+    """Matriz colapsada por ruta de disposición: lo que el usuario vive
+    (auditoría de REGLAS en #23 — se publica siempre junto a la de material)."""
+    names = sorted({routes.get(m, "?") for m in MATERIALS})
+    index = {name: i for i, name in enumerate(names)}
+    collapsed = np.zeros((len(names), len(names)), dtype=np.int64)
+    for t in range(len(MATERIALS)):
+        for p in range(len(MATERIALS)):
+            collapsed[index[routes.get(MATERIALS[t], "?")],
+                      index[routes.get(MATERIALS[p], "?")]] += confusion[t, p]
+    return {"routes": names, "matrix": collapsed.tolist()}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", choices=VARIANTS, required=True)
@@ -83,6 +96,7 @@ def main() -> int:
         "rnf008": {"material_goal": 0.85, "route_goal": 0.95,
                    "material_met": bool(top1 >= 0.85), "route_met": bool(route_acc >= 0.95)},
         "per_class": per_class_table(confusion, routes),
+        "route_confusion": route_confusion(confusion, routes),
     }
     out_dir = RUNS / f"material_{args.variant}" / args.run
     out_path = out_dir / f"eval_{args.split}.json"
