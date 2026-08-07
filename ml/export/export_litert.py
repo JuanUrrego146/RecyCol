@@ -63,7 +63,7 @@ def calibration_batches(input_side: int):
         yield torch.from_numpy(array.astype(np.float32)).permute(2, 0, 1).unsqueeze(0)
 
 
-def load_trained(kind: str) -> tuple[torch.nn.Module, int]:
+def load_trained(kind: str, run: str = "full-v2-clean") -> tuple[torch.nn.Module, int]:
     if kind == "contamination":
         import torchvision
         from torch import nn
@@ -75,7 +75,7 @@ def load_trained(kind: str) -> tuple[torch.nn.Module, int]:
     else:
         arch, side = VARIANTS[kind]
         model = build_model(arch)
-        checkpoint = RUNS / f"material_{kind}" / "full" / "best.pt"
+        checkpoint = RUNS / f"material_{kind}" / run / "best.pt"
     if not checkpoint.is_file():
         raise SystemExit(f"Falta {checkpoint.relative_to(ML_DIR)}: entrena antes esa variante (S25/S26).")
     model.load_state_dict(torch.load(checkpoint, map_location="cpu", weights_only=True))
@@ -83,7 +83,7 @@ def load_trained(kind: str) -> tuple[torch.nn.Module, int]:
     return model, side
 
 
-def export_variant(kind: str) -> Path:
+def export_variant(kind: str, run: str = "full-v2-clean") -> Path:
     try:
         import ai_edge_torch
         from ai_edge_torch.quantize import pt2e_quantizer, quant_config
@@ -95,7 +95,7 @@ def export_variant(kind: str) -> Path:
             f"Detalle: {error}"
         )
 
-    model, side = load_trained(kind)
+    model, side = load_trained(kind, run)
     sample = (torch.zeros(1, 3, side, side),)
 
     quantizer = pt2e_quantizer.PT2EQuantizer().set_global(
@@ -122,12 +122,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", choices=list(CONTRACT_NAMES))
     parser.add_argument("--all", action="store_true")
+    parser.add_argument("--run", default="full-v2-clean",
+                        help="run de material a exportar (default full-v2-clean)")
     args = parser.parse_args()
     kinds = list(CONTRACT_NAMES) if args.all else [args.variant]
     if not kinds or kinds == [None]:
         parser.error("indica --variant o --all")
 
-    exported = [export_variant(kind) for kind in kinds]
+    exported = [export_variant(kind, args.run) for kind in kinds]
     total_mb = sum(path.stat().st_size for path in exported) / 1e6
     report = {
         "files": {path.name: round(path.stat().st_size / 1e6, 2) for path in exported},
