@@ -81,6 +81,7 @@ fun ClassifyScreen(
     val scope = rememberCoroutineScope()
     val state = remember { ClassifyScreenState(dependencies.classifyWaste, scope) }
     var showManualSheet by remember { mutableStateOf(false) }
+    var sheetCandidates by remember { mutableStateOf(emptyList<WasteMaterial>()) }
     var inspectionMaterials by remember { mutableStateOf(emptySet<WasteMaterial>()) }
     DisposableEffect(frames) {
         state.start(frames)
@@ -120,7 +121,10 @@ fun ClassifyScreen(
 
         OverlayAction(
             text = stringResource(R.string.manual_entry_action),
-            onClick = { showManualSheet = true },
+            onClick = {
+                sheetCandidates = emptyList()
+                showManualSheet = true
+            },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(BotaTheme.spacing.screenMargin),
@@ -149,7 +153,12 @@ fun ClassifyScreen(
         LowConfidencePrompt(
             visible = state.outcome?.needsUserDecision == true &&
                 state.outcome?.disposal == null,
-            onChooseManually = { showManualSheet = true },
+            onChooseManually = {
+                // La desambiguación arranca con las hipótesis probables del
+                // modelo: hoy la mejor (top-1); top-K cuando llegue #126.
+                sheetCandidates = listOfNotNull(state.outcome?.classification?.material)
+                showManualSheet = true
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
@@ -167,6 +176,12 @@ fun ClassifyScreen(
                     resolveManual(material, contamination)
                 },
                 onDismiss = { showManualSheet = false },
+                candidates = sheetCandidates,
+                onRetry = if (sheetCandidates.isEmpty()) {
+                    null
+                } else {
+                    { showManualSheet = false }
+                },
             )
         }
     }
