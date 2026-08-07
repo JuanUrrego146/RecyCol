@@ -158,6 +158,60 @@ BotaCard(onClick = { /* opcional: tarjeta pulsable */ }) {
 Superficie plana sin sombra. Se usa sobre `groupedBackground` para que el contraste de
 fondos —no un borde— delimite la tarjeta.
 
+### `BotaGlass` — el material de cristal
+
+Superficie translúcida para lo que **flota sobre contenido**: el cromo de la cámara, el
+marco de encuadre, la tarjeta de decisión. Es el lenguaje de iOS 26: atenuación que
+sostiene la legibilidad, lavado de luz cenital y brillo especular en el borde.
+
+```kotlin
+BotaGlass(
+    shape = BotaTheme.shapes.large,
+    tint = binColor(disposal.bin.colorHex), // opcional: el color de caneca, como lavado
+    state = BotaGlassState.Settled,         // Settled | Analyzing | Uncertain
+) { /* contenido */ }
+
+Modifier.botaGlass(shape = BotaTheme.shapes.capsule)  // para lo que ya tiene disposición
+```
+
+**Reglas**
+
+1. **Cristal solo en la capa que flota.** Nunca en la capa de contenido, y nunca cristal
+   sobre cristal. Si algo no tiene nada detrás que dejar pasar, es una `BotaCard`.
+2. **La atenuación no se negocia.** Va siempre, incluso en el material más transparente:
+   es lo único que sostiene el contraste del texto cuando detrás hay vídeo en vivo
+   (RNF-010).
+3. **El tinte es dato.** El color de caneca sale del perfil (`BinDefinition.colorHex`) y
+   atraviesa el cristal como lavado al 16 %, nunca como color de fondo. El design system
+   sigue sin conocer ningún color de caneca.
+4. **El grado no lo elige el llamador**, lo resuelve el tema.
+
+**Grados** (`BotaTheme.glass`, resuelto una vez en `BotaBienTheme`)
+
+| Grado | Cuándo | Qué hace |
+|---|---|---|
+| `Clear` | Por defecto | Translúcido, atenuado y tintado, con brillo en el borde |
+| `Veil` | Poca memoria · ahorro de energía · animaciones desactivadas | Superficie opaca y borde tenue; cuesta lo mismo que un fondo plano |
+
+La jerarquía y la legibilidad **son idénticas en los dos grados**; solo cambia el
+material. Cualquiera de las tres señales basta para bajar a `Veil`: equivocarse hacia el
+material barato cuesta algo de belleza, y hacia el caro cuesta fluidez en la cámara.
+
+**Por qué no desenfoca el fondo.** `PreviewView` monta un `SurfaceView`, que el sistema
+compone en una capa aparte y **no se puede capturar** en un `GraphicsLayer`: un desenfoque
+sobre el visor no vería la cámara, vería un agujero. Es además la doctrina de Apple para
+su variante *clear*, la que se usa sobre contenido rico en medios. El desenfoque real
+llegará donde el fondo sí lo compone Compose —cabeceras sobre contenido con scroll—, y
+pasar el visor a `TextureView` para desenfocarlo es una decisión de rendimiento de cámara
+que corresponde a CAM, no a FRONT.
+
+**Estado por material** (`BotaGlassState`)
+
+- `Settled` — en reposo, con o sin decisión.
+- `Analyzing` — el borde respira, lento y sin llamar la atención.
+- `Uncertain` — el material se empaña y el borde pierde definición. Baja confianza es el
+  flujo protagonista de la app, así que el cristal se ve **dudando, no fallando**.
+
 ### `BotaBottomSheet`
 
 ```kotlin
