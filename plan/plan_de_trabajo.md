@@ -1,4 +1,4 @@
-# Plan de trabajo — BotaBien
+# Plan de trabajo — RecyCol
 
 Fecha de elaboración: 06/08/2026 · Responsable: Juan Urrego · Versión 1,0
 

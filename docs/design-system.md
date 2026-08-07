@@ -1,4 +1,4 @@
-# Design system — BotaBien
+# Design system — RecyCol
 
 Sistema de diseño de la capa de interfaz Android (`androidApp/ui/`). Implementa RNF-009:
 estética minimalista de inspiración iOS — limpia, con mucho aire, tipografía cuidada y

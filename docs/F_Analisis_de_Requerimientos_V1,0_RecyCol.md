@@ -1,6 +1,6 @@
 # Análisis y Especificación de Requerimientos
 
-## BotaBien
+## RecyCol
 
 *Clasificación de residuos por visión artificial en el dispositivo*
 
@@ -8,7 +8,7 @@
 
 > [!NOTE]
 > Esta es la **vista en Markdown** del documento, legible directamente en GitHub.
-> El documento oficial con el formato de entrega es [`F_Analisis_de_Requerimientos_V1,0_BotaBien.docx`](F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) — GitHub no puede previsualizar archivos de Word, así que ese enlace lo descarga.
+> El documento oficial con el formato de entrega es [`F_Analisis_de_Requerimientos_V1,0_RecyCol.docx`](F_Analisis_de_Requerimientos_V1%2C0_RecyCol.docx) — GitHub no puede previsualizar archivos de Word, así que ese enlace lo descarga.
 > Ambos se generan desde la misma fuente de datos (`tools/gen_doc_data.py`), de modo que no pueden divergir.
 
 ---
@@ -87,7 +87,7 @@
 
 La separación de residuos en la fuente falla en la práctica por dos motivos distintos. El primero es de conocimiento: la mayoría de personas no sabe con certeza a qué caneca corresponde cada material, y el código de colores cambia entre países e incluso entre instituciones de un mismo país. El segundo es más sutil y explica buena parte de los errores: las reglas reales dependen del estado del residuo, no solo de su material. Un vaso de cartón para bebidas aparenta ser papel aprovechable, pero lleva un recubrimiento de polietileno y suele conservar residuo líquido en su interior; la Resolución 2184 de 2019 exige explícitamente que lo depositado en la caneca blanca esté limpio y seco, de modo que ese vaso corresponde a la caneca negra. Esa condición es invisible desde el exterior del objeto y ninguna aplicación existente la verifica.
 
-BotaBien nace para resolver ambos problemas a la vez. Mediante la cámara del teléfono y redes neuronales que se ejecutan íntegramente en el dispositivo, identifica el material del residuo, comprueba si está contaminado solicitando al usuario la toma que hace falta, y traduce ese diagnóstico a la caneca correcta según la norma vigente del país en el que se encuentra. La traducción no está cableada en el código sino declarada en un perfil normativo intercambiable, lo que permite incorporar nuevos países sin reentrenar los modelos ni modificar la aplicación.
+RecyCol nace para resolver ambos problemas a la vez. Mediante la cámara del teléfono y redes neuronales que se ejecutan íntegramente en el dispositivo, identifica el material del residuo, comprueba si está contaminado solicitando al usuario la toma que hace falta, y traduce ese diagnóstico a la caneca correcta según la norma vigente del país en el que se encuentra. La traducción no está cableada en el código sino declarada en un perfil normativo intercambiable, lo que permite incorporar nuevos países sin reentrenar los modelos ni modificar la aplicación.
 
 El sistema está dirigido a cualquier persona que deba separar un residuo y dude sobre su destino, y está diseñado para funcionar sin conexión a internet y en dispositivos de cualquier gama, porque el problema que aborda es más frecuente precisamente donde los recursos tecnológicos son más limitados. La primera versión se entrega para Android como demostración funcional; su arquitectura está preparada desde el inicio para portarse a iOS y, en una fase muy posterior, para operar sobre cámaras fijas instaladas en puntos de disposición.
 

@@ -1,4 +1,4 @@
-# CONTEXTO — BotaBien
+# CONTEXTO — RecyCol
 
 **Este es el único documento que un agente necesita leer antes de trabajar.**
 Sustituye a `context-for-vibe-coding.md`, a `ml/DATASETS.md` y a los siete
@@ -9,9 +9,20 @@ sintetizado aquí; lo que no está aquí, está enlazado desde la sección
 Última consolidación: **07/08/2026**, tras el reinicio de la máquina y el cierre
 de la campaña de siete agentes en paralelo del 06–07/08.
 
+> ### 🔄 Renombrado en curso: BotaBien → RecyCol
+>
+> El proyecto se está renombrando por partes verificables (QA, en curso). Hasta
+> que termine, este documento describe el estado real y por tanto **sigue
+> mencionando `BotaBien` donde la infraestructura real aún no cambió**: rutas de
+> disco (`BotaBien`, `BotaBien-ml`), namespace de código (`com.botabien.*`,
+> bloqueado por el PR #144 de FRONT), imágenes y contenedores Docker, runners
+> self-hosted y la URL del repositorio de GitHub. No lo edites para
+> "adelantarlo" — cada mención se actualiza junto con el cambio de
+> infraestructura que describe, no antes.
+
 ---
 
-## 1. Qué es BotaBien
+## 1. Qué es RecyCol
 
 Aplicación móvil Android (portable a iOS) que, usando la cámara y redes
 neuronales que corren **íntegramente en el dispositivo**, dice en qué caneca va
@@ -222,7 +233,7 @@ traducción material → caneca la hace el motor de reglas contra un perfil
 normativo intercambiable por país.
 
 ```
-BotaBien/
+RecyCol/
 ├── shared/                          # KMP, SIN dependencias de Android
 │   ├── domain/                      # entidades, casos de uso, puertos      → CORE
 │   ├── testing/                     # fakes deterministas                   → CORE
@@ -667,7 +678,6 @@ Tras la limpieza del 07/08, en `C:\Users\Juan\Documents\GitHub\`:
 |---|---|---|
 | `BotaBien` | **Clon principal**, en `main` y limpio. Zona neutral compartida | Es el repositorio de referencia y el padre de todos los worktrees. **No se trabaja ni se commitea aquí** |
 | `BotaBien-ml` | Worktree del agente ML (`ml/S22-pipeline-ingesta`) | **Contiene los datasets (2,0 GB), los checkpoints (94 MB) y los reportes de entrenamiento, que no están en git y no se regeneran sin volver a descargar y entrenar.** Nunca borrar sin respaldar `ml/data/`, `ml/runs/` y `ml/reports/` |
-| `BotaBien-org` | Worktree temporal de esta consolidación | Se elimina en cuanto se fusione el PR de `CONTEXTO.md` |
 
 Se eliminaron **16 worktrees** de agentes cerrados (`BotaBien-core`,
 `BotaBien-front`, `BotaBien-cam`, `BotaBien-data`, `BotaBien-qa`,
@@ -698,7 +708,7 @@ copies su contenido aquí.**
 
 | Documento | Qué contiene |
 |---|---|
-| [`docs/F_Analisis_de_Requerimientos_V1,0_BotaBien.md`](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.md) · [.docx](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) | **Especificación completa**: CUS, RF, RNF y matriz de trazabilidad. Es la fuente de verdad de qué hay que construir |
+| [`docs/F_Analisis_de_Requerimientos_V1,0_RecyCol.md`](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.md) · [.docx](docs/F_Analisis_de_Requerimientos_V1%2C0_RecyCol.docx) | **Especificación completa**: CUS, RF, RNF y matriz de trazabilidad. Es la fuente de verdad de qué hay que construir |
 | [`ml/DATA_LICENSES.md`](ml/DATA_LICENSES.md) | **Registro legal de procedencia**: licencia, evidencia y veredicto comercial de cada dataset, peso y herramienta. Manda sobre el resto |
 | [`docs/arquitectura.md`](docs/arquitectura.md) | Diagramas Mermaid: contexto, casos de uso, modelo de dominio, secuencias, estados, y la tabla de decisiones de arquitectura con sus alternativas descartadas |
 | [`plan/plan_de_trabajo.md`](plan/plan_de_trabajo.md) | Estimación, cronograma y criterio de hecho por sesión (S01–S44) |
