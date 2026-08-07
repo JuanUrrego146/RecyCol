@@ -84,7 +84,7 @@ El proyecto compila y ejecuta pruebas en integración continua, con los módulos
 8 horas — agente CORE, hito «M0: Fundación y contratos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S01"
 
@@ -115,7 +115,7 @@ Cada puerto tiene su fake y su prueba; un agente puede compilar y probar su mód
 8 horas — agente CORE, hito «M0: Fundación y contratos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S02"
 
@@ -147,7 +147,7 @@ Queda definido el formato de los perfiles normativos y publicado el perfil de Co
 8 horas — agente CORE, hito «M0: Fundación y contratos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CORE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S03"
 
@@ -177,7 +177,7 @@ Ningún color ni tipografía se declara fuera del design system, verificado por 
 10 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S04"
 
@@ -207,7 +207,7 @@ El primer arranque solicita país; cambiarlo desde ajustes recarga el perfil y l
 8 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S05"
 
@@ -237,7 +237,7 @@ La vista en vivo no se bloquea durante el análisis y las indicaciones aparecen 
 10 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S06"
 
@@ -267,7 +267,7 @@ El detalle muestra caneca, color, regla aplicada, norma citada y aviso; un resul
 6 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S07"
 
@@ -297,7 +297,7 @@ Los tres ajustes persisten entre reinicios de la aplicación y el borrado del hi
 6 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S08"
 
@@ -328,7 +328,7 @@ Cero literales de texto en el código de interfaz, contraste AA verificado y nin
 8 horas — agente FRONT, hito «M1: App shell y design system», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente FRONT y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S09"
 
@@ -358,7 +358,7 @@ Una sesión continua de 5 minutos no incrementa la memoria de forma sostenida y 
 8 horas — agente CAM, hito «M2: Cámara y calidad de imagen», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S10"
 
@@ -388,7 +388,7 @@ El sistema evalúa la calidad de cada fotograma con heurísticas baratas, sin co
 8 horas — agente CAM, hito «M2: Cámara y calidad de imagen», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S11"
 
@@ -417,7 +417,7 @@ Una mancha simulada fija se detecta como suciedad y un objeto estático de la es
 6 horas — agente CAM, hito «M2: Cámara y calidad de imagen», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S12"
 
@@ -447,7 +447,7 @@ Como máximo una indicación cada intervalo mínimo, nunca dos simultáneas, y n
 8 horas — agente CAM, hito «M2: Cámara y calidad de imagen», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S13"
 
@@ -477,7 +477,7 @@ Ante un material con regla de inspección se solicita la vista interior, se capt
 6 horas — agente CAM, hito «M2: Cámara y calidad de imagen», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente CAM y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S14"
 
@@ -508,7 +508,7 @@ Clasifica correctamente sin conexión y, si el delegado no está disponible, cae
 12 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S15"
 
@@ -538,7 +538,7 @@ En gama media y alta se recorta el objeto detectado; en gama baja se usa el marc
 10 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S16"
 
@@ -568,7 +568,7 @@ La gama se resuelve en menos de 2 segundos al arrancar, queda cacheada y se reca
 8 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S17"
 
@@ -598,7 +598,7 @@ La matriz de funciones se respeta en las tres gamas y ninguna combinación desha
 6 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S18"
 
@@ -628,7 +628,7 @@ Devuelve estado de contaminación con confianza; en gama baja se ejecuta únicam
 10 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S19"
 
@@ -658,7 +658,7 @@ Latencia y memoria medidas y documentadas por gama; el uso máximo de memoria no
 12 horas — agente EDGE, hito «M3: Inferencia on-device y gamas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente EDGE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S20"
 
@@ -678,18 +678,18 @@ Queda documentado qué conjuntos de datos públicos se usan, bajo qué licencia,
 
 ## Tareas
 - [ ] Inventariar y descargar los conjuntos candidatos: Garbage Dataset v2, Garbage Classification, RealWaste, TrashNet, TACO y ZeroWaste
-- [ ] Verificar y documentar la licencia de cada uno en `ml/DATASETS.md`
+- [ ] Verificar y documentar la licencia de cada uno en `ml/DATA_LICENSES.md`
 - [ ] Escribir `ml/taxonomy/label_mapping.yaml` con la traducción a `WasteMaterial`
 - [ ] Descartar explícitamente los conjuntos cuya licencia no sea compatible
 
 ## Criterio de hecho
-`ml/DATASETS.md` y `label_mapping.yaml` están completos, revisados, y toda etiqueta de origen tiene destino o descarte justificado.
+`ml/DATA_LICENSES.md` y `label_mapping.yaml` están completos, revisados, y toda etiqueta de origen tiene destino o descarte justificado.
 
 ## Estimación
 8 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S21"
 
@@ -720,7 +720,7 @@ Ejecutar el pipeline dos veces desde cero produce particiones idénticas, y exis
 10 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S22"
 
@@ -751,7 +751,7 @@ La muestra revisada es visualmente comparable a fotos reales de teléfono en mal
 8 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S23"
 
@@ -783,7 +783,7 @@ Existe un conjunto sintético de reciclables contaminados y un conjunto de contr
 16 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S24"
 
@@ -814,7 +814,7 @@ Tres variantes entrenadas con métricas registradas, incluyendo siempre el acier
 16 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S25"
 
@@ -845,7 +845,7 @@ El clasificador separa limpio de contaminado y la brecha entre el conjunto sint�
 10 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S26"
 
@@ -876,7 +876,7 @@ Los cuatro modelos exportados funcionan en el dispositivo, la pérdida por cuant
 10 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S27"
 
@@ -907,7 +907,7 @@ El reporte publica ambas métricas sobre un conjunto no visto y explicita si se 
 10 horas — agente ML, hito «M4: Modelos y datos», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente ML y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S28"
 
@@ -937,7 +937,7 @@ La batería de pruebas pasa sobre el perfil de Colombia, incluido el caso del ca
 10 horas — agente RULES, hito «M5: Motor de reglas y perfiles», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S29"
 
@@ -967,7 +967,7 @@ Un perfil inválido se rechaza con un error explícito, se conserva el perfil an
 8 horas — agente RULES, hito «M5: Motor de reglas y perfiles», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S30"
 
@@ -997,7 +997,7 @@ Un reciclable detectado como contaminado se reasigna a la caneca de no aprovecha
 8 horas — agente RULES, hito «M5: Motor de reglas y perfiles», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S31"
 
@@ -1027,7 +1027,7 @@ Ante la ausencia de la caneca ideal se propone la disponible más conservadora y
 8 horas — agente RULES, hito «M5: Motor de reglas y perfiles», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S32"
 
@@ -1057,7 +1057,7 @@ El segundo país funciona completo sin una sola línea modificada en código Kot
 6 horas — agente RULES, hito «M5: Motor de reglas y perfiles», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RULES y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S33"
 
@@ -1087,7 +1087,7 @@ Detecta las canecas del perfil activo bajo iluminación variable y descarta con 
 12 horas — agente BINS, hito «M6: Escaneo de canecas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente BINS y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente BINS y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S34"
 
@@ -1117,7 +1117,7 @@ El usuario confirma, añade o elimina canecas, la selección persiste entre rein
 8 horas — agente BINS, hito «M6: Escaneo de canecas», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente BINS y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente BINS y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S35"
 
@@ -1147,7 +1147,7 @@ País, canecas disponibles e historial se recuperan correctamente tras cerrar y 
 8 horas — agente DATA, hito «M7: Persistencia, historial y auth», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S36"
 
@@ -1177,7 +1177,7 @@ El historial guarda únicamente resultados, la prueba confirma que no se escribe
 8 horas — agente DATA, hito «M7: Persistencia, historial y auth», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S37"
 
@@ -1207,7 +1207,7 @@ La aplicación funciona completa en modo invitado y ninguna capa superior depend
 6 horas — agente DATA, hito «M7: Persistencia, historial y auth», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente DATA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S38"
 
@@ -1238,7 +1238,7 @@ Por debajo del umbral la aplicación nunca emite una caneca como si fuera certer
 8 horas — agente QA, hito «M8: Confianza, integración y QA», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S39"
 
@@ -1268,7 +1268,7 @@ El recorrido completo pasa en dispositivo real, la degradación controlada no ci
 12 horas — agente QA, hito «M8: Confianza, integración y QA», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S40"
 
@@ -1298,7 +1298,7 @@ Latencia publicada para las tres gamas y confirmación de que la clasificación 
 10 horas — agente QA, hito «M8: Confianza, integración y QA», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S41"
 
@@ -1328,7 +1328,7 @@ Cero tráfico de red durante la clasificación, ningún fotograma escrito a disc
 6 horas — agente QA, hito «M8: Confianza, integración y QA», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente QA y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S42"
 
@@ -1358,7 +1358,7 @@ Se confirma que la fase iOS será implementar adaptadores y no reescribir lógic
 8 horas — agente RELEASE, hito «M9: Preparación iOS y demo», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RELEASE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RELEASE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S43"
 
@@ -1388,7 +1388,7 @@ APK instalable dentro del presupuesto de tamaño y guion que demuestra escaneo d
 8 horas — agente RELEASE, hito «M9: Preparación iOS y demo», según plan/plan_de_trabajo.md
 
 ## Antes de empezar
-Lee `context-for-vibe-coding.md`. Trabaja solo dentro del ámbito de archivos del agente RELEASE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
+Lee `CONTEXTO.md`. Trabaja solo dentro del ámbito de archivos del agente RELEASE y usa los fakes de `shared/testing/` para los módulos de otros agentes.
 BODY
   )" || echo "AVISO: fallo la issue S44"
 

@@ -382,5 +382,5 @@ stateDiagram-v2
 5. Antes de activar cualquier función costosa se consulta `DeviceTierPolicy`. Nadie asume aceleración por hardware.
 6. Los frames de cámara no se persisten, no se envían y no se registran en logs.
 7. La ruta de clasificación no tiene ninguna dependencia de red. La app entera debe funcionar en modo avión.
-8. Las interfaces de la sección "Contratos entre agentes" de `context-for-vibe-coding.md` son inmutables una vez fijadas en M0; cambiarlas requiere issue propia.
+8. Las interfaces de la sección "Contratos entre agentes" de `CONTEXTO.md` son inmutables una vez fijadas en M0; cambiarlas requiere issue propia.
 9. La exactitud se reporta siempre sobre un dataset no visto en entrenamiento, y siempre incluye el acierto de ruta además del top-1 de material.
