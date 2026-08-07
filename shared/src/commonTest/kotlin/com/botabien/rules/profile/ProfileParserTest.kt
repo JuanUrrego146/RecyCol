@@ -153,6 +153,24 @@ class ProfileParserTest {
     }
 
     @Test
+    fun elAvisoDeCanecaNoDisponibleEsOpcionalPeroNoPuedeEstarVacio() {
+        assertEquals("", parse(VALID_PROFILE).unavailableBinNotice, "Sin declarar equivale a vacío")
+
+        val withNotice = VALID_PROFILE.replace(
+            """"conservativeBin": "black"""",
+            """"conservativeBin": "black", "unavailableBinNotice": "Usa {assigned} en lugar de {ideal}."""",
+        )
+        assertEquals("Usa {assigned} en lugar de {ideal}.", parse(withNotice).unavailableBinNotice)
+
+        val blankNotice = VALID_PROFILE.replace(
+            """"conservativeBin": "black"""",
+            """"conservativeBin": "black", "unavailableBinNotice": "  """" ,
+        )
+        val error = failure(blankNotice)
+        assertTrue(error.problems.any { "unavailableBinNotice" in it })
+    }
+
+    @Test
     fun unCatalogoValidoSeParseaYUnoInvalidoAcumulaProblemas() {
         val descriptors = ProfileParser.parseCatalog("catalog.json", VALID_CATALOG)
 
