@@ -26,8 +26,9 @@ class ProfileCatalogTest {
     private val profilesDir = File("resources/profiles")
     private val schemaFile = File(profilesDir, "profile.schema.json")
 
+    // catalog.json es el registro del catálogo (S30), no un perfil: se excluye.
     private val profiles = profilesDir
-        .listFiles { file -> file.extension == "json" && file.name != schemaFile.name }
+        .listFiles { file -> file.extension == "json" && file.name != schemaFile.name && file.name != "catalog.json" }
         .orEmpty()
         .sortedBy { it.name }
 
@@ -50,15 +51,34 @@ class ProfileCatalogTest {
     }
 
     @Test
-    fun elCodigoIsoDeCadaPerfilCoincideConSuNombreDeArchivo() {
-        profiles.forEach { file ->
+    fun elCatalogoRegistraTodoPerfilYSusCodigosSonCoherentes() {
+        // Desde S30 la indexación vive en catalog.json (id/country/file), no en
+        // el nombre de archivo: cada entrada debe apuntar a un archivo existente
+        // y el isoCode del perfil debe coincidir con el country registrado.
+        val catalog = Json.parseToJsonElement(File(profilesDir, "catalog.json").readText())
+            .jsonObject.getValue("profiles").jsonArray.map { it.jsonObject }
+
+        assertTrue(catalog.isNotEmpty(), "catalog.json no registra ningún perfil")
+
+        val registeredFiles = catalog.map { entry ->
+            val fileName = entry.getValue("file").jsonPrimitive.content
+            val file = File(profilesDir, fileName)
+            assertTrue(file.isFile, "catalog.json registra '$fileName' pero el archivo no existe")
+
             val isoCode = Json.parseToJsonElement(file.readText()).jsonObject
                 .getValue("isoCode").jsonPrimitive.content
-
             assertEquals(
-                file.nameWithoutExtension,
+                entry.getValue("country").jsonPrimitive.content,
                 isoCode,
-                "El archivo ${file.name} declara isoCode '$isoCode'; el catálogo se indexa por nombre de archivo",
+                "$fileName declara isoCode '$isoCode' distinto del country registrado en catalog.json",
+            )
+            fileName
+        }.toSet()
+
+        profiles.forEach { file ->
+            assertTrue(
+                file.name in registeredFiles,
+                "${file.name} existe en resources/profiles pero no está registrado en catalog.json",
             )
         }
     }

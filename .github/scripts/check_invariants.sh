@@ -37,8 +37,10 @@ reportar "Sin GlobalScope en ningún código Kotlin" \
   "$(buscar '\bGlobalScope\b' shared androidApp)"
 
 # Invariante 3: lo específico de un país vive en el perfil JSON, nunca en código.
+# Solo comparaciones contra LITERALES ("co", "CO"): comparar dos variables de
+# isoCode (lookup de catálogo, cambio de selección) es legítimo.
 reportar "Sin comportamiento condicionado por país en código de producción" \
-  "$(buscar '(country|isoCode)\s*[=!]=' shared androidApp | solo_produccion)"
+  "$(buscar '(country|isoCode)\s*[=!]=\s*\"|\"[A-Za-z]{2}\"\s*[=!]=\s*[a-zA-Z_.]*(country|isoCode)' shared androidApp | solo_produccion)"
 
 # Invariante 7 / RNF-002: la ruta de clasificación no tiene dependencias de red.
 # La v1 entera es offline; cualquier import de red en la app es sospechoso.
