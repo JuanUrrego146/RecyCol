@@ -91,3 +91,33 @@ Reglas del contrato:
   inferencia: el usuario nunca ve el error (criterio de S15).
 - La verificación en dispositivo (modo avión, latencia real) queda pendiente
   de que existan modelos empaquetados; se cubre con el banco de S20/S41.
+
+## Latencia y memoria (S20, RNF-001, RNF-007)
+
+Optimizaciones del bucle de análisis:
+
+- **Cero asignaciones por frame en el preprocesado**: el búfer directo de
+  entrada se reutiliza entre llamadas (`FramePreprocessor` es con estado y
+  sincronizado) y solo se lee del frame la región que se va a muestrear
+  (`PixelAccessFrame.readArgbRegion`; `BitmapImageFrame` copia solo la
+  región — en un frame 1080p el recorte típico ahorra varios MB por frame).
+  El wrapper del agente CAM debería sobrescribir `readArgbRegion` igual.
+- **Cadencia por gama** (`AnalysisCadence` + `FrameThrottle`): baja = bajo
+  demanda, media ≈ 5 fps, alta ≈ 10 fps. Los frames descartados no se copian
+  ni se preprocesan. El módulo de cámara consume esta compuerta.
+- **Lazo de degradación cerrado**: la fábrica conecta la latencia observada
+  de la etapa de material con `BenchmarkedTierPolicy.reportObservedLatencyMillis`;
+  si un dispositivo sostiene latencias impropias de su gama, baja de gama solo.
+
+Medición y registro:
+
+| Qué | Cómo | Estado |
+|---|---|---|
+| Preprocesado (JVM, contenedor de CI) | `PreprocessorThroughputBenchmarkTest`, imprime `REGISTRO-S20` | mediana **10 ms** por frame 1080p → 224 (medido en el contenedor `android-build`, 06/08/2026) |
+| Latencia de inferencia por variante y vía | `DeviceLatencyBenchmark` (`connectedDebugAndroidTest`) | pendiente de modelos (S27) y dispositivos por gama; lo ejecuta S41 |
+| Memoria en clasificación (< 350 MB) | mismo banco: heap JVM + heap nativo tras el calentamiento | ídem; la aserción del presupuesto ya está en el banco |
+| Consumo de energía (RNF-007) | sesión larga con Battery Historian sobre el banco | procedimiento documentado; ejecuta S41 con hardware |
+
+El registro por gama del criterio de hecho se llena ejecutando el banco en un
+dispositivo de cada gama cuando existan los `.tflite`; las cifras se vuelcan a
+esta tabla y al reporte de S41.

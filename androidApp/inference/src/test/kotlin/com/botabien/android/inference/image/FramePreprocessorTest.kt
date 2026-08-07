@@ -6,6 +6,7 @@ import com.botabien.android.inference.roi.CropRegion
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 
 class FramePreprocessorTest {
 
@@ -100,6 +101,40 @@ class FramePreprocessorTest {
             assertEquals(0xFF.toByte(), buffer.get(pixel * 3), "canal R del píxel $pixel")
             assertEquals(0x00.toByte(), buffer.get(pixel * 3 + 1), "canal G del píxel $pixel")
         }
+    }
+
+    @Test
+    fun `el bufer de salida se reutiliza entre llamadas sin corromper el contenido`() {
+        val first = preprocessor.preprocess(
+            FakePixelFrame.solid(width = 20, height = 20, argb = 0xFF102030.toInt()),
+            quantizedSpec(8),
+        )
+        val firstByte = first.get(0)
+
+        val second = preprocessor.preprocess(
+            FakePixelFrame.solid(width = 20, height = 20, argb = 0xFF405060.toInt()),
+            quantizedSpec(8),
+        )
+
+        assertSame(first, second, "mismo búfer directo reutilizado (RNF-007)")
+        assertEquals(0x10.toByte(), firstByte, "primera pasada: canal R del primer color")
+        assertEquals(0x40.toByte(), second.get(0), "segunda pasada: canal R del segundo color")
+        assertEquals(8 * 8 * 3, second.remaining())
+    }
+
+    @Test
+    fun `al encoger el destino el bufer reutilizado ajusta su limite al tensor`() {
+        preprocessor.preprocess(
+            FakePixelFrame.solid(width = 300, height = 300, argb = 0xFFFFFFFF.toInt()),
+            quantizedSpec(224),
+        )
+
+        val smaller = preprocessor.preprocess(
+            FakePixelFrame.solid(width = 20, height = 20, argb = 0xFF000000.toInt()),
+            quantizedSpec(8),
+        )
+
+        assertEquals(8 * 8 * 3, smaller.remaining(), "remaining() = tamaño exacto del tensor menor")
     }
 
     @Test
