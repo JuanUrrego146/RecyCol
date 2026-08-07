@@ -32,5 +32,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # El workspace del runner hospedado pertenece a UID 1001 y el usuario
+      # gradle del contenedor es UID 1000: sin esto no puede crear /workspace/.gradle.
+      - name: Alinear permisos del workspace con el contenedor
+        run: sudo chown -R 1000:1000 .
+
       - name: Compilar y probar (docker compose run android-build)
         run: docker compose run --rm android-build
