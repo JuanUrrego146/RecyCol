@@ -69,7 +69,7 @@ Kotlin Multiplatform permite compartir exactamente lo que debe compartirse — d
 | Análisis y especificación de requerimientos | [ver en línea](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.md) | [descargar .docx](docs/F_Analisis_de_Requerimientos_V1%2C0_BotaBien.docx) |
 | Arquitectura y diagramas | [ver en línea](docs/arquitectura.md) | — |
 | Plan de trabajo | [ver en línea](plan/plan_de_trabajo.md) | — |
-| Contexto para vibe coding | [ver en línea](context-for-vibe-coding.md) | — |
+| **Contexto único del proyecto** | [ver en línea](CONTEXTO.md) | — |
 
 GitHub no puede previsualizar archivos de Word: al abrir un `.docx` en el navegador o en la app solo se ve el binario. Por eso el documento de requerimientos se publica además como Markdown, que sí se lee en línea y en el móvil. Ambas versiones se generan desde la misma fuente de datos (`tools/gen_doc_data.py`), así que no pueden divergir:
 
@@ -98,4 +98,4 @@ Requisitos previos: JDK 17, Android Studio Ladybug o superior, SDK de Android 34
 | Dirección del proyecto, análisis y revisión | Juan Urrego |
 | Implementación | Agentes de IA en paralelo (ver `plan/plan_de_trabajo.md`) |
 
-El desarrollo se ejecuta mediante agentes de IA trabajando concurrentemente sobre issues independientes. La partición de responsabilidades, los contratos entre módulos y las reglas para evitar colisiones están definidos en [`context-for-vibe-coding.md`](context-for-vibe-coding.md).
+El desarrollo se ejecuta mediante agentes de IA trabajando concurrentemente sobre issues independientes. La partición de responsabilidades, los contratos entre módulos y las reglas para evitar colisiones están definidos en [`CONTEXTO.md`](CONTEXTO.md).

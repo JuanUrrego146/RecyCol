@@ -98,7 +98,7 @@ El sistema está dirigido a cualquier persona que deba separar un residuo y dude
 | Resolución 2184 de 2019 — Código de colores para la separación de residuos en Colombia | Ministerio de Ambiente y Desarrollo Sostenible |
 | Abecé del código de colores para la separación de residuos | Ministerio de Vivienda, Ciudad y Territorio |
 | Arquitectura y diagramas del sistema | docs/arquitectura.md del repositorio |
-| Contexto para vibe coding | context-for-vibe-coding.md del repositorio |
+| Contexto unico del proyecto | CONTEXTO.md del repositorio |
 | Plan de trabajo y cronograma | plan/plan_de_trabajo.md del repositorio |
 
 ## 5. Diagrama flujo de actividades del proceso

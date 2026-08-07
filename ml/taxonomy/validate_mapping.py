@@ -127,7 +127,7 @@ def main() -> int:
         if not coverage.get(material):
             warnings.append(
                 f"'{material}' no recibe datos de ninguna fuente habilitada "
-                "(brechas registradas en ml/DATASETS.md)."
+                "(brechas registradas en ml/DATA_LICENSES.md)."
             )
 
     print(f"Mapeo: {MAPPING_PATH.relative_to(REPO_ROOT)} (versión {mapping['version']})")

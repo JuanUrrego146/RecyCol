@@ -36,6 +36,10 @@ ml/checkpoints/
 *.onnx
 *.pt
 
+# Credenciales de Kaggle: nunca se versionan
+kaggle.json
+.kaggle/
+
 # Sistema
 .DS_Store
 Thumbs.db

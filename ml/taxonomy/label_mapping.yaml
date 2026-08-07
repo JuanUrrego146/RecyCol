@@ -1,6 +1,6 @@
 # Mapeo de taxonomía — BotaBien ML (S21 · RNF-016, RNF-017)
 #
-# Traduce cada etiqueta de origen de los datasets inventariados en ml/DATASETS.md
+# Traduce cada etiqueta de origen de los datasets inventariados en ml/DATA_LICENSES.md
 # a la taxonomía cerrada WasteMaterial del dominio. Regla del proyecto: ningún
 # dataset se mezcla sin pasar por este mapeo, y toda etiqueta de origen tiene
 # destino (map) o descarte justificado (discard). Valida con:
@@ -133,7 +133,7 @@ datasets:
       "Food Can": METAL
       "Corrugated carton": CARDBOARD
       # Única fuente de BEVERAGE_CARTON del inventario: cartón para bebidas con
-      # recubrimiento (Tetra Pak) y vaso de café. Cobertura vigilada (DATASETS.md).
+      # recubrimiento (Tetra Pak) y vaso de café. Cobertura vigilada (CONTEXTO.md §7).
       "Drink carton": BEVERAGE_CARTON
       "Paper cup": BEVERAGE_CARTON
       "Egg carton": CARDBOARD
