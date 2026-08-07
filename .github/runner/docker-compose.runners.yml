@@ -5,10 +5,14 @@
 #   Tumbar (los runners quedan "offline" en GitHub; la config persiste):
 #     docker compose -f docker-compose.runners.yml down
 #
-# Dimensionado: VM de Docker con ~11,6 GB y 6 CPUs compartidos con el resto
-# del proyecto (ML entrena en GPU aparte). Dos runners con tope de 5 GB y
-# 3 CPUs cada uno dejan aire; el heap de Gradle va limitado a 3g desde el
-# gradle.properties del volumen de caché (lo escribe entrypoint.sh).
+# Dimensionado (corregido tras incidente del 07/08, madrugada): un pipeline
+# completo en frío necesita ~6-7 GB; con tope de 5 GB el contenedor moría por
+# OOM a mitad de job (síntoma: job en failure SIN ningún paso fallido). Por
+# defecto corre SOLO runner-1 con 8 GB; runner-2 (perfil "ola", 4 GB) se
+# activa únicamente en olas de PRs y con la VM vigilada:
+#   docker compose -f docker-compose.runners.yml --profile ola up -d
+# El heap de Gradle va limitado a 3g desde el gradle.properties del volumen
+# de caché (lo escribe entrypoint.sh).
 services:
   runner-1:
     build:
@@ -25,13 +29,16 @@ services:
     volumes:
       - runner1-agent:/opt/actions-runner
       - runner1-gradle-cache:/opt/gradle-cache
-    mem_limit: 5g
-    cpus: 3
+    mem_limit: 8g
+    cpus: 4
 
+  # Segundo ejecutor SOLO para olas de PRs (perfil "ola"): con 4 GB aguanta
+  # builds con caché caliente, no un pipeline frío.
   runner-2:
     image: botabien/actions-runner:2.336.0
     container_name: botabien-runner-2
     restart: unless-stopped
+    profiles: ["ola"]
     depends_on:
       - runner-1
     environment:
@@ -42,8 +49,8 @@ services:
     volumes:
       - runner2-agent:/opt/actions-runner
       - runner2-gradle-cache:/opt/gradle-cache
-    mem_limit: 5g
-    cpus: 3
+    mem_limit: 4g
+    cpus: 2
 
 volumes:
   runner1-agent:
