@@ -20,7 +20,14 @@
  * borrosas que la moderación tendrá que descartar una a una.
  */
 
-/** Espejo de `FrameQualityThresholds.kt` (main@cb8405b). */
+/**
+ * Espejo de `FrameQualityThresholds.kt`.
+ *
+ * **No se anota el commit**: anclarlo a uno concreto envejece mal y ya lo hizo
+ * —apuntaba a `cb8405b` cuando S41 ya había recalibrado el filtro—. Quien vigila
+ * la coincidencia es `thresholdParity.test.ts`, que lee el Kotlin de verdad y
+ * falla si alguno de los cuatro se mueve.
+ */
 export const SHARPNESS_SATURATION = 900.0;
 export const BLURRY_BELOW = 0.18;
 export const UNDEREXPOSED_BELOW = 0.16;
@@ -127,7 +134,20 @@ export function metricsOf(luma: LumaPlane): FrameMetrics {
   };
 }
 
-/** `true` si la app de producción clasificaría este frame en vez de pedir otra toma. */
+/**
+ * `true` si la app de producción clasificaría este frame en vez de pedir otra
+ * toma.
+ *
+ * Réplica de `DirectedCaptureController.isUsable`, que es el predicado que de
+ * verdad acepta o rechaza un fotograma en la app: nitidez, y luminancia entre
+ * los dos extremos. Ni más ni menos.
+ *
+ * **Lo que a propósito NO se replica** es `objectCentered`, que en la app mide
+ * si la energía de bordes se concentra en el marco guía. Existe, pero solo
+ * alimenta una sugerencia al usuario (`CaptureHint.CENTER_OBJECT`): no rechaza
+ * nada. Meterlo aquí haría que `quality_accepted` fuese más estricto que
+ * producción y el manifiesto describiría un dominio operativo que no es el real.
+ */
 export function accepts(metrics: FrameMetrics): boolean {
   return !metrics.blurry && !metrics.underexposed && !metrics.overexposed;
 }

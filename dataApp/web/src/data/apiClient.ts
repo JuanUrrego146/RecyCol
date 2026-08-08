@@ -147,6 +147,21 @@ export function saveProfile(
   });
 }
 
+/**
+ * Reintenta unir lo aportado sin cuenta con la cuenta activa.
+ *
+ * Devuelve `linked` tal cual lo dice el servidor. El cliente **solo** debe dar
+ * el enlace por hecho cuando venga `true`: darlo por hecho antes perdería para
+ * siempre las fotos que aún estaban en la cola, y la misma persona contaría como
+ * dos aportantes.
+ */
+export function linkAnonymousContributions(anonymousId: string): Promise<{ linked: boolean }> {
+  return request<{ linked: boolean }>("/me/link", {
+    method: "POST",
+    body: JSON.stringify({ anonymousId }),
+  });
+}
+
 export async function fetchAcademicSuggestions(
   field: "course" | "group" | "professor",
 ): Promise<string[]> {

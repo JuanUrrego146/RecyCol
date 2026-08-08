@@ -196,6 +196,47 @@ async function demoteToTrain(contributorId: string): Promise<void> {
   }
 }
 
+/**
+ * Reintento del enlace anónimo → cuenta.
+ *
+ * El enlace se intenta al guardar el perfil, pero puede fallar por una razón
+ * perfectamente normal: las capturas hechas antes de identificarse todavía
+ * estaban en la cola del navegador, así que el aportante anónimo aún no existía
+ * en el servidor y no había nada que enlazar.
+ *
+ * Sin este reintento esas fotos se quedarían para siempre bajo un aportante
+ * distinto, y la misma persona contaría como dos —justo lo que §10 prohíbe—
+ * sin que nada avisara. El cliente vuelve a llamar aquí cuando su cola se vacía,
+ * y solo da el enlace por hecho cuando esta ruta responde `linked: true`.
+ */
+export async function linkAnonymous(
+  request: HttpRequest,
+  context: InvocationContext,
+): Promise<HttpResponseInit> {
+  const principal = readPrincipal(request);
+  if (!principal) return { status: 401, jsonBody: { message: "Hay que iniciar sesión" } };
+
+  const body = (await request.json().catch(() => null)) as { anonymousId?: string } | null;
+  const anonymousId = typeof body?.anonymousId === "string" ? body.anonymousId : null;
+  if (!anonymousId || isAccountId(anonymousId)) {
+    return { status: 400, jsonBody: { message: "Identificador anónimo inválido" } };
+  }
+
+  await ensureTables();
+  const id = accountIdFor(principal.userId);
+  if (anonymousId === id) return { status: 200, jsonBody: { linked: false } };
+
+  const linked = await linkAnonymousContributor(id, anonymousId, context);
+  return { status: 200, headers: { "cache-control": "no-store" }, jsonBody: { linked } };
+}
+
+app.http("linkAnonymous", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "api/me/link",
+  handler: linkAnonymous,
+});
+
 app.http("getMe", {
   methods: ["GET"],
   authLevel: "anonymous",

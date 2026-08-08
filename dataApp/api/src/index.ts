@@ -12,6 +12,8 @@ import "./functions/review";
 import "./functions/exportData";
 import "./functions/account";
 import "./functions/report";
+// Mantiene viva la instancia para que nadie se coma el arranque en frío.
+import "./functions/keepWarm";
 // El atrapatodo va el último: sirve la aplicación web y cualquier ruta que no
 // haya reclamado una función de API antes.
 import "./functions/site";

@@ -35,6 +35,15 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api")) return;
 
+  // Nada de `/.auth/*` toca la caché, jamás.
+  //
+  // Son las rutas de identidad de la plataforma. Guardar una respuesta suya en
+  // un almacén compartido por todo el origen significa que, en un equipo
+  // compartido —un portátil de campus, el móvil que se pasa de mano en mano—,
+  // la siguiente persona podría recibir la sesión de la anterior. El coste de
+  // excluirlas es cero: nunca hacen falta sin conexión.
+  if (url.pathname.startsWith("/.auth")) return;
+
   // Red primero y caché como red de seguridad: así una versión nueva de la
   // aplicación llega sin tener que borrar datos del sitio.
   event.respondWith(

@@ -8,6 +8,7 @@
       }
     }
   },
+  "//": "NO QUITAR extensionBundle. Solo el disparador HTTP viene de serie en el host; el de temporizador lo aporta este paquete. Se quitó una vez creyendo que no hacía falta —las funciones son casi todas HTTP— y el resultado fue que `keepWarm` desapareció de la lista de funciones registradas sin un solo error en el despliegue, dejando otra vez el arranque en frío de 40 s.",
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[4.*, 5.0.0)"

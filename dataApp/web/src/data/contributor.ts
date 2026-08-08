@@ -33,6 +33,19 @@ export interface ContributorState {
   readonly contributed: number;
   /** Últimas clases pedidas por la misión, para no repetir siempre la misma. */
   readonly recentMissions: readonly Material[];
+  /** `true` cuando ya se preguntó si es de la UMNG. Se pregunta una sola vez. */
+  readonly umngAsked: boolean;
+  /**
+   * Identificador anónimo que el **servidor ya confirmó** haber unido a la
+   * cuenta.
+   *
+   * Se guarda solo con la confirmación, nunca con «la petición no falló». Si el
+   * enlace no se hizo —por ejemplo porque las capturas seguían en la cola y el
+   * aportante anónimo aún no existía en el servidor— hay que reintentarlo, y
+   * marcarlo antes de tiempo lo perdería para siempre y en silencio. Eso rompería
+   * la partición por persona que exige §10 sin que nada avisara.
+   */
+  readonly linkedAnonymousId: string | null;
   readonly createdAt: string;
 }
 
@@ -46,6 +59,8 @@ function newContributor(): ContributorState {
     consentAcceptedAt: null,
     contributed: 0,
     recentMissions: [],
+    umngAsked: false,
+    linkedAnonymousId: null,
     createdAt: new Date().toISOString(),
   };
 }
@@ -76,6 +91,9 @@ export function loadContributor(): ContributorState {
       recentMissions: Array.isArray(parsed.recentMissions)
         ? (parsed.recentMissions as Material[])
         : [],
+      umngAsked: parsed.umngAsked === true,
+      linkedAnonymousId:
+        typeof parsed.linkedAnonymousId === "string" ? parsed.linkedAnonymousId : null,
       createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : new Date().toISOString(),
     };
   } catch {
@@ -122,6 +140,16 @@ export function recordMissionShown(state: ContributorState, material: Material):
 
 export function recordContribution(state: ContributorState): ContributorState {
   return persist({ ...state, contributed: state.contributed + 1 });
+}
+
+/** La pregunta de adscripción se hace una sola vez, no en cada visita. */
+export function markUmngAsked(state: ContributorState): ContributorState {
+  return persist({ ...state, umngAsked: true });
+}
+
+/** Solo se llama con la confirmación del servidor. Ver `linkedAnonymousId`. */
+export function markAnonymousLinked(state: ContributorState, anonymousId: string): ContributorState {
+  return persist({ ...state, linkedAnonymousId: anonymousId });
 }
 
 export { randomId };

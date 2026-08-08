@@ -27,10 +27,12 @@ import {
   type Mission,
   type Tally,
 } from "./domain/missions";
-import { fetchStats } from "./data/apiClient";
+import { fetchStats, linkAnonymousContributions } from "./data/apiClient";
 import {
   acceptConsent,
   loadContributor,
+  markAnonymousLinked,
+  markUmngAsked,
   needsConsent,
   randomId,
   recordContribution,
@@ -47,6 +49,7 @@ import { CameraScreen } from "./ui/CameraScreen";
 import { ConsentScreen } from "./ui/ConsentScreen";
 import { HomeScreen } from "./ui/HomeScreen";
 import { LabelScreen, type LabelDraft } from "./ui/LabelScreen";
+import { AffiliationScreen } from "./ui/AffiliationScreen";
 import { LoginScreen } from "./ui/LoginScreen";
 import { ProfileScreen } from "./ui/ProfileScreen";
 import { ReviewScreen } from "./ui/ReviewScreen";
@@ -54,6 +57,7 @@ import { RewardScreen } from "./ui/RewardScreen";
 
 type Screen =
   | { readonly name: "home" }
+  | { readonly name: "affiliation" }
   | { readonly name: "login" }
   | { readonly name: "profile" }
   | {
@@ -145,6 +149,47 @@ function ContributeApp() {
     }
   }, [session.loading, session.principal, session.profile]);
 
+  // Reintenta unir lo aportado sin cuenta cuando ya no queda nada en la cola.
+  //
+  // Al guardar el perfil el enlace puede fallar sin que sea un error: si las
+  // capturas seguían encoladas, el aportante anónimo aún no existía en el
+  // servidor. Se marca **solo** cuando el servidor confirma `linked`; darlo por
+  // hecho antes perdería esas fotos para siempre y la misma persona contaría
+  // como dos aportantes, que es justo lo que §10 prohíbe.
+  useEffect(() => {
+    const yaEnlazado = contributor.linkedAnonymousId === contributor.id;
+    if (
+      session.loading ||
+      !session.profile ||
+      !session.accountContributorId ||
+      session.accountContributorId === contributor.id ||
+      yaEnlazado ||
+      uploader.pending > 0
+    ) {
+      return;
+    }
+    let vigente = true;
+    void linkAnonymousContributions(contributor.id)
+      .then((resultado) => {
+        if (vigente && resultado.linked) {
+          setContributor((actual) => markAnonymousLinked(actual, actual.id));
+        }
+      })
+      .catch(() => {
+        // Sin red o sin sesión: se reintenta en la siguiente ocasión.
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [
+    session.loading,
+    session.profile,
+    session.accountContributorId,
+    contributor.id,
+    contributor.linkedAnonymousId,
+    uploader.pending,
+  ]);
+
   if (needsConsent(contributor)) {
     return (
       <div className="app">
@@ -152,6 +197,7 @@ function ContributeApp() {
           onAccept={(nickname) => {
             const withNickname = nickname.trim() ? setNickname(contributor, nickname) : contributor;
             setContributor(acceptConsent(withNickname));
+            if (!contributor.umngAsked) setScreen({ name: "affiliation" });
           }}
         />
       </div>
@@ -218,6 +264,22 @@ function ContributeApp() {
   };
 
   switch (screen.name) {
+    case "affiliation":
+      return (
+        <div className="app">
+          <AffiliationScreen
+            onUmng={() => {
+              setContributor(markUmngAsked(contributor));
+              setScreen({ name: "login" });
+            }}
+            onSkip={() => {
+              setContributor(markUmngAsked(contributor));
+              setScreen({ name: "home" });
+            }}
+          />
+        </div>
+      );
+
     case "login":
       return (
         <div className="app">

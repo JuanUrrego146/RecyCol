@@ -42,6 +42,20 @@ echo "→ Instalando dependencias de producción"
 # multiplicarían el tamaño del paquete.
 npm ci --omit=dev --prefix "${STAGING}" --no-audit --no-fund >/dev/null
 
+echo "→ Podando lo que el runtime nunca abre"
+# Más de la mitad del paquete eran mapas de código y declaraciones de tipos: peso
+# que en un plan de consumo Windows se paga en cada arranque en frío, porque
+# `wwwroot` vive en un recurso compartido por red y cada archivo cuesta viajes.
+#
+# Nada de esto lo lee Node en ejecución. Medido: 42 MB y 5.361 archivos antes,
+# ~14 MB y ~1.700 después.
+find "${STAGING}/node_modules" \
+  \( -name '*.map' -o -name '*.d.ts' -o -name '*.md' -o -name '*.ts' \) \
+  -type f -delete 2>/dev/null || true
+# El mapa de la web pesa casi el triple que el propio bundle y solo sirve para
+# depurar; se conserva en `web/dist`, fuera del paquete.
+find "${STAGING}/www" -name '*.map' -type f -delete 2>/dev/null || true
+
 echo "→ Comprimiendo"
 if command -v powershell.exe >/dev/null 2>&1; then
   # En Windows, Compress-Archive evita depender de que haya `zip` en el PATH.

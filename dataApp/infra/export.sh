@@ -27,6 +27,10 @@ set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DESTINO="${1:-${RAIZ}/ml/data/recycol_aporta}"
+# Absoluta desde ya: más abajo el volcado se ejecuta con otro directorio de
+# trabajo, y una ruta relativa acabaría escribiendo el manifiesto en otro sitio.
+mkdir -p "${DESTINO}"
+DESTINO="$(cd "${DESTINO}" && pwd)"
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-recycol-aporta}"
 STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-strecycolaporta94b924}"
@@ -65,15 +69,20 @@ echo "→ Volcando etiquetas y metadatos"
 # El volcado va por Node porque el registro completo vive como JSON dentro de la
 # entidad —Table Storage no admite objetos anidados— y hay que reconstruirlo.
 # Se reutiliza el SDK que ya trae la API; si falta, se instala.
-MODULOS="${RAIZ}/dataApp/api/node_modules"
-if [[ ! -d "${MODULOS}/@azure/data-tables" ]]; then
+API_DIR="${RAIZ}/dataApp/api"
+if [[ ! -d "${API_DIR}/node_modules/@azure/data-tables" ]]; then
   echo "  (instalando dependencias de la API, solo la primera vez)"
-  npm ci --prefix "${RAIZ}/dataApp/api" --no-audit --no-fund >/dev/null
+  npm ci --prefix "${API_DIR}" --no-audit --no-fund >/dev/null
 fi
 
-# NODE_PATH para que el script funcione desde cualquier directorio, y no solo
-# desde dataApp/api.
-NODE_PATH="${MODULOS}" CONEXION="${CONEXION}" DESTINO="${DESTINO}" ESTADO="${ESTADO}" \
+# Se ejecuta CON EL DIRECTORIO DE TRABAJO en dataApp/api.
+#
+# No sirve `NODE_PATH`: solo lo honra el resolutor de CommonJS, y esto es un
+# módulo ESM. Con NODE_PATH el script funcionaba desde dataApp/api y moría con
+# ERR_MODULE_NOT_FOUND desde cualquier otro sitio — incluida la raíz del
+# repositorio, que es desde donde se invoca. Por eso `DESTINO` se convirtió en
+# ruta absoluta más arriba.
+( cd "${API_DIR}" && CONEXION="${CONEXION}" DESTINO="${DESTINO}" ESTADO="${ESTADO}" \
   node --input-type=module -e "$(cat <<'JS'
 import { TableClient } from "@azure/data-tables";
 import { writeFileSync, existsSync } from "node:fs";
@@ -228,6 +237,6 @@ const resumen = lineas.join("\n") + "\n";
 writeFileSync(join(destino, "RESUMEN.txt"), resumen);
 console.log(resumen);
 JS
-)"
+)" )
 
 echo "✓ Listo en ${DESTINO}"
