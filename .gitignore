@@ -32,9 +32,16 @@ venv/
 ml/data/
 ml/runs/
 ml/checkpoints/
+ml/dist/
 *.tflite
 *.onnx
 *.pt
+
+# Salidas de entrenamiento: una carpeta por corrida. Se conservan en disco —son
+# la trazabilidad de las cifras de CONTEXTO.md §7— pero no entran en git: son
+# cientos de archivos que cambian en cada experimento. El reporte que sí importa,
+# ml/REPORTE_METRICAS.md, se versiona a mano.
+ml/reports/
 
 # Credenciales de Kaggle: nunca se versionan
 kaggle.json
