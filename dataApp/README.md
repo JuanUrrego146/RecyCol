@@ -29,18 +29,27 @@ y de las clases que faltan. Ataca las tres cosas a la vez:
 ## Cómo funciona para quien aporta
 
 ```
-enlace → consentimiento (una vez) → MISIÓN: "faltan 240 vasos de bebida"
+enlace → consentimiento (una vez) → MENÚ: lo que más falta
+   ├ 🥤 Cartón de bebidas   faltan 300
+   ├ 🔌 Electrónicos        faltan 400
+   └ …                      → «ver los once materiales»
    → foto → "¿es cartón de bebidas?" → "¿queda líquido dentro?" → luz y ángulo
    → "va a la CANECA NEGRA, porque lleva recubrimiento de polietileno"
 ```
 
 Tres decisiones de diseño que no son cosméticas:
 
-**La app pide la clase que falta, en vez de esperar a que llegue.** §10 dice que
-el equilibrio entre clases pesa más que el total. Cuando la app pide «un vaso de
-café», la persona sabe qué está fotografiando antes de disparar: la intención
-precede a la foto, la etiqueta nace limpia y no hay sugerencia que aceptar sin
+**La app enseña lo que falta, ordenado, y quien aporta elige.** §10 dice que el
+equilibrio entre clases pesa más que el total, así que el orden de la lista lo
+ponemos nosotros: arriba lo que está más lejos de su objetivo. La elección es de
+quien tiene la basura delante, que es el único que sabe qué tiene delante. Tocar
+una fila abre la cámara con ese material ya elegido: la intención sigue
+precediendo a la foto, la etiqueta nace limpia y no hay sugerencia que aceptar sin
 mirar. Y la clase deja de pedirse al llegar a su objetivo.
+
+Antes esto era **una** misión impuesta, y fallaba por lo obvio: pedía un vaso de
+café a quien estaba frente a una caneca de botellas, y la respuesta útil —«tengo
+esto otro»— quedaba escondida detrás de un botón secundario.
 
 **La recompensa es la app principal funcionando.** Después de etiquetar —nunca
 antes, eso sesgaría— se muestra a qué caneca va y por qué, leyendo el perfil
@@ -68,9 +77,13 @@ es de la universidad, su clase, su grupo y el profesor.
 - **La identidad la manda la sesión, no el cuerpo de la petición.** Sin eso,
   cualquiera podría atribuirle fotos a otro estudiante — para inflarle el conteo
   o para ensuciárselo.
-- **El informe cuenta fotos aprobadas, objetos distintos y materiales
-  distintos.** Dar puntos crea el incentivo de inflar el número; treinta fotos de
-  la misma lata son un objeto.
+- **El informe cuenta fotos aprobadas, objetos distintos, imágenes distintas y
+  materiales distintos.** Dar puntos crea el incentivo de inflar el número;
+  treinta fotos de la misma lata son un objeto. Y como el identificador de objeto
+  lo genera el navegador, al lado va el recuento de pHash distintos: dos fotos con
+  pHash distinto son dos fotos de verdad distintas. Contra un cliente escrito a
+  mano ninguna de las dos columnas basta —la barrera ahí es la moderación—, pero
+  separan a quien infla el conteo con la aplicación de verdad.
 - **Los datos personales no salen hacia ML.** El manifiesto de entrenamiento
   lleva `contributor_id` y nada más.
 
@@ -109,8 +122,8 @@ dataApp/
 
 ```bash
 npm ci --prefix dataApp/web && npm run dev --prefix dataApp/web   # http://localhost:5173
-npm test --prefix dataApp/web                                     # 72 pruebas
-npm test --prefix dataApp/api                                     # 45 pruebas
+npm test --prefix dataApp/web                                     # 76 pruebas
+npm test --prefix dataApp/api                                     # 62 pruebas
 ```
 
 La cámara funciona en `localhost` sin HTTPS. Sin la API levantada se puede
@@ -127,6 +140,21 @@ Para llevar los datos a ML: [`docs/INTEGRACION-ML.md`](docs/INTEGRACION-ML.md).
   `ml/quality/frame_quality_gate.py` (el pipeline) y
   `web/src/capture/qualityGate.ts` (aquí). `qualityGate.test.ts` usa los mismos
   patrones sintéticos que el autochequeo de la réplica en NumPy.
+- **Nitidez, exposición y pHash los declara el cliente.** Los calcula el
+  navegador y viajan en el cuerpo de la petición; la API valida rangos pero no los
+  recalcula contra la imagen. Con la aplicación de verdad son fiables; con un
+  cliente escrito a mano, no. Quien entrene tiene que recalcularlos con
+  `ml/quality/frame_quality_gate.py`, y `docs/INTEGRACION-ML.md` lo dice con la
+  receta.
+- **Hay dos topes diarios y hacen falta los dos.** El de aportante cuenta contra
+  un identificador que manda el propio cliente, así que un UUID nuevo por llamada
+  se lo salta entero; el de dirección de origen no, porque la dirección la pone la
+  plataforma. El porqué —y por qué se lee la **última** entrada de
+  `x-forwarded-for` y no la primera— está en `api/src/ratelimit.ts`.
+- **El escapado de CSV neutraliza fórmulas.** Un nombre que empiece por `=` se
+  ejecuta al abrir el informe en Excel. `api/src/csv.ts` lo evita anteponiendo una
+  comilla simple, y `infra/export.sh` lleva la misma regla copiada porque es un
+  guion autocontenido: si cambia una, cambian las dos.
 - **El perfil normativo se importa, no se copia.** `domain/profile.ts` lee
   `shared/resources/profiles/co.json`, que es de ámbito RULES. Un cambio
   incompatible allí se pone rojo en el CI de `dataApp`, no en producción.

@@ -26,6 +26,7 @@ administrar ni que pagar.
 | Quién aportó qué | Table Storage, tabla `contributors` | igual, cambiando el nombre |
 | Contadores de las misiones | Table Storage, tabla `counters` | igual |
 | Cola de moderación | Table Storage, tabla `pendingreview` | igual |
+| Tope diario por red | Table Storage, tabla `ipquota` | igual. Solo contadores; no lleva direcciones ni nada que apunte a una captura |
 
 Las fotos se guardan como `MATERIAL/aportante/captura.jpg`, así que el propio
 nombre de la ruta ya dice de qué clase es cada una.
@@ -103,7 +104,7 @@ Lo demás sirve para diagnosticar por qué falla el modelo, no solo para entrena
 | Columna | Para qué |
 |---|---|
 | `contamination` | **Lo más valioso del manifiesto.** Contaminación real etiquetada por una persona, en papel, cartón y cartón de bebidas. Es lo que la síntesis de S26 no logró replicar y no existe en ninguna fuente pública |
-| `sharpness`, `luminance`, `quality_accepted` | Métricas del **mismo filtro que la app de producción**. Permiten separar «el modelo falla en fotos que la app aceptaría» de «falla en fotos que el filtro habría rechazado» |
+| `sharpness`, `luminance`, `quality_accepted` | Métricas del **mismo filtro que la app de producción**, pero **las calcula el navegador y nadie las ha verificado contra la imagen**. Recalcúlalas con `ml/quality/frame_quality_gate.py` sobre `images/` antes de filtrar por calidad; el porqué y cómo, en [INTEGRACION-ML.md](INTEGRACION-ML.md) |
 | `light`, `angle` | Etiquetan el dominio: dejan medir **dónde** falla, no solo que falla |
 | `background` | Sirve para comprobar si el modelo se apoya en el fondo como atajo, que es lo que pasó con la síntesis |
 | `corrected` | La persona corrigió lo que pedía la misión. §10: **la corrección vale más que la confirmación**; son los casos donde el modelo se equivoca |

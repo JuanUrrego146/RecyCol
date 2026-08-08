@@ -69,12 +69,47 @@ dominio real**. Este lo da.
   dominio degradado real de relleno sanitario, otro mide el dominio de la app.
   Reportar contra los dos por separado dice más que promediarlos.
 
+## ⚠️ Lo que el manifiesto declara y nadie ha verificado
+
+`sharpness`, `luminance`, `quality_accepted` y `phash` **los calcula el
+navegador de quien aporta**, y llegan en el cuerpo de la petición. La API los
+valida —rangos, formato— pero **no los recalcula contra la imagen**, así que no
+son medidas: son afirmaciones del cliente.
+
+Con la aplicación de verdad son fiables, porque es la réplica del filtro de
+producción la que los produce. Con un cliente escrito a mano no lo son: se
+pueden mandar fotos basura con nitidez perfecta, y se puede burlar la
+deduplicación por `phash` mandando un valor distinto para la misma imagen.
+
+**Qué hacer con ellas, y es barato:** recalcularlas sobre las imágenes ya
+descargadas. La herramienta existe, es de CAM y hace exactamente esto —replica
+`FrameQualityThresholds.kt`, que es la fuente de verdad del filtro de la app:
+
+```python
+from PIL import Image
+import numpy as np
+from quality.frame_quality_gate import FrameQualityGate, luma_from_rgb
+
+puerta = FrameQualityGate()
+rgb = np.asarray(Image.open(ruta).convert("RGB"), dtype=np.uint8)
+aceptada, metricas = puerta.accepts(luma_from_rgb(rgb))
+```
+
+Las columnas declaradas **siguen sirviendo**, pero para otra cosa: comparadas con
+las recalculadas dicen si un cliente está mintiendo, y sobre qué. Para filtrar por
+calidad, o para separar «falla en fotos que la app aceptaría» de «falla en fotos
+que el filtro habría rechazado», usa siempre las recalculadas.
+
+El `phash` tiene el mismo tratamiento y ya lo tenía por otra razón (punto 1 de
+abajo): es prefiltro, no veredicto.
+
 ## Antes de entrenar con esto
 
 1. **Deduplicar contra todo lo existente, RealWaste incluido.** El manifiesto
-   trae `phash` calculado en el navegador, pero es un **prefiltro**: el
-   redimensionado del navegador no es el de Pillow y unos bits pueden diferir.
-   La deduplicación que decide es la de S22, con su propia herramienta.
+   trae `phash` calculado en el navegador, pero es un **prefiltro** por partida
+   doble: el redimensionado del navegador no es el de Pillow y unos bits pueden
+   diferir, y además lo declara el cliente. La deduplicación que decide es la de
+   S22, con su propia herramienta, sobre las imágenes de disco.
 2. **Registrar la fuente** en `ml/DATA_LICENSES.md` antes de usarla. Procedencia:
    aportaciones propias con cesión explícita, versión de consentimiento en la
    columna `consent_version`, responsable Juan Urrego. Veredicto comercial: apto
@@ -96,7 +131,7 @@ dominio real**. Este lo da.
 | Columna | Para qué |
 |---|---|
 | `contamination` | **El dato más valioso del manifiesto.** Contaminación real etiquetada por una persona, en las tres clases de fibra. Es lo que la síntesis de S26 no logró replicar y no existe en ninguna fuente pública |
-| `sharpness`, `luminance`, `quality_accepted` | Métricas del **mismo filtro que la app de producción** (`FrameQualityThresholds.kt`, replicado en el navegador). Permiten separar «el modelo falla en frames que la app aceptaría» de «falla en frames que el filtro habría rechazado» |
+| `sharpness`, `luminance`, `quality_accepted` | Métricas del **mismo filtro que la app de producción** (`FrameQualityThresholds.kt`, replicado en el navegador), pero **declaradas por el cliente y sin verificar**: recalcúlalas con `ml/quality/frame_quality_gate.py` antes de filtrar por ellas. Ver el aviso de arriba |
 | `light`, `angle` | Etiquetan el dominio: permiten medir **dónde** falla el modelo, no solo que falla |
 | `physical_state`, `background` | `background` sirve para comprobar si el modelo se apoya en el fondo como atajo, que es lo que pasó con la síntesis |
 | `corrected` | `true` cuando la persona corrigió lo que pedía la misión. §10 punto 4: **la corrección vale más que la confirmación**. Priorízalas en el muestreo |

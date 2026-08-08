@@ -891,6 +891,7 @@ almacenamiento**, `strecycolaporta94b924`, dentro del grupo `rg-recycol-aporta`:
 | Las fotos | Blob Storage, contenedor `captures`, como `MATERIAL/aportante/captura.jpg` |
 | Las etiquetas y metadatos | Table Storage, tabla `captures` |
 | Aportantes, contadores y cola de moderación | Table Storage: `contributors`, `counters`, `pendingreview` |
+| Topes diarios por dirección de red | Table Storage: `ipquota`. Solo contadores, sin direcciones ni referencias a capturas |
 
 **Para descargarlo todo**, con `az login` hecho y desde la raíz del repositorio:
 
@@ -969,12 +970,20 @@ Al detectar un objeto le toma la foto, se la muestra a la persona y le pregunta
 
 **Lo que cambió respecto a lo previsto aquí, y por qué:**
 
-- **La aplicación pide la clase que falta** («busca un vaso de café») en vez de
+- **La aplicación enseña lo que falta, ordenado, y la persona elige** — en vez de
   que el modelo proponga y la persona corrija. Los `.tflite` son INT8 con firma
-  NCHW y no corren en navegador; además el modo misión resuelve el equilibrio por
-  clase, que esta misma sección dice que pesa más que el volumen. El flujo de
-  «el modelo propone» queda para cuando ML exporte a ONNX, y entonces cada
-  corrección será aprendizaje activo.
+  NCHW y no corren en navegador; además el orden por clase resuelve el equilibrio,
+  que esta misma sección dice que pesa más que el volumen. El flujo de «el modelo
+  propone» queda para cuando ML exporte a ONNX, y entonces cada corrección será
+  aprendizaje activo.
+
+  La pantalla de inicio empezó siendo **una** misión impuesta y dejó de serlo el
+  08/08: pedía un vaso de café a quien estaba frente a una caneca de botellas, y
+  la respuesta útil quedaba detrás de un botón secundario. Ahora son las cinco
+  clases que más faltan, tocables, con «faltan N» y su motivo, más «ver los once
+  materiales» para el resto. **El orden sigue siendo nuestro y sale de los datos
+  de §7** (RESIDUAL al 2,8 % de acierto, ELECTRONIC a cero, `BEVERAGE_CARTON` con
+  ~100 imágenes); lo que cambia es que elegir es de quien tiene la basura delante.
 - **Hay cuentas, opcionales.** Se añadieron el 07/08 a petición de Juan para
   hablar con profesores de la UMNG y que den puntos por aportar. Entrar con el
   correo institucional **acredita** la pertenencia; declararla desde otra cuenta
@@ -1016,7 +1025,7 @@ mitad del valor** y no se puede diagnosticar nada cuando el modelo falle.
 | Foto **sin recortar** + recorte/bbox si lo hubo | Permite reprocesar con otro pipeline mañana. Guardar solo el recorte es irreversible | 🟠 alta |
 | Condición de luz (interior / exterior / poca luz / contraluz) | Etiquetar el dominio permite medir **dónde** falla el modelo en vez de saber solo que falla | 🟠 alta |
 | Ángulo aproximado (cenital / oblicuo / lateral) | Igual que la luz: es la variable que separa foto de estudio de foto de móvil | 🟠 alta |
-| Métricas de `frame_quality_gate.py` (nitidez, exposición) | **Ya existe, es de CAM y sigue sin usarse.** Sale gratis y permite filtrar por calidad sin descartar nada | 🟠 alta |
+| Métricas de `frame_quality_gate.py` (nitidez, exposición) | **Ya existe, es de CAM y sigue sin usarse.** Sale gratis y permite filtrar por calidad sin descartar nada. ⚠️ Las que trae el manifiesto **las declara el navegador y nadie las verifica**: el pipeline tiene que recalcularlas sobre las imágenes antes de filtrar por ellas ([INTEGRACION-ML.md](dataApp/docs/INTEGRACION-ML.md)). Lo mismo vale para el `phash` | 🟠 alta |
 | Estado físico (íntegro / deformado / roto) | RealWaste es todo objeto degradado; sin este campo no se puede replicar esa condición | 🟡 media |
 | Fondo (caneca / suelo / mesa / bolsa) | El modelo puede estar usando el fondo como atajo — pasó con la síntesis | 🟡 media |
 | Marca de dispositivo/gama y timestamp | Diagnóstico de sesgo por cámara | 🟡 media |
