@@ -1,0 +1,20 @@
+{
+  "name": "RecyCol Aporta",
+  "short_name": "Aporta",
+  "description": "Aporta fotos de residuos reales para enseñarle a RecyCol a reconocerlos.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e1113",
+  "theme_color": "#0e1113",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

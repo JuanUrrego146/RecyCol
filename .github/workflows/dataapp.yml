@@ -1,0 +1,99 @@
+# RecyCol Aporta — pruebas y despliegue de la plataforma de recolección.
+#
+# Corre en runners hospedados de GitHub, no en los propios del proyecto: aquí no
+# hace falta ni JDK ni Android SDK, y ocupar un ejecutor de 8 GB para compilar
+# TypeScript le quitaría cola al build de Android, que es el camino crítico.
+#
+# Filtrado por rutas: este workflow solo se despierta si cambia algo de
+# `dataApp/`. El check «Compilar y probar» de `ci.yml` sigue corriendo en todos
+# los PR por su cuenta.
+
+name: DataApp
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dataApp/**"
+      - ".github/workflows/dataapp.yml"
+      - "shared/resources/profiles/**"
+  pull_request:
+    paths:
+      - "dataApp/**"
+      - ".github/workflows/dataapp.yml"
+      - "shared/resources/profiles/**"
+
+concurrency:
+  group: dataapp-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: Probar dataApp
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # `npm ci` sin caché compartida: son dos paquetes pequeños y la caché por
+      # lockfile daría más problemas de invalidación que segundos de ahorro.
+      - name: Instalar dependencias
+        run: |
+          npm ci --prefix dataApp/web
+          npm ci --prefix dataApp/api
+
+      - name: Comprobar tipos
+        run: |
+          npm run typecheck --prefix dataApp/web
+          npm run typecheck --prefix dataApp/api
+
+      - name: Pruebas
+        run: |
+          npm test --prefix dataApp/web
+          npm test --prefix dataApp/api
+
+      # El perfil normativo se importa desde shared/resources: si RULES cambia
+      # co.json de forma incompatible, esto se pone rojo aquí y no en producción.
+      - name: Construir la aplicación web
+        env:
+          VITE_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+        run: npm run build --prefix dataApp/web
+
+      - name: Guardar el artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: recycol-aporta-web
+          path: dataApp/web/dist
+          retention-days: 7
+
+  deploy:
+    name: Desplegar
+    needs: verify
+    # Solo desde main y nunca desde un fork: el token de despliegue no puede
+    # quedar al alcance de un PR ajeno.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: recycol-aporta-web
+          path: dataApp/web/dist
+
+      - name: Publicar en Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          # La web ya viene construida del trabajo anterior; la API la construye
+          # Oryx, que es autosuficiente porque no importa nada de fuera.
+          app_location: dataApp/web/dist
+          skip_app_build: true
+          api_location: dataApp/api
+          output_location: ""

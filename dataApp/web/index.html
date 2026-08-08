@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover para que el visor llegue a los bordes en móviles con muesca. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
+    <meta name="theme-color" content="#0e1113" />
+    <meta
+      name="description"
+      content="Aporta fotos de residuos reales para enseñarle a RecyCol a reconocerlos."
+    />
+    <!-- Sin geolocalización: la aplicación no la usa y la política lo hace explícito. -->
+    <meta http-equiv="Permissions-Policy" content="geolocation=()" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>RecyCol Aporta</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

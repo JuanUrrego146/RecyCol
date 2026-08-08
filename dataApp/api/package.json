@@ -1,0 +1,24 @@
+{
+  "name": "recycol-aporta-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API de RecyCol Aporta — funciones gestionadas de Azure Static Web Apps",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "func start",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.2.0",
+    "@azure/functions": "^4.6.0",
+    "@azure/storage-blob": "^12.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
