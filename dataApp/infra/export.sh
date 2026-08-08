@@ -158,9 +158,14 @@ for await (const entidad of capturas.listEntities()) {
 
 filas.sort((a, b) => a.relative_path.localeCompare(b.relative_path));
 
+// Tercera copia del escapado de dataApp/api/src/csv.ts —este guion es
+// autocontenido y no puede importar de allí—. La comilla simple delante de =, +,
+// - y @ es lo que impide que una hoja de cálculo EJECUTE el contenido de una
+// celda al abrir el manifiesto. Si cambia una copia, cambian las dos.
 const celda = (v) => {
   if (v === null || v === undefined) return "";
-  const t = String(v);
+  const bruto = String(v);
+  const t = /^[=+\-@\t\r]/.test(bruto) ? "'" + bruto : bruto;
   return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
 };
 writeFileSync(
@@ -207,7 +212,9 @@ const corregidas = filas.filter((f) => f.corrected).length;
 const rechazablesPorCalidad = filas.filter((f) => !f.quality_accepted).length;
 lineas.push(`Etiquetadas en menos de 1 s: ${rapidas}  (confianza menor: puede que no miraran)`);
 lineas.push(`Correcciones sobre lo que pedía la misión: ${corregidas}  (valen más que las confirmaciones)`);
-lineas.push(`Fotos que el filtro de la app habría rechazado: ${rechazablesPorCalidad}`);
+lineas.push(
+  `Fotos que el filtro de la app habría rechazado: ${rechazablesPorCalidad}  (SEGÚN EL CLIENTE)`,
+);
 lineas.push("");
 
 if (solapadas.length > 0) {
@@ -230,8 +237,12 @@ lineas.push("     una persona, `object_id` agrupa las tomas de la misma pieza.")
 lineas.push("  2. Lo marcado CONTROL jamás entrena. Es control propio congelado.");
 lineas.push("  3. RealWaste sigue intocable. Esto es otra fuente, con su entrada en");
 lineas.push("     ml/DATA_LICENSES.md y ml/taxonomy/label_mapping.yaml antes de usarse.");
-lineas.push("  4. Deduplica con pHash contra el pool y contra RealWaste.");
+lineas.push("  4. Deduplica con pHash contra el pool y contra RealWaste. El `phash` de");
+lineas.push("     este manifiesto lo calcula el navegador: sirve de prefiltro, no decide.");
 lineas.push("  5. Entrena con y sin estos datos y compara contra el control de siempre.");
+lineas.push("  6. sharpness, luminance y quality_accepted las DECLARA EL CLIENTE. Nadie");
+lineas.push("     las ha verificado contra la imagen. Recalcúlalas sobre images/ con");
+lineas.push("     ml/quality/frame_quality_gate.py antes de filtrar nada por calidad.");
 
 const resumen = lineas.join("\n") + "\n";
 writeFileSync(join(destino, "RESUMEN.txt"), resumen);

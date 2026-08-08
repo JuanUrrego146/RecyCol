@@ -14,10 +14,29 @@
  * - **Objetos distintos**: treinta fotos de la misma lata son un objeto. Es lo
  *   que separa a quien recorrió el campus de quien vació el bolsillo delante de
  *   la cámara.
+ * - **Imágenes distintas**: cuántos pHash distintos hay. Ver más abajo.
  * - **Materiales distintos**: premia la variedad, que es justo lo que el modelo
  *   necesita y lo que a un estudiante le cuesta más falsificar.
  *
- * El profesor recibe las tres columnas y decide. Nosotros no inventamos una nota.
+ * El profesor recibe las columnas y decide. Nosotros no inventamos una nota.
+ *
+ * ## Por qué dos columnas para lo mismo
+ *
+ * `objetos_distintos` cuenta `object_id`, y **ese identificador lo genera el
+ * navegador**: nada impide mandar uno nuevo por foto y convertir treinta fotos
+ * de la misma lata en treinta objetos. Como de esa columna puede depender una
+ * nota, al lado va `imagenes_distintas`, que cuenta pHash distintos — y dos fotos
+ * con pHash distinto son dos fotos de verdad distintas, no la misma reenviada.
+ *
+ * Ninguna de las dos es a prueba de todo: el pHash también lo calcula el
+ * navegador, así que quien programe un cliente propio puede inventarse los dos
+ * números. Lo que separan es a quien infla el conteo con la aplicación de verdad
+ * —que es el caso realista— de quien recorrió el campus. **Contra un cliente
+ * falsificado lo que hay es la moderación**, que es la única barrera que mira las
+ * imágenes de una en una.
+ *
+ * Cuando las dos columnas se separan mucho, la de abajo es la de fiar: muchos
+ * objetos y pocas imágenes distintas es la firma de la misma foto reenviada.
  *
  * ## Verificado contra declarado
  *
@@ -28,12 +47,14 @@
 
 import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
 import { isAdministrator, readPrincipal } from "../auth";
+import { toCsv } from "../csv";
 import { canonicalKey, type ContributorDocument } from "../model";
 import { eachApproved, ensureTables, listAccountContributors } from "../store";
 
 interface CaptureFact {
   contributorId: string;
   objectId: string;
+  phash: string;
   material: string;
   capturedAt: string;
 }
@@ -48,6 +69,7 @@ interface ReportRow {
   profesor: string;
   fotos_aprobadas: number;
   objetos_distintos: number;
+  imagenes_distintas: number;
   materiales_distintos: number;
   primer_aporte: string;
   ultimo_aporte: string;
@@ -63,6 +85,7 @@ const COLUMNS: readonly (keyof ReportRow)[] = [
   "profesor",
   "fotos_aprobadas",
   "objetos_distintos",
+  "imagenes_distintas",
   "materiales_distintos",
   "primer_aporte",
   "ultimo_aporte",
@@ -93,7 +116,14 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
 
   const aggregates = new Map<
     string,
-    { photos: number; objects: Set<string>; materials: Set<string>; first: string; last: string }
+    {
+      photos: number;
+      objects: Set<string>;
+      images: Set<string>;
+      materials: Set<string>;
+      first: string;
+      last: string;
+    }
   >();
 
   for (const fact of facts) {
@@ -102,12 +132,14 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
     const current = aggregates.get(owner.id) ?? {
       photos: 0,
       objects: new Set<string>(),
+      images: new Set<string>(),
       materials: new Set<string>(),
       first: fact.capturedAt,
       last: fact.capturedAt,
     };
     current.photos += 1;
     current.objects.add(fact.objectId);
+    current.images.add(fact.phash);
     current.materials.add(fact.material);
     if (fact.capturedAt < current.first) current.first = fact.capturedAt;
     if (fact.capturedAt > current.last) current.last = fact.capturedAt;
@@ -135,6 +167,7 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
       profesor: academic?.professor ?? "",
       fotos_aprobadas: totals?.photos ?? 0,
       objetos_distintos: totals?.objects.size ?? 0,
+      imagenes_distintas: totals?.images.size ?? 0,
       materiales_distintos: totals?.materials.size ?? 0,
       primer_aporte: totals?.first ?? "",
       ultimo_aporte: totals?.last ?? "",
@@ -150,7 +183,7 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
         "content-type": "text/csv; charset=utf-8",
         "content-disposition": 'attachment; filename="aportes-recycol.csv"',
       },
-      body: toCsv(rows),
+      body: toCsv(COLUMNS, rows),
     };
   }
   return { status: 200, jsonBody: { rows, generatedAt: new Date().toISOString() } };
@@ -170,24 +203,12 @@ async function approvedFacts(): Promise<CaptureFact[]> {
     facts.push({
       contributorId: capture.contributorId,
       objectId: capture.objectId,
+      phash: capture.phash,
       material: capture.material,
       capturedAt: capture.capturedAt,
     });
   });
   return facts;
-}
-
-function toCsv(rows: readonly ReportRow[]): string {
-  const lines = [COLUMNS.join(",")];
-  for (const row of rows) {
-    lines.push(COLUMNS.map((column) => csvCell(row[column])).join(","));
-  }
-  return lines.join("\n") + "\n";
-}
-
-function csvCell(value: string | number): string {
-  const text = String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 /**

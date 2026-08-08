@@ -21,6 +21,7 @@
 import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
 import { isAdministrator } from "../auth";
 import { containerReadSasUrl } from "../blob";
+import { toCsv } from "../csv";
 import type { CaptureDocument } from "../model";
 import { ensureTables, listApproved } from "../store";
 
@@ -130,7 +131,7 @@ export async function exportManifest(request: HttpRequest): Promise<HttpResponse
   await ensureTables();
   const page = await listApproved(PAGE_SIZE, cursor);
   const rows = page.items.map(toRow);
-  const body = format === "csv" ? toCsv(rows, cursor === undefined) : toJsonl(rows);
+  const body = format === "csv" ? toCsv(COLUMNS, rows, cursor === undefined) : toJsonl(rows);
 
   return {
     status: 200,
@@ -147,20 +148,6 @@ export async function exportManifest(request: HttpRequest): Promise<HttpResponse
 
 function toJsonl(rows: readonly ManifestRow[]): string {
   return rows.map((row) => JSON.stringify(row)).join("\n") + (rows.length > 0 ? "\n" : "");
-}
-
-function toCsv(rows: readonly ManifestRow[], withHeader: boolean): string {
-  const lines = withHeader ? [COLUMNS.join(",")] : [];
-  for (const row of rows) {
-    lines.push(COLUMNS.map((column) => csvCell(row[column])).join(","));
-  }
-  return lines.join("\n") + (lines.length > 0 ? "\n" : "");
-}
-
-function csvCell(value: string | number | boolean | null): string {
-  if (value === null) return "";
-  const text = String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 /**
