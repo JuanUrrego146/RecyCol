@@ -38,18 +38,24 @@ import {
   setNickname,
   type ContributorState,
 } from "./data/contributor";
+import { logoutUrl } from "./data/session";
 import { enqueue } from "./data/uploadQueue";
+import { useSession } from "./data/useSession";
 import { useUploader } from "./data/useUploader";
 import { releaseCapturedImage, type CapturedImage } from "./capture/image";
 import { CameraScreen } from "./ui/CameraScreen";
 import { ConsentScreen } from "./ui/ConsentScreen";
 import { HomeScreen } from "./ui/HomeScreen";
 import { LabelScreen, type LabelDraft } from "./ui/LabelScreen";
+import { LoginScreen } from "./ui/LoginScreen";
+import { ProfileScreen } from "./ui/ProfileScreen";
 import { ReviewScreen } from "./ui/ReviewScreen";
 import { RewardScreen } from "./ui/RewardScreen";
 
 type Screen =
   | { readonly name: "home" }
+  | { readonly name: "login" }
+  | { readonly name: "profile" }
   | {
       readonly name: "camera";
       readonly requested: Material | null;
@@ -86,11 +92,26 @@ export function App() {
 
 function ContributeApp() {
   const [contributor, setContributor] = useState<ContributorState>(loadContributor);
+  const session = useSession();
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const [serverTally, setServerTally] = useState<Tally>({});
   const [localTally, setLocalTally] = useState<Tally>({});
   const [statsError, setStatsError] = useState<string | null>(null);
   const uploader = useUploader();
+
+  /**
+   * Con quién se firman las capturas.
+   *
+   * Con cuenta es el identificador de la cuenta, que sobrevive al cambio de
+   * móvil; sin ella, el UUID de este navegador. Ambos sirven para lo que §10
+   * necesita —agrupar las fotos de una misma persona—, pero el de la cuenta lo
+   * hace mejor: con identidad de navegador, la misma persona en dos dispositivos
+   * contaba como dos aportantes.
+   */
+  const effectiveContributorId =
+    session.profile !== null && session.accountContributorId !== null
+      ? session.accountContributorId
+      : contributor.id;
 
   const tally = useMemo(() => mergeTallies(serverTally, localTally), [serverTally, localTally]);
   const mission = useMemo(
@@ -114,6 +135,15 @@ function ContributeApp() {
   useEffect(() => {
     void refreshStats();
   }, [refreshStats]);
+
+  // Volvió de identificarse pero todavía no ha dicho quién es: sin nombre no se
+  // le puede reconocer nada, así que se le pide antes de seguir. La salida
+  // —aportar sin cuenta— sigue abierta desde esa misma pantalla.
+  useEffect(() => {
+    if (!session.loading && session.principal && !session.profile) {
+      setScreen((current) => (current.name === "profile" ? current : { name: "profile" }));
+    }
+  }, [session.loading, session.principal, session.profile]);
 
   if (needsConsent(contributor)) {
     return (
@@ -148,7 +178,7 @@ function ContributeApp() {
     const record: CaptureRecord = {
       schemaVersion: CAPTURE_SCHEMA_VERSION,
       id: randomId(),
-      contributorId: contributor.id,
+      contributorId: effectiveContributorId,
       objectId,
       consentVersion: CONSENT_VERSION,
       material: draft.material,
@@ -188,6 +218,46 @@ function ContributeApp() {
   };
 
   switch (screen.name) {
+    case "login":
+      return (
+        <div className="app">
+          <LoginScreen onSkip={() => setScreen({ name: "home" })} />
+        </div>
+      );
+
+    case "profile":
+      return (
+        <div className="app">
+          <ProfileScreen
+            email={session.principal?.userDetails ?? ""}
+            umngVerified={session.umngVerified}
+            initial={
+              session.profile
+                ? {
+                    fullName: session.profile.fullName,
+                    affiliation: session.profile.affiliation,
+                    academic: session.profile.academic,
+                  }
+                : null
+            }
+            saving={session.saving}
+            error={session.error}
+            onSave={(draft) => {
+              // Se ofrece enlazar lo aportado antes de entrar: la misma persona
+              // no puede contar como dos aportantes (§10).
+              void session.save(draft, contributor.id).then((ok) => {
+                if (ok) {
+                  void refreshStats();
+                  setScreen({ name: "home" });
+                }
+              });
+            }}
+            onSignOut={() => window.location.assign(logoutUrl())}
+            onSkip={() => window.location.assign(logoutUrl())}
+          />
+        </div>
+      );
+
     case "home":
       return (
         <div className="app">
@@ -195,11 +265,14 @@ function ContributeApp() {
             mission={mission}
             tally={tally}
             contributor={contributor}
+            account={session.profile}
             uploader={uploader}
             statsError={statsError}
             onStartMission={() => startMission(mission)}
             onStartFree={() => startMission(null)}
             onRetryUploads={() => void uploader.retryAll()}
+            onOpenLogin={() => setScreen({ name: "login" })}
+            onOpenProfile={() => setScreen({ name: "profile" })}
           />
         </div>
       );

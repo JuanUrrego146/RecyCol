@@ -13,9 +13,13 @@ import {
   CONTROL_SHARE_PERCENT,
   MATERIALS,
   ValidationError,
+  accountIdFor,
   assignSplit,
   blobPathFor,
+  isAccountId,
+  isUmngEmail,
   parseCaptureRecord,
+  parseProfile,
   todayStamp,
 } from "./model";
 
@@ -25,7 +29,7 @@ function validBody(overrides: Record<string, unknown> = {}): Record<string, unkn
     id: "11111111-2222-3333-4444-555555555555",
     contributorId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     objectId: "99999999-8888-7777-6666-555555555555",
-    consentVersion: "1.0",
+    consentVersion: "2.0",
     material: "BEVERAGE_CARTON",
     contamination: "LIQUID",
     light: "INDOOR",
@@ -91,6 +95,12 @@ describe("validación de capturas", () => {
   });
 
   it("rechaza un consentimiento retirado", () => {
+    // La 1.0 prometía que no se pedía nombre ni cuenta. Al añadir cuentas dejó
+    // de ser cierto, así que no se admiten aportes bajo aquel texto: un
+    // consentimiento aceptado no se reinterpreta hacia atrás.
+    expect(() => parseCaptureRecord(validBody({ consentVersion: "1.0" }))).toThrow(
+      /consentimiento/i,
+    );
     expect(() => parseCaptureRecord(validBody({ consentVersion: "0.9" }))).toThrow(
       /consentimiento/i,
     );
@@ -225,5 +235,133 @@ describe("rutas de almacenamiento", () => {
 describe("marca del día", () => {
   it("usa formato ISO corto", () => {
     expect(todayStamp(new Date("2026-08-07T23:30:00Z"))).toBe("2026-08-07");
+  });
+});
+
+describe("identificadores de cuenta", () => {
+  it("distingue cuenta de anónimo sin consultar la base", () => {
+    // Es lo que permite rechazar barato un aporte anónimo que dice venir de una
+    // cuenta, y al revés.
+    expect(isAccountId(accountIdFor("abc123def456"))).toBe(true);
+    expect(isAccountId("11111111-2222-3333-4444-555555555555")).toBe(false);
+  });
+
+  it("es estable para la misma identidad", () => {
+    expect(accountIdFor("usuario-1")).toBe(accountIdFor("usuario-1"));
+    expect(accountIdFor("usuario-1")).not.toBe(accountIdFor("usuario-2"));
+  });
+});
+
+describe("perfil de cuenta", () => {
+  const umng = { provider: "aad", email: "est.juan.perez@unimilitar.edu.co" };
+  const externo = { provider: "aad", email: "alguien@gmail.com" };
+
+  it("acepta a una persona natural con solo su nombre", () => {
+    const perfil = parseProfile(
+      { fullName: "Juan Pérez", affiliation: "GENERAL" },
+      externo,
+    );
+    expect(perfil.fullName).toBe("Juan Pérez");
+    expect(perfil.academic).toBeNull();
+    expect(perfil.academicVerified).toBe(false);
+  });
+
+  it("marca como verificado a quien entra con el correo institucional", () => {
+    const perfil = parseProfile(
+      {
+        fullName: "Juan Pérez",
+        affiliation: "UMNG",
+        academic: { course: "Cálculo 1", group: "B", professor: "Ana Ríos" },
+      },
+      umng,
+    );
+    expect(perfil.academicVerified).toBe(true);
+    expect(perfil.academic?.courseKey).toBe("calculo 1");
+  });
+
+  it("marca como NO verificado a quien declara la UMNG desde un correo cualquiera", () => {
+    // Distinción que sostiene el informe: un profesor no puede dar por bueno
+    // «escribí que estudio allí» igual que «entré con el correo de la
+    // universidad».
+    const perfil = parseProfile(
+      {
+        fullName: "Juan Pérez",
+        affiliation: "UMNG",
+        academic: { course: "Cálculo 1", group: "B", professor: "Ana Ríos" },
+      },
+      externo,
+    );
+    expect(perfil.academicVerified).toBe(false);
+  });
+
+  it("ignora la verificación que mande el cliente", () => {
+    // Aceptarla del cuerpo permitiría a cualquiera declararse estudiante
+    // verificado, que es exactamente lo que el profesor va a dar por bueno.
+    const perfil = parseProfile(
+      {
+        fullName: "Juan Pérez",
+        affiliation: "UMNG",
+        academicVerified: true,
+        email: "otro@unimilitar.edu.co",
+        academic: { course: "Cálculo 1", group: "B", professor: "Ana Ríos" },
+      },
+      externo,
+    );
+    expect(perfil.academicVerified).toBe(false);
+    expect(perfil.email).toBe(externo.email);
+  });
+
+  it("exige clase, grupo y profesor a quien dice ser de la UMNG", () => {
+    expect(() => parseProfile({ fullName: "Juan Pérez", affiliation: "UMNG" }, umng)).toThrow(
+      ValidationError,
+    );
+    expect(() =>
+      parseProfile(
+        {
+          fullName: "Juan Pérez",
+          affiliation: "UMNG",
+          academic: { course: "  ", group: "B", professor: "Ana Ríos" },
+        },
+        umng,
+      ),
+    ).toThrow(/vacíos/);
+  });
+
+  it("rechaza un nombre incompleto", () => {
+    expect(() => parseProfile({ fullName: "Jo", affiliation: "GENERAL" }, externo)).toThrow(
+      /nombre completo/,
+    );
+  });
+
+  it("agrupa las variantes de un mismo curso", () => {
+    const claves = ["Cálculo 1", "calculo I", "CALCULO  1"].map(
+      (course) =>
+        parseProfile(
+          {
+            fullName: "Juan Pérez",
+            affiliation: "UMNG",
+            academic: { course, group: "B", professor: "Ana Ríos" },
+          },
+          umng,
+        ).academic?.courseKey,
+    );
+    expect(claves[0]).toBe(claves[2]);
+  });
+
+  it("limpia el nombre sin destrozar los apellidos", () => {
+    const perfil = parseProfile(
+      { fullName: "  María  de la Cruz ", affiliation: "GENERAL" },
+      externo,
+    );
+    expect(perfil.fullName).toBe("María de la Cruz");
+  });
+});
+
+describe("dominio institucional", () => {
+  it("no se deja engañar por un dominio parecido", () => {
+    expect(isUmngEmail("a@unimilitar.edu.co")).toBe(true);
+    expect(isUmngEmail("a@est.unimilitar.edu.co")).toBe(true);
+    expect(isUmngEmail("a@unimilitar.edu.co.falso.com")).toBe(false);
+    expect(isUmngEmail("a@nounimilitar.edu.co")).toBe(false);
   });
 });

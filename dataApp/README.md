@@ -51,6 +51,33 @@ aprende algo. Es lo que hace que tome la segunda foto.
 como vía principal: produce «botella», «botella de plástico», «plastico» y «PET»
 para el mismo objeto. El campo de texto existe solo como matiz y no entrena.
 
+## Cuentas: opcionales, y para qué sirven
+
+Se puede aportar sin identificarse, y ese sigue siendo el camino por defecto:
+obligar a registrarse es la barrera que más aportes mata.
+
+La cuenta existe para una cosa concreta: **que un profesor de la UMNG pueda ver
+cuánto aportó cada estudiante y reconocérselo**. Quien entra da su nombre y, si
+es de la universidad, su clase, su grupo y el profesor.
+
+- **No manejamos contraseñas.** La autenticación la resuelve Static Web Apps con
+  proveedores ya integrados. Nada que cifrar, nada que recuperar, nada que
+  filtrar.
+- **Entrar con el correo `@unimilitar.edu.co` acredita** la pertenencia a la
+  UMNG. Declararla desde una cuenta personal la deja como «declarado», y el
+  informe lo distingue: no es lo mismo si de ello depende una nota.
+- **La identidad la manda la sesión, no el cuerpo de la petición.** Sin eso,
+  cualquiera podría atribuirle fotos a otro estudiante — para inflarle el conteo
+  o para ensuciárselo.
+- **El informe cuenta fotos aprobadas, objetos distintos y materiales
+  distintos.** Dar puntos crea el incentivo de inflar el número; treinta fotos de
+  la misma lata son un objeto.
+- **Los datos personales no salen hacia ML.** El manifiesto de entrenamiento
+  lleva `contributor_id` y nada más.
+
+Google requiere el plan Standard de Azure (9 USD/mes) y por eso llega desactivado,
+listo en `LOGIN_PROVIDERS`. Microsoft y GitHub van en el plan gratuito.
+
 ## Qué se guarda, y qué no
 
 Todos los campos 🔴 y 🟠 de la tabla de §10, más los 🟡:
@@ -83,8 +110,8 @@ dataApp/
 
 ```bash
 npm ci --prefix dataApp/web && npm run dev --prefix dataApp/web   # http://localhost:5173
-npm test --prefix dataApp/web                                     # 48 pruebas
-npm test --prefix dataApp/api                                     # 20 pruebas
+npm test --prefix dataApp/web                                     # 72 pruebas
+npm test --prefix dataApp/api                                     # 33 pruebas
 ```
 
 La cámara funciona en `localhost` sin HTTPS. Sin la API levantada se puede

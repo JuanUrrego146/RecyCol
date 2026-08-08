@@ -8,6 +8,7 @@
  * alguien tome la siguiente foto.
  */
 
+import type { StoredProfile } from "../data/apiClient";
 import { MATERIAL_INFO } from "../domain/materials";
 import { missionHeadline, overallProgress, type Mission, type Tally } from "../domain/missions";
 import type { ContributorState } from "../data/contributor";
@@ -18,32 +19,44 @@ export function HomeScreen({
   mission,
   tally,
   contributor,
+  account,
   uploader,
   statsError,
   onStartMission,
   onStartFree,
   onRetryUploads,
+  onOpenLogin,
+  onOpenProfile,
 }: {
   mission: Mission | null;
   tally: Tally;
   contributor: ContributorState;
+  /** Perfil de la cuenta, o `null` si aporta de forma anónima. */
+  account: StoredProfile | null;
   uploader: UploaderState;
   statsError: string | null;
   onStartMission: () => void;
   onStartFree: () => void;
   onRetryUploads: () => void;
+  onOpenLogin: () => void;
+  onOpenProfile: () => void;
 }) {
   const overall = overallProgress(tally);
   const info = mission ? MATERIAL_INFO[mission.material] : null;
+  const displayName = account?.fullName ?? contributor.nickname;
 
   return (
     <div className="screen">
       <Header
         right={
-          <span className="tiny">
-            {contributor.nickname ? `${contributor.nickname} · ` : ""}
+          <button
+            type="button"
+            className="button-ghost tiny"
+            onClick={account ? onOpenProfile : onOpenLogin}
+          >
+            {displayName ? `${displayName.split(" ")[0]} · ` : ""}
             {contributor.contributed} {contributor.contributed === 1 ? "aporte" : "aportes"}
-          </span>
+          </button>
         }
       />
 
@@ -113,6 +126,23 @@ export function HomeScreen({
               Reintentar
             </button>
           )}
+        </Notice>
+      )}
+
+      {/*
+        La invitación a entrar va aquí abajo y no como puerta de entrada: aportar
+        sin cuenta tiene que seguir siendo el camino corto. Quien necesita que le
+        cuenten los puntos sabe que los necesita.
+      */}
+      {!account && (
+        <Notice tone="info">
+          <div style={{ flex: 1 }}>
+            ¿Tu profesor da puntos por esto? Entra con tu cuenta para que tus aportes queden a tu
+            nombre.
+          </div>
+          <button type="button" className="button-ghost" onClick={onOpenLogin}>
+            Entrar
+          </button>
         </Notice>
       )}
 

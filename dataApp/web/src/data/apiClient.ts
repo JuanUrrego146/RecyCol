@@ -16,6 +16,7 @@
  * devuelve una SAS nueva, que es lo que hace segura la cola offline.
  */
 
+import type { AcademicInfo, Affiliation, ProfileDraft } from "../domain/account";
 import type { CaptureRecord, ReviewStatus, StoredCapture } from "../domain/capture";
 import type { Material } from "../domain/materials";
 import type { MaterialTally } from "../domain/missions";
@@ -101,6 +102,58 @@ export async function sendCapture(record: CaptureRecord, image: Blob): Promise<v
   const registered = await registerCapture(record);
   await uploadImage(registered.uploadUrl, image);
   await commitCapture(registered.captureId);
+}
+
+// --- Cuenta del aportante. La cuenta es opcional; sin ella todo esto se salta. ---
+
+export interface StoredProfile {
+  readonly provider: string;
+  readonly email: string;
+  readonly fullName: string;
+  readonly affiliation: Affiliation;
+  readonly academicVerified: boolean;
+  readonly academic: AcademicInfo | null;
+  readonly updatedAt: string;
+}
+
+export interface MeResponse {
+  readonly signedIn: boolean;
+  readonly contributorId?: string;
+  readonly provider?: string;
+  readonly email?: string;
+  readonly profile?: StoredProfile | null;
+  readonly capturesRegistered?: number;
+}
+
+export function fetchMe(): Promise<MeResponse> {
+  return request<MeResponse>("/me");
+}
+
+/**
+ * Guarda el perfil. `linkAnonymousId` une lo aportado antes de entrar: sin él,
+ * quien probó la aplicación y luego se identificó cuenta como dos aportantes
+ * distintos, que es justo lo que §10 pide evitar.
+ */
+export function saveProfile(
+  draft: ProfileDraft,
+  linkAnonymousId: string | null,
+): Promise<{ contributorId: string; profile: StoredProfile; linked: boolean }> {
+  return request("/me/profile", {
+    method: "POST",
+    body: JSON.stringify({ ...draft, linkAnonymousId }),
+  });
+}
+
+export async function fetchAcademicSuggestions(
+  field: "course" | "group" | "professor",
+): Promise<string[]> {
+  try {
+    const body = await request<{ suggestions: string[] }>(`/academic/suggestions?field=${field}`);
+    return body.suggestions;
+  } catch {
+    // Las sugerencias son una ayuda, no un requisito: si fallan se escribe a mano.
+    return [];
+  }
 }
 
 // --- Moderación. Requiere sesión de administrador de Static Web Apps. ---

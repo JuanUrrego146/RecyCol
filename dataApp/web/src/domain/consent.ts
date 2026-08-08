@@ -1,32 +1,44 @@
 /**
- * Consentimiento y cesión de derechos — versión 1.0.
+ * Consentimiento y cesión de derechos — versión 2.0.
  *
  * **Este es el motivo por el que la plataforma existe**, tanto como las fotos.
- * El pool actual depende en un ~70 % de Garbage Dataset v2, cuya cadena de
- * derechos no está acreditada, y eso **bloquea el lanzamiento comercial**
- * (issue #77, CONTEXTO.md §8). Una foto aportada aquí sin cesión explícita
- * repetiría exactamente el problema que se vino a resolver: sería una imagen más
- * sin permiso claro para usarla.
+ * El pool de entrenamiento actual depende en un ~70 % de Garbage Dataset v2,
+ * cuya cadena de derechos no está acreditada, y eso **bloquea el lanzamiento
+ * comercial** (issue #77, `CONTEXTO.md` §8). Una foto aportada aquí sin cesión
+ * explícita repetiría exactamente el problema que se vino a resolver.
  *
- * Por eso el consentimiento es campo de **máxima prioridad** en §10, se guarda
- * **versionado** en cada captura, y sin él no se puede fotografiar nada.
+ * ## Por qué la versión 2.0
  *
- * Si el texto cambia, **sube `CONSENT_VERSION`**: las capturas viejas conservan
- * la versión bajo la que se aportaron, y a quien ya aceptó se le vuelve a
- * preguntar. Nunca se reinterpreta hacia atrás lo que alguien aceptó.
+ * La 1.0 prometía literalmente «no pedimos tu nombre, tu correo ni ninguna
+ * cuenta». Al añadir cuentas —para que los profesores de la UMNG puedan dar
+ * puntos por aportar— eso deja de ser cierto para quien decide identificarse, y
+ * **un texto aceptado no se reinterpreta hacia atrás**: sube la versión y se
+ * vuelve a preguntar.
  *
- * El texto completo, para archivo, está en `dataApp/docs/CONSENT-v1.md`.
+ * El texto ahora distingue dos caminos, porque la aplicación tiene dos:
+ *
+ * - **Sin cuenta**: sigue sin recogerse un solo dato personal. Es el camino por
+ *   defecto y no ha cambiado nada.
+ * - **Con cuenta**: nombre, correo y —si dice ser de la UMNG— clase, grupo y
+ *   profesor. Con una obligación que se cumple diciéndola de frente: **el
+ *   profesor va a ver cuántas fotos aportó cada quien**, y eso hay que
+ *   advertirlo antes, no después.
+ *
+ * El texto completo, para archivo, está en `dataApp/docs/CONSENT-v2.md`.
  */
 
-export const CONSENT_VERSION = "1.0";
+export const CONSENT_VERSION = "2.0";
 
 /** Responsable del tratamiento. Aprobado por Juan el 07/08/2026. */
 export const DATA_CONTROLLER = "Juan Urrego";
 
 /**
- * Canal de contacto para ejercer el derecho de retirada. Se inyecta en el
- * despliegue (`VITE_CONTACT_EMAIL`) en vez de venir escrito en el repositorio.
- * `hasContactChannel()` permite avisar si falta antes de publicar.
+ * Canal de contacto para ejercer los derechos de consulta, actualización y
+ * supresión. Se inyecta en el despliegue (`VITE_CONTACT_EMAIL`) en vez de venir
+ * escrito en el repositorio.
+ *
+ * Con datos personales de por medio deja de ser una cortesía: es el canal por el
+ * que alguien pide que borres sus datos.
  */
 export const CONTACT_EMAIL: string = import.meta.env.VITE_CONTACT_EMAIL ?? "";
 
@@ -37,20 +49,42 @@ export function hasContactChannel(): boolean {
 export interface ConsentClause {
   readonly title: string;
   readonly body: string;
+  /** `true` si solo aplica a quien crea una cuenta. La interfaz lo marca. */
+  readonly accountOnly?: boolean;
 }
 
 export const CONSENT_CLAUSES: readonly ConsentClause[] = [
   {
-    title: "Qué se guarda",
+    title: "Qué se guarda de tus fotos",
     body:
       "La foto que tomes y la etiqueta que elijas, junto con datos técnicos de la propia foto: nitidez, " +
       "luz, ángulo, estado del objeto y modelo aproximado del dispositivo.",
   },
   {
-    title: "Qué NO se guarda",
+    title: "Puedes aportar sin identificarte",
     body:
-      "No pedimos tu nombre, tu correo ni ninguna cuenta. No se guarda tu ubicación: la aplicación " +
-      "ni siquiera la pide. No accedemos a tu galería ni a tus contactos.",
+      "Sin cuenta no pedimos tu nombre, tu correo ni nada tuyo. Solo se guarda un código anónimo en este " +
+      "dispositivo, para no mezclar tus fotos con las de otra persona.",
+  },
+  {
+    title: "Si creas una cuenta",
+    accountOnly: true,
+    body:
+      "Se guardan tu nombre completo y el correo con el que entras. Si además dices ser de la Universidad " +
+      "Militar Nueva Granada, se guardan la clase, el grupo y el nombre del profesor que indiques.",
+  },
+  {
+    title: "Tu profesor verá cuánto aportaste",
+    accountOnly: true,
+    body:
+      "Ese es justamente el propósito de dar esos datos: que el profesor que indiques pueda ver tu nombre y " +
+      "cuántas fotos tuyas se aprobaron, para reconocértelo. No verá quién eres si no creas cuenta.",
+  },
+  {
+    title: "Nunca se guarda tu ubicación",
+    body:
+      "La aplicación ni siquiera la pide, tengas cuenta o no. Tampoco accedemos a tu galería ni a tus " +
+      "contactos, y solo se usa la cámara mientras estás tomando la foto.",
   },
   {
     title: "Para qué se usa",
@@ -71,17 +105,18 @@ export const CONSENT_CLAUSES: readonly ConsentClause[] = [
       "ni nada privado tuyo o de otra persona.",
   },
   {
-    title: "Cómo te echas atrás",
+    title: "Tus derechos",
     body:
-      "Guardamos un código anónimo de aportante en este dispositivo. Con ese código puedes pedir que " +
-      "borremos tus fotos. Con una salvedad honesta: si ya se entrenó un modelo con ellas, podemos " +
-      "borrar las imágenes, pero no deshacer ese entrenamiento.",
+      "Puedes pedir en cualquier momento saber qué tenemos tuyo, corregirlo o borrarlo. Con una salvedad " +
+      "honesta: si ya se entrenó un modelo con tus fotos, podemos borrar las imágenes, pero no deshacer " +
+      "ese entrenamiento.",
   },
 ];
 
 /** Compromiso corto, el que se lee de verdad. Encabeza la pantalla. */
 export const CONSENT_SUMMARY =
-  "Tus fotos van a enseñarle a RecyCol a reconocer basura real. Sin cuenta, sin tu ubicación y sin tu nombre.";
+  "Tus fotos van a enseñarle a RecyCol a reconocer basura real. Puedes aportar sin dar tu nombre; " +
+  "la cuenta solo hace falta si quieres que tu profesor lo vea.";
 
 /** Frase del botón. Aceptar tiene que ser un acto explícito, no un scroll. */
 export const CONSENT_ACTION = "Acepto y quiero aportar";

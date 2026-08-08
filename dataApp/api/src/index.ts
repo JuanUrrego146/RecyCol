@@ -10,3 +10,5 @@ import "./functions/captures";
 import "./functions/stats";
 import "./functions/review";
 import "./functions/exportData";
+import "./functions/account";
+import "./functions/report";

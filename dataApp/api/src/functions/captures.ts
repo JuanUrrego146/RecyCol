@@ -13,6 +13,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { readPrincipal } from "../auth";
 import { blobExists, ensureContainer, uploadSasUrl } from "../blob";
 import { capturesContainer, contributorsContainer, isNotFound } from "../cosmos";
 import {
@@ -20,8 +21,10 @@ import {
   ContributorDocument,
   DAILY_CAPTURE_LIMIT,
   ValidationError,
+  accountIdFor,
   assignSplit,
   blobPathFor,
+  isAccountId,
   parseCaptureRecord,
   todayStamp,
 } from "../model";
@@ -39,6 +42,26 @@ export async function registerCapture(
       return { status: 400, jsonBody: { message: error.message } };
     }
     return { status: 400, jsonBody: { message: "Cuerpo JSON inválido" } };
+  }
+
+  // La identidad la manda la sesión, no el cuerpo de la petición.
+  //
+  // Sin esto, cualquiera podría poner en `contributorId` la cuenta de otro
+  // estudiante y atribuirle fotos —para inflarle el conteo o para ensuciárselo—,
+  // y ese conteo es justamente lo que un profesor va a mirar para dar puntos.
+  const principal = readPrincipal(request);
+  if (principal) {
+    if (record.contributorId !== accountIdFor(principal.userId)) {
+      return {
+        status: 403,
+        jsonBody: { message: "El aporte no corresponde a la sesión activa." },
+      };
+    }
+  } else if (isAccountId(record.contributorId)) {
+    return {
+      status: 401,
+      jsonBody: { message: "Este aporte dice venir de una cuenta, pero no hay sesión iniciada." },
+    };
   }
 
   const container = capturesContainer();
@@ -206,6 +229,8 @@ async function touchContributor(
     capturesRegistered: 0,
     quotaDay: today,
     quotaUsed: 0,
+    account: null,
+    linkedContributorIds: [],
   };
   try {
     await container.items.create(created);

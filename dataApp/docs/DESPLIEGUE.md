@@ -103,13 +103,51 @@ Este es el único paso en el portal, y hay que hacerlo una sola vez:
 1. Entra en [portal.azure.com](https://portal.azure.com) y busca
    **swa-recycol-aporta**.
 2. Menú lateral → **Configuración** → **Administración de roles**.
-3. **Invitar usuario** → proveedor **GitHub** → tu usuario de GitHub → en el
+3. **Invitar usuario** → proveedor **Azure Active Directory** → tu correo → en el
    campo de roles escribe `administrador`.
 4. Se genera un enlace de invitación: ábrelo tú mismo y acéptalo.
 
-Sin ese rol, `/revisar` y la exportación están cerradas **para todo el mundo,
-incluido tú**. Es a propósito: la moderación es lo que hace asumible que el
-enlace sea público.
+Sin ese rol, `/revisar`, el informe para profesores y la exportación están
+cerrados **para todo el mundo, incluido tú**. Es a propósito: la moderación es lo
+que hace asumible que el enlace sea público.
+
+---
+
+## Sobre las cuentas de quien aporta
+
+**No hay nada que configurar.** El acceso con cuenta Microsoft y con GitHub viene
+incluido en Static Web Apps y funciona en cuanto la aplicación está publicada. No
+manejamos contraseñas: la persona entra en la página de su proveedor y nosotros
+solo recibimos su nombre y su correo.
+
+Entrar con un correo `@unimilitar.edu.co` **acredita** la pertenencia a la UMNG
+porque la aplicación comprueba el dominio. Quien declare ser de la universidad
+desde una cuenta personal aparece en el informe como «declarado», no verificado.
+
+**Google cuesta 9 USD al mes.** Entra como proveedor OpenID personalizado y eso
+exige el plan Standard. Está preparado en el código
+(`web/src/data/session.ts`, `LOGIN_PROVIDERS`): cambiar `enabled` a `true`, subir
+el plan y añadir el bloque `auth` a `staticwebapp.config.json`. Mientras tanto,
+quien no tenga cuenta Microsoft puede aportar de forma anónima, que sigue siendo
+el camino por defecto.
+
+## Sacar el informe para un profesor
+
+Con la sesión de administrador abierta, en el navegador:
+
+```
+https://<tu-host>/api/report/academic?format=csv
+```
+
+Descarga un CSV con una fila por estudiante. Para filtrar por profesor, grupo o
+clase se añade a la dirección (`&professor=Ana%20Ríos`, `&group=B`,
+`&course=C%C3%A1lculo%201`); no hace falta escribirlo igual que ellos, se
+comparan ignorando tildes y mayúsculas.
+
+Las columnas son **fotos aprobadas**, **objetos distintos** y **materiales
+distintos**, a propósito. Si se contaran envíos, treinta fotos de la misma lata
+valdrían treinta; contando objetos valen una. El profesor pone la nota, nosotros
+no inventamos una.
 
 ---
 

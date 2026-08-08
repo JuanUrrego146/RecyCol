@@ -106,6 +106,24 @@ dominio real**. Este lo da.
 libre y §10 lo limita a descubrir clases que faltan, no a entrenar. Se lee desde
 la pantalla de moderación.
 
+## Sobre las cuentas de aportante
+
+Desde el 07/08 quien quiere puede identificarse, para que un profesor de la UMNG
+le reconozca los aportes. Para el pipeline eso cambia poco y a mejor:
+
+- `contributor_id` empieza por `acc-` cuando la persona tiene cuenta. **Sigue
+  siendo la unidad de partición**, y ahora es mejor que antes: una cuenta
+  identifica a la persona aunque cambie de móvil, mientras que el identificador
+  de navegador la duplicaba.
+- Quien aportó primero sin cuenta y luego entró queda **unido**: sus capturas
+  anónimas cuentan como suyas. Si los dos lados habían caído en particiones
+  distintas, **todo pasa a `TRAIN`** —incluidas las capturas ya guardadas—, nunca
+  al revés. Ante la duda, jamás control.
+- **El manifiesto no lleva ni un dato personal.** Ni nombres, ni correos, ni
+  clase, ni profesor. Eso vive en el informe académico, que es otra ruta, con
+  otro permiso y otro propósito. La identidad sirve para agrupar y para
+  reconocer; no para entrenar.
+
 ## Lo que no vas a encontrar
 
 - **Geolocalización.** No se captura. Ni campo, ni permiso, ni petición al

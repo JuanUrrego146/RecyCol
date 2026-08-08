@@ -44,8 +44,154 @@ export const CONTAMINATION_REQUIRED_FOR: readonly Material[] = [
   "BEVERAGE_CARTON",
 ];
 
-/** Versiones del consentimiento que se aceptan hoy. Una versión retirada deja de admitir aportes. */
-export const ACCEPTED_CONSENT_VERSIONS = ["1.0"] as const;
+/**
+ * Versiones del consentimiento que se aceptan hoy. Una versión retirada deja de
+ * admitir aportes nuevos, pero no cambia el permiso de los que ya entraron.
+ *
+ * La 1.0 no está porque **nunca llegó a producción**: prometía que no se pedía
+ * nombre ni cuenta, y las cuentas llegaron antes del despliegue. No hay ni un
+ * aporte hecho bajo ese texto.
+ */
+export const ACCEPTED_CONSENT_VERSIONS = ["2.0"] as const;
+
+/**
+ * Prefijo de los identificadores de aportante con cuenta.
+ *
+ * Separa de un vistazo las dos poblaciones —cuenta y anónimo— sin consultar la
+ * base, y eso es lo que permite rechazar barato un aporte anónimo que dice venir
+ * de una cuenta.
+ */
+export const ACCOUNT_ID_PREFIX = "acc-";
+
+export function accountIdFor(userId: string): string {
+  return `${ACCOUNT_ID_PREFIX}${userId}`;
+}
+
+export function isAccountId(contributorId: string): boolean {
+  return contributorId.startsWith(ACCOUNT_ID_PREFIX);
+}
+
+export type Affiliation = "UMNG" | "GENERAL";
+
+export interface AcademicInfo {
+  course: string;
+  group: string;
+  professor: string;
+  /** Claves normalizadas, para agrupar el informe sin que «Cálculo 1» y «calculo I» salgan separados. */
+  courseKey: string;
+  groupKey: string;
+  professorKey: string;
+}
+
+export interface AccountProfile {
+  provider: string;
+  email: string;
+  fullName: string;
+  affiliation: Affiliation;
+  /** `true` solo si el correo institucional lo acredita. Declararlo a mano no basta. */
+  academicVerified: boolean;
+  academic: AcademicInfo | null;
+  updatedAt: string;
+}
+
+export const MAX_NAME_LENGTH = 80;
+export const MAX_ACADEMIC_FIELD_LENGTH = 60;
+export const UMNG_EMAIL_DOMAIN = "unimilitar.edu.co";
+
+export function isUmngEmail(email: string): boolean {
+  const at = email.lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = email.slice(at + 1).trim().toLowerCase();
+  return domain === UMNG_EMAIL_DOMAIN || domain.endsWith(`.${UMNG_EMAIL_DOMAIN}`);
+}
+
+const CONTROL_MAX = 0x1f;
+const DELETE_CHAR = 0x7f;
+
+export function normalizeText(value: string, maxLength: number): string {
+  const withoutControls = Array.from(value, (character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code <= CONTROL_MAX || code === DELETE_CHAR ? " " : character;
+  }).join("");
+  return withoutControls.replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+/** Espejo de `canonicalKey` en `web/src/domain/account.ts`. */
+export function canonicalKey(value: string): string {
+  return normalizeText(value, 200)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Valida el perfil que llega de la aplicación.
+ *
+ * Ni el correo ni la verificación académica vienen del cuerpo: salen de la
+ * identidad que inyecta Static Web Apps. Aceptarlos del cliente permitiría a
+ * cualquiera declararse estudiante verificado de la UMNG, que es exactamente lo
+ * que el profesor va a dar por bueno.
+ */
+export function parseProfile(
+  body: unknown,
+  identity: { provider: string; email: string },
+): AccountProfile {
+  if (typeof body !== "object" || body === null) {
+    throw new ValidationError("El cuerpo debe ser un objeto JSON");
+  }
+  const input = body as Record<string, unknown>;
+
+  const fullName = normalizeText(requireString(input.fullName, "fullName", 200), MAX_NAME_LENGTH);
+  if (fullName.length < 3) {
+    throw new ValidationError("Escribe tu nombre completo");
+  }
+
+  const affiliation = requireEnum(input.affiliation, ["UMNG", "GENERAL"] as const, "affiliation");
+
+  let academic: AcademicInfo | null = null;
+  if (affiliation === "UMNG") {
+    const raw = input.academic as Record<string, unknown> | undefined;
+    if (typeof raw !== "object" || raw === null) {
+      throw new ValidationError("Faltan la clase, el grupo y el profesor");
+    }
+    const course = normalizeText(
+      requireString(raw.course, "academic.course", 200),
+      MAX_ACADEMIC_FIELD_LENGTH,
+    );
+    const group = normalizeText(
+      requireString(raw.group, "academic.group", 200),
+      MAX_ACADEMIC_FIELD_LENGTH,
+    );
+    const professor = normalizeText(
+      requireString(raw.professor, "academic.professor", 200),
+      MAX_ACADEMIC_FIELD_LENGTH,
+    );
+    if (course.length === 0 || group.length === 0 || professor.length === 0) {
+      throw new ValidationError("La clase, el grupo y el profesor no pueden ir vacíos");
+    }
+    academic = {
+      course,
+      group,
+      professor,
+      courseKey: canonicalKey(course),
+      groupKey: canonicalKey(group),
+      professorKey: canonicalKey(professor),
+    };
+  }
+
+  return {
+    provider: identity.provider,
+    email: identity.email,
+    fullName,
+    affiliation,
+    // No se acepta del cliente: se deduce del correo con el que entró.
+    academicVerified: affiliation === "UMNG" && isUmngEmail(identity.email),
+    academic,
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 export const SUPPORTED_SCHEMA_VERSIONS = [1] as const;
 
@@ -122,6 +268,17 @@ export interface ContributorDocument {
   /** Día (YYYY-MM-DD) del contador diario, para el tope antiabuso. */
   quotaDay: string;
   quotaUsed: number;
+  /** Perfil de la cuenta, o `null` en los aportantes anónimos. La cuenta es opcional. */
+  account: AccountProfile | null;
+  /**
+   * Identificadores anónimos que resultaron ser esta misma persona, al entrar en
+   * su cuenta desde un dispositivo donde ya había aportado.
+   *
+   * Sin esto, alguien que aporta primero sin cuenta y luego con ella cuenta como
+   * dos aportantes distintos, y §10 pide justo lo contrario: la unidad de
+   * partición es la persona.
+   */
+  linkedContributorIds: string[];
 }
 
 export class ValidationError extends Error {
