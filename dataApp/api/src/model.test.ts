@@ -114,6 +114,26 @@ describe("validación de capturas", () => {
     ).toThrow(ValidationError);
   });
 
+  it("rechaza un fotograma sin imagen aprovechable", () => {
+    // Segunda barrera: el cliente ya lo frena, pero este extremo es público.
+    const casos = [
+      { sharpness: 0.4, luminance: 0, accepted: false }, // cámara tapada
+      { sharpness: 0.4, luminance: 1, accepted: false }, // quemado total
+      { sharpness: 0, luminance: 0.5, accepted: false }, // un solo tono plano
+    ];
+    for (const quality of casos) {
+      expect(() => parseCaptureRecord(validBody({ quality }))).toThrow(/aprovechable/);
+    }
+  });
+
+  it("acepta una foto mala pero con contenido", () => {
+    // Movida y oscura sigue enseñando; lo que no vale es la que no tiene nada.
+    const record = parseCaptureRecord(
+      validBody({ quality: { sharpness: 0.05, luminance: 0.1, accepted: false } }),
+    );
+    expect(record.quality.accepted).toBe(false);
+  });
+
   it("rechaza un pHash mal formado", () => {
     expect(() => parseCaptureRecord(validBody({ phash: "no-es-un-hash" }))).toThrow(/pHash/);
   });

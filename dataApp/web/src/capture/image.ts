@@ -17,7 +17,7 @@
  *    el que esta plataforma existe.
  */
 
-import { metricsOf, lumaFromRgba, accepts, type FrameMetrics } from "./qualityGate";
+import { metricsOf, lumaFromRgba, accepts, isBlank, type FrameMetrics } from "./qualityGate";
 import { phashFromGrayscale, PHASH_IMAGE_SIZE } from "./phash";
 
 /**
@@ -35,6 +35,8 @@ export interface CapturedImage {
   readonly height: number;
   readonly quality: FrameMetrics;
   readonly acceptedByProductionGate: boolean;
+  /** `true` si el fotograma no contiene nada que aprender y no debe enviarse. */
+  readonly blank: boolean;
   readonly phash: string;
 }
 
@@ -70,6 +72,7 @@ export async function captureFrame(video: HTMLVideoElement): Promise<CapturedIma
     height,
     quality,
     acceptedByProductionGate: accepts(quality),
+    blank: isBlank(quality),
     phash,
   };
 }

@@ -133,6 +133,35 @@ export function accepts(metrics: FrameMetrics): boolean {
 }
 
 /**
+ * Umbrales de «esto no es una foto de nada».
+ *
+ * Distintos de los de arriba y con otro propósito. El filtro de producción marca
+ * fotogramas **malos**, y un fotograma malo sigue enseñando: §10 quiere
+ * precisamente las condiciones difíciles, así que la aplicación avisa y deja
+ * enviarlo igual.
+ *
+ * Estos otros marcan fotogramas **vacíos**: una tapa de objetivo, la cámara
+ * tapada con el dedo, un cuadro negro porque el sensor no había arrancado. No
+ * contienen ningún residuo que aprender, ocupan almacenamiento y le roban tiempo
+ * a la moderación. Eso no se envía.
+ *
+ * Lo destapó una prueba en el navegador: un fotograma completamente negro
+ * —luminancia 0,000— se guardaba en la cola sin más aviso que el de siempre.
+ */
+export const USABLE_LUMINANCE_FLOOR = 0.02;
+export const USABLE_LUMINANCE_CEILING = 0.99;
+
+export function isBlank(metrics: FrameMetrics): boolean {
+  return (
+    metrics.luminance < USABLE_LUMINANCE_FLOOR ||
+    metrics.luminance > USABLE_LUMINANCE_CEILING ||
+    // Varianza exactamente cero: la imagen es de un solo tono, píxel a píxel.
+    // Ninguna foto de una cámara real da esto.
+    metrics.sharpness === 0
+  );
+}
+
+/**
  * Motivo del rechazo en lenguaje de persona, o `null` si la foto pasa.
  *
  * La exposición se comprueba **antes** que el desenfoque, y no es un capricho de

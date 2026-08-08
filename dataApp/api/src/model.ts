@@ -49,6 +49,10 @@ export const ACCEPTED_CONSENT_VERSIONS = ["1.0"] as const;
 
 export const SUPPORTED_SCHEMA_VERSIONS = [1] as const;
 
+/** Espejo de `USABLE_LUMINANCE_*` en `web/src/capture/qualityGate.ts`. */
+export const BLANK_LUMINANCE_FLOOR = 0.02;
+export const BLANK_LUMINANCE_CEILING = 0.99;
+
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_NOTE_LENGTH = 120;
 /** Tope diario por aportante. Un freno al ruido y a los aportes automatizados, no una meta. */
@@ -209,6 +213,15 @@ export function parseCaptureRecord(body: unknown): CaptureRecord {
   if (typeof quality !== "object" || quality === null) {
     throw new ValidationError("Faltan las métricas de calidad");
   }
+  // Segunda barrera contra fotogramas vacíos —cámara tapada, sensor sin
+  // arrancar—. El cliente ya los frena, pero este extremo es público y un
+  // cliente con un fallo puede mandarlos en serie. Los umbrales son espejo de
+  // `isBlank` en web/src/capture/qualityGate.ts.
+  const luminance = requireNumber(quality.luminance, "quality.luminance", 0, 1);
+  const sharpness = requireNumber(quality.sharpness, "quality.sharpness", 0, 1);
+  if (luminance < BLANK_LUMINANCE_FLOOR || luminance > BLANK_LUMINANCE_CEILING || sharpness === 0) {
+    throw new ValidationError("El fotograma no contiene imagen aprovechable");
+  }
 
   const image = input.image as Record<string, unknown> | undefined;
   if (typeof image !== "object" || image === null) {
@@ -249,8 +262,8 @@ export function parseCaptureRecord(body: unknown): CaptureRecord {
     note,
     labelLatencyMs: requireNumber(input.labelLatencyMs, "labelLatencyMs", 0, 3_600_000),
     quality: {
-      sharpness: requireNumber(quality.sharpness, "quality.sharpness", 0, 1),
-      luminance: requireNumber(quality.luminance, "quality.luminance", 0, 1),
+      sharpness,
+      luminance,
       accepted: typeof quality.accepted === "boolean" ? quality.accepted : false,
     },
     phash,

@@ -90,10 +90,12 @@ export function LabelScreen({
   const qualityProblem = image.acceptedByProductionGate ? null : rejectionReason(image.quality);
 
   const complete = useMemo(() => {
+    // Un fotograma vacío no se etiqueta: no hay nada que etiquetar.
+    if (image.blank) return false;
     if (!material || !light || !angle) return false;
     if (policy === "REQUIRED" && contamination === null) return false;
     return true;
-  }, [material, light, angle, policy, contamination]);
+  }, [image.blank, material, light, angle, policy, contamination]);
 
   const save = () => {
     if (!material || !light || !angle) return;
@@ -123,20 +125,29 @@ export function LabelScreen({
         <img src={image.previewUrl} alt="La foto que acabas de tomar" />
       </div>
 
-      {qualityProblem && (
-        <Notice tone="warn">
+      {image.blank ? (
+        <Notice tone="danger">
           <div style={{ flex: 1 }}>
-            {qualityProblem} La aplicación real pediría otra toma. Puedes enviarla igual —también
-            enseña— pero si puedes, repítela.
+            En esta foto no se ve nada. Puede que la cámara estuviera tapada o que no le hubiera dado
+            tiempo a enfocar. Hay que repetirla.
           </div>
-          <button type="button" className="button-ghost" onClick={onRetake}>
-            Repetir
-          </button>
         </Notice>
+      ) : (
+        qualityProblem && (
+          <Notice tone="warn">
+            <div style={{ flex: 1 }}>
+              {qualityProblem} La aplicación real pediría otra toma. Puedes enviarla igual —también
+              enseña— pero si puedes, repítela.
+            </div>
+            <button type="button" className="button-ghost" onClick={onRetake}>
+              Repetir
+            </button>
+          </Notice>
+        )
       )}
 
-      {/* Paso 1 · material */}
-      {requested && !askingMaterial && material === null ? (
+      {/* Con un fotograma vacío no hay nada que preguntar: solo repetir. */}
+      {image.blank ? null : requested && !askingMaterial && material === null ? (
         <div className="card">
           <h2>¿Es {MATERIAL_INFO[requested].name.toLowerCase()}?</h2>
           <p className="muted">{MATERIAL_INFO[requested].examples}</p>
@@ -175,7 +186,7 @@ export function LabelScreen({
       )}
 
       {/* Paso 2 · contaminación */}
-      {material && policy !== "NOT_ASKED" && (
+      {!image.blank && material && policy !== "NOT_ASKED" && (
         <div className="card">
           <h2>{contaminationQuestion(material)}</h2>
           {policy === "REQUIRED" && (
@@ -202,7 +213,7 @@ export function LabelScreen({
       )}
 
       {/* Paso 3 · condiciones de la toma */}
-      {material && (
+      {!image.blank && material && (
         <div className="card">
           <ChoiceGroup legend="¿Con qué luz?" options={LIGHT_OPTIONS} value={light} onChange={setLight} />
           <ChoiceGroup legend="¿Desde dónde?" options={ANGLE_OPTIONS} value={angle} onChange={setAngle} />
@@ -242,17 +253,25 @@ export function LabelScreen({
       )}
 
       <div className="actions">
-        <button
-          type="button"
-          className="button button-primary button-block"
-          disabled={!complete}
-          onClick={save}
-        >
-          Guardar aporte
-        </button>
-        <button type="button" className="button-ghost" onClick={onRetake}>
-          Repetir la foto
-        </button>
+        {image.blank ? (
+          <button type="button" className="button button-primary button-block" onClick={onRetake}>
+            Repetir la foto
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="button button-primary button-block"
+              disabled={!complete}
+              onClick={save}
+            >
+              Guardar aporte
+            </button>
+            <button type="button" className="button-ghost" onClick={onRetake}>
+              Repetir la foto
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

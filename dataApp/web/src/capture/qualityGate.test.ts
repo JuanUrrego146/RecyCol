@@ -14,6 +14,7 @@ import {
   OVEREXPOSED_ABOVE,
   UNDEREXPOSED_BELOW,
   accepts,
+  isBlank,
   lumaFromRgba,
   metricsOf,
   rejectionReason,
@@ -124,5 +125,40 @@ describe("filtro de calidad", () => {
   it("no revienta con una imagen más pequeña que la rejilla", () => {
     const tiny: LumaPlane = { data: new Uint8ClampedArray(4).fill(120), width: 2, height: 2 };
     expect(metricsOf(tiny).sharpness).toBe(0);
+  });
+});
+
+/**
+ * Distinto del filtro de producción y con otro fin: aquí no se juzga si la foto
+ * es buena, sino si contiene algo. Salió de probar la aplicación en el navegador,
+ * donde un fotograma completamente negro llegó a guardarse en la cola.
+ */
+describe("fotogramas vacíos", () => {
+  it("marca el negro absoluto", () => {
+    expect(isBlank(metricsOf(flat(0)))).toBe(true);
+  });
+
+  it("marca el blanco absoluto", () => {
+    expect(isBlank(metricsOf(flat(255)))).toBe(true);
+  });
+
+  it("marca un tono plano aunque esté bien expuesto", () => {
+    // La cámara tapada con el dedo: luz normal y varianza cero.
+    const metrics = metricsOf(flat(128));
+    expect(metrics.underexposed).toBe(false);
+    expect(metrics.overexposed).toBe(false);
+    expect(isBlank(metrics)).toBe(true);
+  });
+
+  it("no marca una foto mala pero real", () => {
+    // Una toma movida sigue enseñando: §10 quiere justamente las condiciones
+    // difíciles. Se avisa, pero se puede enviar.
+    const metrics = metricsOf(boxBlur(checkerboard()));
+    expect(accepts(metrics)).toBe(false);
+    expect(isBlank(metrics)).toBe(false);
+  });
+
+  it("no marca una foto buena", () => {
+    expect(isBlank(metricsOf(checkerboard()))).toBe(false);
   });
 });
