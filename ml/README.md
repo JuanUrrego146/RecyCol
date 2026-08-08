@@ -4,8 +4,8 @@ Módulo Python del agente ML (milestone M4), aislado de la app. **Docker es el
 único entorno**: no hay Python local en la máquina.
 
 ```bash
-docker compose -p botabien-ml run --rm ml bash                      # CPU
-docker compose -f docker-compose.gpu.yml -p botabien-ml-gpu run --rm ml-gpu ...   # GPU
+docker compose -p recycol-ml run --rm ml bash                      # CPU
+docker compose -f docker-compose.gpu.yml -p recycol-ml-gpu run --rm ml-gpu ...   # GPU
 ```
 
 El estado de M4, las métricas contra control y los hallazgos están en
