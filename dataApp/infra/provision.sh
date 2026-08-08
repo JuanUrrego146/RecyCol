@@ -126,10 +126,13 @@ echo "✓ Contenedor privado ${CONTAINER_NAME}"
 # índices secundarios, y sin él cada carga de la pantalla de revisión recorrería
 # el dataset entero.
 #
+# `ipquota` lleva el tope diario por dirección de origen. No guarda direcciones:
+# una fila por día y por resumen, con un contador y nada más (ver `ratelimit.ts`).
+#
 # La API también las crea sola al arrancar (`ensureTables` en store.ts); hacerlo
 # aquí deja el recurso completo antes del primer despliegue.
 
-for tabla in captures contributors counters pendingreview; do
+for tabla in captures contributors counters pendingreview ipquota; do
   az storage table create \
     --name "${tabla}" \
     --account-name "${STORAGE_ACCOUNT}" \

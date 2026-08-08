@@ -10,6 +10,16 @@
  * almacenamiento y solo entonces la cuenta. Sin este paso, un registro cuya
  * subida se cortó a mitad contaría como aporte en las misiones y nadie tendría la
  * foto.
+ *
+ * ## Dos topes diarios, no uno
+ *
+ * El de **aportante** protege el equilibrio del dataset frente a una sola persona
+ * muy entusiasta, y se cuenta al confirmar. El de **dirección de origen** protege
+ * la cuenta de almacenamiento frente a un guion, se cuenta al registrar y es el
+ * primero que se mira, antes de escribir nada. Hacen falta los dos:
+ * `contributorId` viaja en el cuerpo de la petición, así que un identificador
+ * nuevo por llamada no roza el primero. El porqué completo está en
+ * `ratelimit.ts`.
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
@@ -27,10 +37,12 @@ import {
   parseCaptureRecord,
   todayStamp,
 } from "../model";
+import { DAILY_IP_CAPTURE_LIMIT, clientIp, ipQuotaKey } from "../ratelimit";
 import { recordCollected } from "../stats";
 import {
   addPending,
   bumpContributorCount,
+  consumeIpQuota,
   createCapture,
   ensureTables,
   findCaptureById,
@@ -88,6 +100,45 @@ export async function registerCapture(
         blobPath: existing.blobPath,
       },
     };
+  }
+
+  // Tope por dirección de origen, **antes de escribir nada**.
+  //
+  // El tope de más abajo cuenta contra un identificador que manda el propio
+  // cliente, así que un UUID nuevo por llamada se lo salta entero; este no,
+  // porque la dirección la pone la plataforma. Va aquí arriba y no junto al otro
+  // por una razón concreta: `touchContributor` **crea** el documento del aportante
+  // y suma al recuento de personas. Dejarlo delante significaría que una ráfaga
+  // frenada sigue llenando la tabla de aportantes fantasma, uno por petición.
+  //
+  // Se descuenta al registrar y no al confirmar: lo que hay que frenar es la
+  // ráfaga de registros —cada uno emite una firma de escritura contra el
+  // almacenamiento—, aunque la imagen no llegue nunca. Los reintentos de una
+  // captura ya registrada salen antes, por la comprobación de idempotencia, así
+  // que la cola sin cobertura no gasta cuota repitiendo. Ver `ratelimit.ts`.
+  const ip = clientIp(request);
+  if (ip) {
+    const day = todayStamp();
+    const verdict = await consumeIpQuota(day, ipQuotaKey(day, ip), DAILY_IP_CAPTURE_LIMIT);
+    if (verdict === "LIMIT") {
+      context.log(`Cuota diaria por dirección agotada (${DAILY_IP_CAPTURE_LIMIT})`);
+      return {
+        status: 429,
+        jsonBody: {
+          message:
+            "Desde esta red ya se aportó el máximo de hoy. Si estáis varios en la misma conexión, probad mañana o desde otra red.",
+        },
+      };
+    }
+    if (verdict === "BUSY") {
+      return {
+        status: 503,
+        headers: { "retry-after": "5" },
+        jsonBody: {
+          message: "Hay mucho tráfico ahora mismo. Tu foto está guardada y se reintenta sola.",
+        },
+      };
+    }
   }
 
   const contributor = await touchContributor(record.contributorId, record.consentVersion);

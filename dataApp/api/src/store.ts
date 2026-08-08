@@ -51,6 +51,8 @@ export const TABLES = {
   counters: "counters",
   /** Índice de la cola de moderación. Ver el punto 3 de la cabecera. */
   pending: "pendingreview",
+  /** Contadores diarios por dirección de red. Ver `ratelimit.ts` y `consumeIpQuota`. */
+  ipQuota: "ipquota",
 } as const;
 
 const clients = new Map<string, TableClient>();
@@ -490,6 +492,75 @@ export async function bumpContributorCount(): Promise<void> {
     }
   }
   // Se rinde en silencio: es un número informativo, no vale tumbar un aporte.
+}
+
+// --- Cuota diaria por dirección de red ----------------------------------------
+
+interface IpQuotaEntity extends TableEntity {
+  used: number;
+}
+
+export type IpQuotaVerdict = "OK" | "LIMIT" | "BUSY";
+
+/**
+ * Descuenta un aporte de la cuota diaria de una dirección.
+ *
+ * Misma escritura condicional que `updateCounter`, y por la misma razón: Table
+ * Storage no sabe incrementar, así que la atomicidad la da el `If-Match`. Aquí
+ * importa más que en los contadores de material — el caso que esto frena es
+ * precisamente una ráfaga desde un mismo origen, o sea el peor escenario posible
+ * para un leer-modificar-escribir sin control de concurrencia.
+ *
+ * La comprobación y el descuento van en el mismo ciclo **a propósito**: mirar
+ * primero y sumar después deja pasar toda una ráfaga por el hueco entre las dos
+ * operaciones.
+ *
+ * Tres respuestas y no dos:
+ *
+ * - `LIMIT` — la dirección agotó su cuota del día. Es un 429 honesto.
+ * - `BUSY` — se perdieron todos los intentos contra otras escrituras. **No es lo
+ *   mismo** y no debe contarse como límite alcanzado: es contención, se reintenta
+ *   solo desde la cola del cliente. Decir «llegaste al máximo» aquí sería mentir.
+ * - `OK` — descontado.
+ *
+ * Ante contención se falla cerrado: la cola del navegador reintenta con espera
+ * creciente y no pierde la foto, mientras que fallar abierto le regalaría el
+ * hueco a quien esté generando la ráfaga.
+ */
+export async function consumeIpQuota(
+  day: string,
+  key: string,
+  limit: number,
+  attempts = 8,
+): Promise<IpQuotaVerdict> {
+  const client = tableClient(TABLES.ipQuota);
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    let current: IpQuotaEntity | null = null;
+    try {
+      current = await client.getEntity<IpQuotaEntity>(day, key);
+    } catch (error) {
+      if (!isNotFound(error)) throw error;
+    }
+
+    const used = current?.used ?? 0;
+    if (used >= limit) return "LIMIT";
+
+    const next: IpQuotaEntity = { partitionKey: day, rowKey: key, used: used + 1 };
+    try {
+      if (current) {
+        await client.updateEntity(next, "Replace", { etag: etagOf(current) });
+      } else {
+        await client.createEntity(next);
+      }
+      return "OK";
+    } catch (error) {
+      const status = (error as { statusCode?: number }).statusCode;
+      // 412: otro proceso escribió antes. 409: otro proceso creó la fila.
+      if (status !== 412 && status !== 409) throw error;
+    }
+  }
+  return "BUSY";
 }
 
 export async function readContributorCount(): Promise<number> {
