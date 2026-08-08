@@ -12,3 +12,6 @@ import "./functions/review";
 import "./functions/exportData";
 import "./functions/account";
 import "./functions/report";
+// El atrapatodo va el último: sirve la aplicación web y cualquier ruta que no
+// haya reclamado una función de API antes.
+import "./functions/site";

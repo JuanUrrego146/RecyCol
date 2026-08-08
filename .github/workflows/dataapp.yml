@@ -27,6 +27,9 @@ concurrency:
   group: dataapp-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+env:
+  FUNCTION_APP: func-recycol-aporta-w94b924
+
 jobs:
   verify:
     name: Probar dataApp
@@ -37,7 +40,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       # `npm ci` sin caché compartida: son dos paquetes pequeños y la caché por
       # lockfile daría más problemas de invalidación que segundos de ahorro.
@@ -58,42 +61,36 @@ jobs:
 
       # El perfil normativo se importa desde shared/resources: si RULES cambia
       # co.json de forma incompatible, esto se pone rojo aquí y no en producción.
-      - name: Construir la aplicación web
+      - name: Empaquetar
         env:
-          VITE_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
-        run: npm run build --prefix dataApp/web
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+        run: bash dataApp/infra/package.sh
 
       - name: Guardar el artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: recycol-aporta-web
-          path: dataApp/web/dist
+          name: recycol-aporta
+          path: dataApp/.package/recycol-aporta.zip
           retention-days: 7
 
   deploy:
     name: Desplegar
     needs: verify
-    # Solo desde main y nunca desde un fork: el token de despliegue no puede
+    # Solo desde main y nunca desde un fork: el perfil de publicación no puede
     # quedar al alcance de un PR ajeno.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
       - uses: actions/download-artifact@v4
         with:
-          name: recycol-aporta-web
-          path: dataApp/web/dist
+          name: recycol-aporta
 
-      - name: Publicar en Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      # El paquete lleva dentro la web y la API: las sirve la misma aplicación,
+      # así que comparten origen y la sesión fluye sin CORS.
+      - name: Publicar en Azure Functions
+        uses: Azure/functions-action@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: upload
-          # La web ya viene construida del trabajo anterior; la API la construye
-          # Oryx, que es autosuficiente porque no importa nada de fuera.
-          app_location: dataApp/web/dist
-          skip_app_build: true
-          api_location: dataApp/api
-          output_location: ""
+          app-name: ${{ env.FUNCTION_APP }}
+          package: recycol-aporta.zip
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}

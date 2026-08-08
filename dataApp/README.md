@@ -60,9 +60,8 @@ La cuenta existe para una cosa concreta: **que un profesor de la UMNG pueda ver
 cuánto aportó cada estudiante y reconocérselo**. Quien entra da su nombre y, si
 es de la universidad, su clase, su grupo y el profesor.
 
-- **No manejamos contraseñas.** La autenticación la resuelve Static Web Apps con
-  proveedores ya integrados. Nada que cifrar, nada que recuperar, nada que
-  filtrar.
+- **No manejamos contraseñas.** La autenticación la resuelve App Service
+  Authentication. Nada que cifrar, nada que recuperar, nada que filtrar.
 - **Entrar con el correo `@unimilitar.edu.co` acredita** la pertenencia a la
   UMNG. Declararla desde una cuenta personal la deja como «declarado», y el
   informe lo distingue: no es lo mismo si de ello depende una nota.
@@ -75,8 +74,8 @@ es de la universidad, su clase, su grupo y el profesor.
 - **Los datos personales no salen hacia ML.** El manifiesto de entrenamiento
   lleva `contributor_id` y nada más.
 
-Google requiere el plan Standard de Azure (9 USD/mes) y por eso llega desactivado,
-listo en `LOGIN_PROVIDERS`. Microsoft y GitHub van en el plan gratuito.
+Solo Microsoft. Cubre las cuentas de la universidad y cualquier cuenta personal;
+quien no tenga ninguna aporta de forma anónima, que es el camino por defecto.
 
 ## Qué se guarda, y qué no
 
@@ -88,9 +87,9 @@ luz · ángulo · estado físico · fondo · nitidez y exposición medidas con e
 filtro que la app real · gama y plataforma del dispositivo · tiempo de respuesta
 al etiquetar · pHash · identificador de aportante y de objeto físico.
 
-**Sin geolocalización.** Ni campo, ni permiso, ni petición al navegador. **Sin
-cuentas ni datos personales**: el aportante es un UUID generado en el navegador.
-Reencodificar en canvas elimina además cualquier metadato EXIF.
+**Sin geolocalización.** Ni campo, ni permiso, ni petición al navegador.
+Reencodificar en canvas elimina además cualquier metadato EXIF. Quien no crea
+cuenta no deja ningún dato personal: es un UUID generado en el navegador.
 
 ## Estructura
 
@@ -101,7 +100,7 @@ dataApp/
 │   ├── capture/    cámara, filtro de calidad, pHash, codificación
 │   ├── data/       aportante local, cola offline en IndexedDB, cliente de API
 │   └── ui/         pantallas
-├── api/            Azure Functions (Node 20) sobre Cosmos DB y Blob Storage
+├── api/            Azure Functions (Node 22): API, y también sirve la web
 ├── infra/          aprovisionamiento con el CLI de Azure
 └── docs/           despliegue, consentimiento e integración con ML
 ```
@@ -111,7 +110,7 @@ dataApp/
 ```bash
 npm ci --prefix dataApp/web && npm run dev --prefix dataApp/web   # http://localhost:5173
 npm test --prefix dataApp/web                                     # 72 pruebas
-npm test --prefix dataApp/api                                     # 33 pruebas
+npm test --prefix dataApp/api                                     # 45 pruebas
 ```
 
 La cámara funciona en `localhost` sin HTTPS. Sin la API levantada se puede
@@ -134,16 +133,25 @@ Para llevar los datos a ML: [`docs/INTEGRACION-ML.md`](docs/INTEGRACION-ML.md).
 - **La partición es por aportante y luego por objeto.** Es lo único de aquí que
   no admite atajos: un `split` por imagen infla la métrica y destruye la
   evidencia. Está explicado en `docs/INTEGRACION-ML.md`.
-- **Ningún secreto vive en el repositorio.** Las cadenas de conexión se cargan
-  con `az staticwebapp appsettings set` desde el script de aprovisionamiento.
+- **Ningún secreto vive en el repositorio.** Las cadenas de conexión y el
+  secreto de autenticación se cargan con `az functionapp config appsettings set`
+  desde el script de aprovisionamiento.
+- **La misma aplicación sirve la web y la API.** No es Static Web Apps: no existe
+  en ninguna región que la suscripción permita. Tampoco hay Cosmos DB, por lo
+  mismo. Los porqués están en `docs/DESPLIEGUE.md` y en las cabeceras de
+  `api/src/store.ts` y `api/src/functions/site.ts`.
 - **La moderación es obligatoria.** Toda captura nace en `PENDING`. El enlace es
   público y va a llegar ruido; el exportador solo ve lo aprobado.
 
 ## Estado
 
-Construido y probado en local. **Sin desplegar todavía**: falta ejecutar los seis
-pasos de `docs/DESPLIEGUE.md`, que requieren una sesión de Azure en la máquina de
-Juan.
+**Desplegado y funcionando** en
+https://func-recycol-aporta-w94b924.azurewebsites.net (08/08/2026). Verificado de
+extremo a extremo contra el servidor real: registro, subida con firma temporal,
+confirmación y recuento de misiones.
+
+Falta que Juan lo pruebe con la cámara de un móvil de verdad, que es donde
+aparecen los fallos que ninguna prueba ve.
 
 Pendiente para una versión 2, cuando ML exporte los modelos a ONNX: **que el
 modelo proponga y la persona corrija**. Hoy no se puede —los `.tflite` son INT8

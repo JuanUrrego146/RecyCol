@@ -12,31 +12,66 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { readPrincipal } from "../auth";
-import { capturesContainer, contributorsContainer, isNotFound } from "../cosmos";
 import {
-  ContributorDocument,
   ValidationError,
   accountIdFor,
   assignSplit,
   isAccountId,
+  isUmngEmail,
   parseProfile,
   todayStamp,
 } from "../model";
+import {
+  bumpContributorCount,
+  ensureTables,
+  listCapturesOf,
+  readContributor,
+  replaceCapture,
+  updateContributor,
+  upsertContributor,
+} from "../store";
 
+/**
+ * Quién soy.
+ *
+ * **Es la única fuente de identidad de la aplicación web.** No se usa `/.auth/me`
+ * de la plataforma: en un Function App esa ruta no la atiende el middleware de
+ * autenticación, se cuela hasta la función que sirve la web y devuelve HTML donde
+ * el cliente espera JSON — con lo que toda sesión parecería anónima. Aquí se lee
+ * la cabecera `X-MS-CLIENT-PRINCIPAL`, que sí inyecta la plataforma, y de paso se
+ * ahorra una petición.
+ */
 export async function getMe(request: HttpRequest): Promise<HttpResponseInit> {
   const principal = readPrincipal(request);
-  if (!principal) return { status: 200, jsonBody: { signedIn: false, contributor: null } };
+  if (!principal) {
+    return {
+      status: 200,
+      headers: { "cache-control": "no-store" },
+      jsonBody: { signedIn: false, profile: null },
+    };
+  }
 
+  await ensureTables();
   const id = accountIdFor(principal.userId);
   const contributor = await readContributor(id);
 
   return {
     status: 200,
+    // Nunca se cachea: es identidad, y una respuesta reutilizada podría enseñarle
+    // a alguien la sesión de otra persona.
+    headers: { "cache-control": "no-store" },
     jsonBody: {
       signedIn: true,
       contributorId: id,
       provider: principal.identityProvider,
       email: principal.userDetails,
+      displayName: principal.displayName,
+      /**
+       * La acreditación la calcula el servidor a partir del correo con el que
+       * entró, no el navegador. Si la decidiera el cliente, bastaría con editar
+       * la petición para aparecer como estudiante verificado de la UMNG.
+       */
+      umngVerified: isUmngEmail(principal.userDetails),
       profile: contributor?.account ?? null,
       capturesRegistered: contributor?.capturesRegistered ?? 0,
     },
@@ -67,17 +102,18 @@ export async function putProfile(
     throw error;
   }
 
+  await ensureTables();
   const id = accountIdFor(principal.userId);
-  const container = contributorsContainer();
   const existing = await readContributor(id);
 
   if (existing) {
-    await container.item(id, id).patch([
-      { op: "set", path: "/account", value: profile },
-      { op: "set", path: "/lastSeenAt", value: new Date().toISOString() },
-    ]);
+    await updateContributor(id, (current) => ({
+      ...current,
+      account: profile,
+      lastSeenAt: new Date().toISOString(),
+    }));
   } else {
-    const created: ContributorDocument = {
+    await upsertContributor({
       id,
       split: assignSplit(id),
       createdAt: new Date().toISOString(),
@@ -88,12 +124,8 @@ export async function putProfile(
       quotaUsed: 0,
       account: profile,
       linkedContributorIds: [],
-    };
-    try {
-      await container.items.create(created);
-    } catch (error) {
-      if ((error as { code?: number }).code !== 409) throw error;
-    }
+    });
+    await bumpContributorCount();
   }
 
   // Enlace con lo aportado antes de entrar, si lo hubo.
@@ -103,18 +135,10 @@ export async function putProfile(
     linked = await linkAnonymousContributor(id, linkId, context);
   }
 
-  context.log(`Perfil guardado ${id} (${profile.affiliation}, verificado=${profile.academicVerified})`);
+  context.log(
+    `Perfil guardado ${id} (${profile.affiliation}, verificado=${profile.academicVerified})`,
+  );
   return { status: 200, jsonBody: { contributorId: id, profile, linked } };
-}
-
-async function readContributor(id: string): Promise<ContributorDocument | undefined> {
-  try {
-    const { resource } = await contributorsContainer().item(id, id).read<ContributorDocument>();
-    return resource;
-  } catch (error) {
-    if (isNotFound(error)) return undefined;
-    throw error;
-  }
 }
 
 /**
@@ -143,10 +167,11 @@ async function linkAnonymousContributor(
   if (!account) return false;
   if (account.linkedContributorIds.includes(anonymousId)) return true;
 
-  const container = contributorsContainer();
-  await container
-    .item(accountId, accountId)
-    .patch([{ op: "add", path: "/linkedContributorIds/-", value: anonymousId }]);
+  await updateContributor(accountId, (current) =>
+    current.linkedContributorIds.includes(anonymousId)
+      ? current
+      : { ...current, linkedContributorIds: [...current.linkedContributorIds, anonymousId] },
+  );
 
   if (anonymous.split !== account.split) {
     context.warn(
@@ -160,36 +185,27 @@ async function linkAnonymousContributor(
 
 /** Pasa un aportante y todas sus capturas a `TRAIN`. Solo se mueve en esa dirección. */
 async function demoteToTrain(contributorId: string): Promise<void> {
-  await contributorsContainer()
-    .item(contributorId, contributorId)
-    .patch([{ op: "set", path: "/split", value: "TRAIN" }]);
+  await updateContributor(contributorId, (current) =>
+    current.split === "TRAIN" ? current : { ...current, split: "TRAIN" },
+  );
 
-  const { resources } = await capturesContainer()
-    .items.query<{ id: string }>(
-      {
-        query: "SELECT c.id FROM c WHERE c.split = 'CONTROL'",
-      },
-      { partitionKey: contributorId },
-    )
-    .fetchAll();
-
-  for (const capture of resources) {
-    await capturesContainer()
-      .item(capture.id, contributorId)
-      .patch([{ op: "set", path: "/split", value: "TRAIN" }]);
+  for (const capture of await listCapturesOf(contributorId)) {
+    if (capture.split === "CONTROL") {
+      await replaceCapture({ ...capture, split: "TRAIN" });
+    }
   }
 }
 
 app.http("getMe", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "me",
+  route: "api/me",
   handler: getMe,
 });
 
 app.http("putProfile", {
   methods: ["POST"],
   authLevel: "anonymous",
-  route: "me/profile",
+  route: "api/me/profile",
   handler: putProfile,
 });

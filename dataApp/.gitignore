@@ -9,10 +9,13 @@ dist/
 .vite/
 
 # Credenciales de las funciones en local. NUNCA se sube: contiene las cadenas de
-# conexión de Cosmos y del almacenamiento.
+# conexión del almacenamiento.
 local.settings.json
 
 # Salidas de herramientas
 *.tsbuildinfo
 coverage/
 .swa/
+
+# Paquete de despliegue: se regenera con infra/package.sh
+.package/

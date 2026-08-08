@@ -7,15 +7,16 @@
  */
 
 import { app, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { contributorsContainer } from "../cosmos";
 import { readTally } from "../stats";
+import { ensureTables, readContributorCount } from "../store";
 
 export async function getStats(
   _request: unknown,
   context: InvocationContext,
 ): Promise<HttpResponseInit> {
   try {
-    const [tally, contributors] = await Promise.all([readTally(), countContributors()]);
+    await ensureTables();
+    const [tally, contributors] = await Promise.all([readTally(), readContributorCount()]);
     return {
       status: 200,
       headers: { "cache-control": "public, max-age=60" },
@@ -27,16 +28,9 @@ export async function getStats(
   }
 }
 
-async function countContributors(): Promise<number> {
-  const { resources } = await contributorsContainer()
-    .items.query<number>({ query: "SELECT VALUE COUNT(1) FROM c" })
-    .fetchAll();
-  return resources[0] ?? 0;
-}
-
 app.http("getStats", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "stats",
+  route: "api/stats",
   handler: getStats,
 });

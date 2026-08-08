@@ -229,7 +229,7 @@ function ContributeApp() {
       return (
         <div className="app">
           <ProfileScreen
-            email={session.principal?.userDetails ?? ""}
+            email={session.principal?.email ?? ""}
             umngVerified={session.umngVerified}
             initial={
               session.profile

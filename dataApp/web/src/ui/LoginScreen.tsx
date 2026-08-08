@@ -21,8 +21,6 @@ export function LoginScreen({
   onSkip: () => void;
   returnTo?: string;
 }) {
-  const providers = LOGIN_PROVIDERS.filter((provider) => provider.enabled);
-
   return (
     <div className="screen">
       <Header
@@ -52,8 +50,11 @@ export function LoginScreen({
 
       <div className="card">
         <h2>Soy persona natural</h2>
-        <p className="muted">Cualquier cuenta sirve. Solo pediremos tu nombre.</p>
-        {providers.map((provider) => (
+        <p className="muted">
+          Cualquier cuenta Microsoft sirve —también las de Outlook o Hotmail—. Solo pediremos tu
+          nombre.
+        </p>
+        {LOGIN_PROVIDERS.map((provider) => (
           <a
             key={provider.id}
             className="button button-secondary button-block"
@@ -62,6 +63,10 @@ export function LoginScreen({
             <span aria-hidden="true">{provider.glyph}</span> {provider.name}
           </a>
         ))}
+        <p className="tiny">
+          ¿No tienes ninguna? Puedes aportar sin cuenta; solo no saldrás en el reporte de tu
+          profesor.
+        </p>
       </div>
 
       <Notice tone="info">

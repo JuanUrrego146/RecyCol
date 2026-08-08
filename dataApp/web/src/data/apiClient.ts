@@ -121,6 +121,9 @@ export interface MeResponse {
   readonly contributorId?: string;
   readonly provider?: string;
   readonly email?: string;
+  readonly displayName?: string | null;
+  /** Acreditación institucional. La decide el servidor: el cliente no puede otorgársela. */
+  readonly umngVerified?: boolean;
   readonly profile?: StoredProfile | null;
   readonly capturesRegistered?: number;
 }

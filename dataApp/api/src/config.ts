@@ -25,14 +25,13 @@ function optional(name: string, fallback: string): string {
 }
 
 export const config = {
-  get cosmosConnectionString(): string {
-    return required("COSMOS_CONNECTION_STRING");
-  },
+  /**
+   * Una sola cadena de conexión para todo: las fotos van a Blob Storage y los
+   * metadatos a Table Storage, ambos en la misma cuenta. Ver la cabecera de
+   * `store.ts` para por qué no hay Cosmos DB.
+   */
   get storageConnectionString(): string {
     return required("STORAGE_CONNECTION_STRING");
-  },
-  get databaseName(): string {
-    return optional("COSMOS_DATABASE", "recycol");
   },
   get containerName(): string {
     return optional("STORAGE_CONTAINER", "captures");
@@ -42,12 +41,6 @@ export const config = {
     return optional("ADMIN_ROLE", "administrador");
   },
 };
-
-export const COSMOS_CONTAINERS = {
-  captures: "captures",
-  contributors: "contributors",
-  stats: "stats",
-} as const;
 
 /** Minutos de vida de la SAS de escritura. Corta a propósito: solo tiene que durar una subida. */
 export const UPLOAD_SAS_MINUTES = 15;

@@ -21,8 +21,8 @@
 import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
 import { isAdministrator } from "../auth";
 import { containerReadSasUrl } from "../blob";
-import { capturesContainer } from "../cosmos";
 import type { CaptureDocument } from "../model";
+import { ensureTables, listApproved } from "../store";
 
 const PAGE_SIZE = 2000;
 const MAX_SAS_MINUTES = 240;
@@ -127,16 +127,9 @@ export async function exportManifest(request: HttpRequest): Promise<HttpResponse
   const format = request.query.get("format") === "csv" ? "csv" : "jsonl";
   const cursor = request.query.get("cursor") ?? undefined;
 
-  const iterator = capturesContainer().items.query<CaptureDocument>(
-    {
-      query:
-        "SELECT * FROM c WHERE c.status = 'APPROVED' AND c.imageUploaded = true ORDER BY c.registeredAt ASC",
-    },
-    { maxItemCount: PAGE_SIZE, continuationToken: cursor },
-  );
-
-  const page = await iterator.fetchNext();
-  const rows = page.resources.map(toRow);
+  await ensureTables();
+  const page = await listApproved(PAGE_SIZE, cursor);
+  const rows = page.items.map(toRow);
   const body = format === "csv" ? toCsv(rows, cursor === undefined) : toJsonl(rows);
 
   return {
@@ -196,13 +189,13 @@ export async function exportSas(request: HttpRequest): Promise<HttpResponseInit>
 app.http("exportManifest", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "export/manifest",
+  route: "api/export/manifest",
   handler: exportManifest,
 });
 
 app.http("exportSas", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "export/sas",
+  route: "api/export/sas",
   handler: exportSas,
 });

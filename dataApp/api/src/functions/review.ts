@@ -9,14 +9,18 @@
  * Rechazar **no borra la imagen**: la marca. Borrar de verdad es irreversible y
  * un rechazo puede ser un error de criterio; el blob se limpia aparte, cuando
  * alguien lo decide a conciencia.
+ *
+ * La cola se lee de la tabla-índice `pendingreview` en vez de barrer todas las
+ * capturas: Table Storage no tiene índices secundarios, y sin ese índice cada
+ * carga de la pantalla recorrería el dataset entero.
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { isAdministrator } from "../auth";
 import { readSasUrl } from "../blob";
-import { capturesContainer, isNotFound } from "../cosmos";
 import type { CaptureDocument } from "../model";
 import { recordApproved, recordRejected } from "../stats";
+import { ensureTables, listPending, readCapture, removePending, replaceCapture } from "../store";
 
 const PAGE_SIZE = 20;
 
@@ -25,24 +29,21 @@ export async function pendingReviews(request: HttpRequest): Promise<HttpResponse
     return { status: 403, jsonBody: { message: "Solo administración" } };
   }
 
+  await ensureTables();
   const cursor = request.query.get("cursor") ?? undefined;
-  const iterator = capturesContainer().items.query<CaptureDocument>(
-    {
-      query:
-        "SELECT * FROM c WHERE c.status = 'PENDING' AND c.imageUploaded = true ORDER BY c.registeredAt ASC",
-    },
-    { maxItemCount: PAGE_SIZE, continuationToken: cursor },
+  const page = await listPending(PAGE_SIZE, cursor);
+
+  const captures = await Promise.all(
+    page.items.map((entry) => readCapture(entry.contributorId, entry.captureId)),
   );
 
-  const page = await iterator.fetchNext();
   return {
     status: 200,
     jsonBody: {
-      items: page.resources.map((capture) => ({
-        ...capture,
-        imageUrl: readSasUrl(capture.blobPath),
-      })),
-      continuationToken: page.continuationToken ?? null,
+      items: captures
+        .filter((capture): capture is CaptureDocument => capture !== null)
+        .map((capture) => ({ ...capture, imageUrl: readSasUrl(capture.blobPath) })),
+      continuationToken: page.continuationToken,
     },
   };
 }
@@ -68,15 +69,7 @@ export async function decideReview(
     return { status: 400, jsonBody: { message: "Decisión inválida" } };
   }
 
-  let capture: CaptureDocument | undefined;
-  try {
-    const { resource } = await capturesContainer()
-      .item(captureId, body.contributorId)
-      .read<CaptureDocument>();
-    capture = resource;
-  } catch (error) {
-    if (!isNotFound(error)) throw error;
-  }
+  const capture = await readCapture(body.contributorId, captureId);
   if (!capture) return { status: 404, jsonBody: { message: "Captura no encontrada" } };
 
   if (capture.status !== "PENDING") {
@@ -84,13 +77,14 @@ export async function decideReview(
     return { status: 200, jsonBody: { status: capture.status } };
   }
 
-  await capturesContainer()
-    .item(captureId, body.contributorId)
-    .patch([
-      { op: "set", path: "/status", value: body.decision },
-      { op: "set", path: "/reviewedAt", value: new Date().toISOString() },
-      { op: "set", path: "/reviewNote", value: body.note ?? null },
-    ]);
+  const decided: CaptureDocument = {
+    ...capture,
+    status: body.decision,
+    reviewedAt: new Date().toISOString(),
+    reviewNote: body.note ?? null,
+  };
+  await replaceCapture(decided);
+  await removePending(capture);
 
   const contaminated = capture.contamination !== null && capture.contamination !== "CLEAN";
   if (body.decision === "APPROVED") {
@@ -106,13 +100,13 @@ export async function decideReview(
 app.http("pendingReviews", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "review/pending",
+  route: "api/review/pending",
   handler: pendingReviews,
 });
 
 app.http("decideReview", {
   methods: ["POST"],
   authLevel: "anonymous",
-  route: "review/{id}",
+  route: "api/review/{id}",
   handler: decideReview,
 });

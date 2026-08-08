@@ -28,8 +28,8 @@
 
 import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
 import { isAdministrator, readPrincipal } from "../auth";
-import { capturesContainer, contributorsContainer } from "../cosmos";
 import { canonicalKey, type ContributorDocument } from "../model";
+import { eachApproved, ensureTables, listAccountContributors } from "../store";
 
 interface CaptureFact {
   contributorId: string;
@@ -78,7 +78,8 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
   const courseFilter = request.query.get("course");
   const format = request.query.get("format") === "csv" ? "csv" : "json";
 
-  const [contributors, facts] = await Promise.all([accountContributors(), approvedFacts()]);
+  await ensureTables();
+  const [contributors, facts] = await Promise.all([listAccountContributors(), approvedFacts()]);
 
   // Las capturas de los identificadores anónimos enlazados cuentan para su
   // persona: alguien que aportó antes de entrar en su cuenta no debe perderlas.
@@ -155,31 +156,25 @@ export async function academicReport(request: HttpRequest): Promise<HttpResponse
   return { status: 200, jsonBody: { rows, generatedAt: new Date().toISOString() } };
 }
 
-async function accountContributors(): Promise<ContributorDocument[]> {
-  const { resources } = await contributorsContainer()
-    .items.query<ContributorDocument>({
-      query: "SELECT * FROM c WHERE IS_DEFINED(c.account) AND NOT IS_NULL(c.account)",
-    })
-    .fetchAll();
-  return resources;
-}
-
 /**
- * Trae las capturas aprobadas en crudo y agrega en memoria.
+ * Trae las capturas aprobadas y agrega en memoria.
  *
  * A la escala de este proyecto —§10 apunta a 6 000–9 000 fotos— son unos pocos
- * miles de filas diminutas y el informe se genera de vez en cuando, no en cada
- * carga de página. Si algún día creciera un orden de magnitud, tocaría
- * materializar contadores por aportante como ya se hace con `stats`.
+ * miles de filas y el informe se genera de vez en cuando, no en cada carga de
+ * página. Si algún día creciera un orden de magnitud, tocaría materializar
+ * contadores por aportante como ya se hace con los de material.
  */
 async function approvedFacts(): Promise<CaptureFact[]> {
-  const { resources } = await capturesContainer()
-    .items.query<CaptureFact>({
-      query:
-        "SELECT c.contributorId, c.objectId, c.material, c.capturedAt FROM c WHERE c.status = 'APPROVED' AND c.imageUploaded = true",
-    })
-    .fetchAll();
-  return resources;
+  const facts: CaptureFact[] = [];
+  await eachApproved((capture) => {
+    facts.push({
+      contributorId: capture.contributorId,
+      objectId: capture.objectId,
+      material: capture.material,
+      capturedAt: capture.capturedAt,
+    });
+  });
+  return facts;
 }
 
 function toCsv(rows: readonly ReportRow[]): string {
@@ -217,7 +212,8 @@ export async function academicSuggestions(request: HttpRequest): Promise<HttpRes
     return { status: 400, jsonBody: { message: "Campo no válido" } };
   }
 
-  const contributors = await accountContributors();
+  await ensureTables();
+  const contributors = await listAccountContributors();
   // Una entrada por clave normalizada, y como texto visible el que más veces se
   // escribió: así gana la ortografía mayoritaria en vez de la primera que llegó.
   const counts = new Map<string, Map<string, number>>();
@@ -248,13 +244,13 @@ export async function academicSuggestions(request: HttpRequest): Promise<HttpRes
 app.http("academicReport", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "report/academic",
+  route: "api/report/academic",
   handler: academicReport,
 });
 
 app.http("academicSuggestions", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "academic/suggestions",
+  route: "api/academic/suggestions",
   handler: academicSuggestions,
 });

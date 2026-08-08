@@ -12,8 +12,16 @@
 #
 # COSTE ESPERADO — por debajo de 1 USD/mes con 10 000 fotos:
 #   · Static Web Apps  plan gratuito           0 USD  (100 GB de tráfico al mes)
-#   · Cosmos DB        capa gratuita           0 USD  (1000 RU/s y 25 GB, permanente)
 #   · Blob Storage     ~0,02 USD por GB/mes    ~0,10 USD con 10 000 fotos (~4 GB)
+#   · Table Storage    ~0,05 USD por GB/mes    céntimos: los metadatos son texto
+#
+# No hay Cosmos DB, y no es por precio. La suscripción Azure for Students del
+# proyecto rechaza crear cuentas de Cosmos en las cuatro regiones que su política
+# permite, con capa gratuita, sin servidor y aprovisionada, con un
+# «ServiceUnavailable» que dice alta demanda pero es un tope de la suscripción.
+# Los metadatos viven en Table Storage, en esta misma cuenta de almacenamiento:
+# su modelo de clave de partición es literalmente el del dominio. Ver la cabecera
+# de dataApp/api/src/store.ts.
 #
 # El riesgo de coste no está en este diseño sino en dejar encendido algo fuera de
 # la capa gratuita, así que el script deja puesta una alerta de presupuesto.
@@ -22,25 +30,35 @@ set -euo pipefail
 
 # --- Parámetros. Se pueden sobreescribir por variable de entorno. -------------
 
-LOCATION="${LOCATION:-eastus2}"
+# eastus (Virginia). Desde Colombia el tráfico enruta al noreste de Estados
+# Unidos antes que a Sudamérica, así que da menos latencia real que São Paulo, y
+# es de las pocas regiones que admite una suscripción Azure for Students, cuya
+# política solo permite: southcentralus, chilecentral, canadacentral, eastus y
+# northcentralus. Si la suscripción cambia, comprobar con:
+#   az policy assignment list --query "[0].parameters.listOfAllowedLocations.value"
+LOCATION="${LOCATION:-eastus}"
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-recycol-aporta}"
 # Sufijo estable a partir del id de suscripción: dos ejecuciones dan el mismo
 # nombre, así que el script se puede repetir sin crear cuentas huérfanas.
 SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
 SUFFIX="${SUFFIX:-$(printf '%s' "$SUBSCRIPTION_ID" | tr -d '-' | cut -c1-6)}"
 STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-strecycolaporta${SUFFIX}}"
-COSMOS_ACCOUNT="${COSMOS_ACCOUNT:-cosmos-recycol-aporta-${SUFFIX}}"
-STATIC_WEB_APP="${STATIC_WEB_APP:-swa-recycol-aporta}"
-DATABASE_NAME="${DATABASE_NAME:-recycol}"
+FUNCTION_APP="${FUNCTION_APP:-func-recycol-aporta-w${SUFFIX}}"
 CONTAINER_NAME="${CONTAINER_NAME:-captures}"
+AAD_APP_NAME="${AAD_APP_NAME:-RecyCol Aporta}"
+NODE_VERSION="${NODE_VERSION:-22}"
 BUDGET_AMOUNT="${BUDGET_AMOUNT:-5}"
+
+# Quién puede moderar, exportar y sacar el informe académico. Se comparan en
+# minúsculas; separar con comas para varios.
+ADMIN_EMAILS="${ADMIN_EMAILS:-juandavidurregofonseca677@gmail.com}"
 
 echo "Suscripción : $(az account show --query name -o tsv)"
 echo "Región      : ${LOCATION}"
 echo "Grupo       : ${RESOURCE_GROUP}"
 echo "Storage     : ${STORAGE_ACCOUNT}"
-echo "Cosmos      : ${COSMOS_ACCOUNT}"
-echo "Static Web  : ${STATIC_WEB_APP}"
+echo "Funciones   : ${FUNCTION_APP}"
+echo "Admin       : ${ADMIN_EMAILS}"
 echo
 read -r -p "¿Crear estos recursos? Coste esperado por debajo de 1 USD/mes. [s/N] " answer
 [[ "${answer}" =~ ^[sSyY]$ ]] || { echo "Cancelado."; exit 1; }
@@ -49,6 +67,22 @@ read -r -p "¿Crear estos recursos? Coste esperado por debajo de 1 USD/mes. [s/N
 
 az group create --name "${RESOURCE_GROUP}" --location "${LOCATION}" --output none
 echo "✓ Grupo de recursos"
+
+# --- Proveedores de recursos --------------------------------------------------
+#
+# Una suscripción recién creada los trae sin registrar, y entonces crear una
+# cuenta de almacenamiento falla con «SubscriptionNotFound» — un mensaje que
+# manda a buscar el problema justo donde no está. Registrarlos es idempotente y
+# tarda unos segundos si ya lo estaban.
+
+for proveedor in Microsoft.Storage Microsoft.Web; do
+  estado="$(az provider show --namespace "${proveedor}" --query registrationState -o tsv 2>/dev/null || echo NotRegistered)"
+  if [[ "${estado}" != "Registered" ]]; then
+    echo "  registrando ${proveedor}…"
+    az provider register --namespace "${proveedor}" --wait --output none
+  fi
+done
+echo "✓ Proveedores de recursos"
 
 # --- Almacenamiento de imágenes ----------------------------------------------
 #
@@ -82,89 +116,57 @@ az storage container create \
   --output none
 echo "✓ Contenedor privado ${CONTAINER_NAME}"
 
-# --- Cosmos DB ----------------------------------------------------------------
+# --- Tablas de metadatos ------------------------------------------------------
 #
-# La capa gratuita solo admite UNA cuenta por suscripción. Si ya está en uso, se
-# crea sin ella y se avisa: con este volumen el modo servidor sin servidor cuesta
-# céntimos, pero conviene saberlo antes de la factura.
+# Las etiquetas, los aportantes y los contadores viven en Table Storage, en la
+# misma cuenta que las fotos. Su clave de partición es `contributorId`, que es
+# literalmente la unidad de partición que exige CONTEXTO.md §10.
+#
+# `pendingreview` es un índice de la cola de moderación: Table Storage no tiene
+# índices secundarios, y sin él cada carga de la pantalla de revisión recorrería
+# el dataset entero.
+#
+# La API también las crea sola al arrancar (`ensureTables` en store.ts); hacerlo
+# aquí deja el recurso completo antes del primer despliegue.
 
-if az cosmosdb show --name "${COSMOS_ACCOUNT}" --resource-group "${RESOURCE_GROUP}" &>/dev/null; then
-  echo "✓ Cuenta de Cosmos ya existente"
-elif az cosmosdb create \
-  --name "${COSMOS_ACCOUNT}" \
-  --resource-group "${RESOURCE_GROUP}" \
-  --locations regionName="${LOCATION}" failoverPriority=0 isZoneRedundant=False \
-  --enable-free-tier true \
-  --default-consistency-level Session \
-  --output none 2>/dev/null; then
-  echo "✓ Cuenta de Cosmos en capa gratuita"
-else
-  echo "⚠ La capa gratuita de Cosmos ya está usada en esta suscripción."
-  echo "  Se crea en modo sin servidor: se paga por petición, céntimos a este volumen."
-  az cosmosdb create \
-    --name "${COSMOS_ACCOUNT}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --locations regionName="${LOCATION}" failoverPriority=0 isZoneRedundant=False \
-    --capabilities EnableServerless \
-    --default-consistency-level Session \
-    --output none
-  echo "✓ Cuenta de Cosmos sin servidor"
-fi
-
-IS_SERVERLESS="$(az cosmosdb show --name "${COSMOS_ACCOUNT}" --resource-group "${RESOURCE_GROUP}" \
-  --query "contains(to_string(capabilities), 'EnableServerless')" -o tsv)"
-
-if [[ "${IS_SERVERLESS}" == "true" ]]; then
-  az cosmosdb sql database create \
-    --account-name "${COSMOS_ACCOUNT}" --resource-group "${RESOURCE_GROUP}" \
-    --name "${DATABASE_NAME}" --output none 2>/dev/null || true
-else
-  # 1000 RU/s compartidas entre los tres contenedores: es justo lo que cubre la
-  # capa gratuita, y de sobra para este volumen.
-  az cosmosdb sql database create \
-    --account-name "${COSMOS_ACCOUNT}" --resource-group "${RESOURCE_GROUP}" \
-    --name "${DATABASE_NAME}" --throughput 1000 --output none 2>/dev/null || true
-fi
-echo "✓ Base de datos ${DATABASE_NAME}"
-
-# Contenedores. La clave de partición de `captures` es `contributorId` porque es
-# la unidad de partición que exige CONTEXTO.md §10: por aportante, no por imagen.
-create_container() {
-  az cosmosdb sql container create \
-    --account-name "${COSMOS_ACCOUNT}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --database-name "${DATABASE_NAME}" \
-    --name "$1" \
-    --partition-key-path "$2" \
+for tabla in captures contributors counters pendingreview; do
+  az storage table create \
+    --name "${tabla}" \
+    --account-name "${STORAGE_ACCOUNT}" \
+    --connection-string "${STORAGE_CONNECTION_STRING}" \
     --output none 2>/dev/null || true
-  echo "✓ Contenedor $1 (partición $2)"
-}
+done
+echo "✓ Tablas de metadatos"
 
-create_container captures /contributorId
-create_container contributors /id
-create_container stats /id
-
-COSMOS_CONNECTION_STRING="$(az cosmosdb keys list \
-  --name "${COSMOS_ACCOUNT}" --resource-group "${RESOURCE_GROUP}" \
-  --type connection-strings --query "connectionStrings[0].connectionString" -o tsv)"
-
-# --- Static Web App -----------------------------------------------------------
+# --- Aplicación de funciones ---------------------------------------------------
 #
-# El plan gratuito incluye funciones gestionadas, HTTPS, dominio propio y
-# autenticación integrada. No admite identidad administrada, y por eso las
-# credenciales viajan como configuración de aplicación y no como rol de Azure.
+# Aquí vive todo: la API **y** la web, que sirve `src/functions/site.ts`. Un solo
+# origen para la página, `/api/*` y `/.auth/*`, así que la sesión fluye sin CORS
+# ni cookies entre dominios.
+#
+# No es Static Web Apps, que era el diseño original y habría sido más cómodo:
+# solo existe en centralus, eastus2, westus2, westeurope y eastasia, y la
+# política de la suscripción del proyecto permite southcentralus, chilecentral,
+# canadacentral, eastus y northcentralus. La intersección es vacía.
+#
+# **Plan de consumo Windows, no Linux.** El Linux se creó sin errores, quedó en
+# «Running» y devolvió 503 indefinidamente, también su sitio de despliegue. El
+# Windows funcionó a la primera en la misma región.
 
-if ! az staticwebapp show --name "${STATIC_WEB_APP}" --resource-group "${RESOURCE_GROUP}" &>/dev/null; then
-  az staticwebapp create \
-    --name "${STATIC_WEB_APP}" \
+if ! az functionapp show --name "${FUNCTION_APP}" --resource-group "${RESOURCE_GROUP}" &>/dev/null; then
+  az functionapp create \
+    --name "${FUNCTION_APP}" \
     --resource-group "${RESOURCE_GROUP}" \
-    --location "${LOCATION}" \
-    --sku Free \
+    --storage-account "${STORAGE_ACCOUNT}" \
+    --consumption-plan-location "${LOCATION}" \
+    --runtime node \
+    --runtime-version "${NODE_VERSION}" \
+    --functions-version 4 \
     --output none
 fi
-HOSTNAME="$(az staticwebapp show --name "${STATIC_WEB_APP}" --resource-group "${RESOURCE_GROUP}" \
-  --query defaultHostname -o tsv)"
-echo "✓ Static Web App  https://${HOSTNAME}"
+HOSTNAME="$(az functionapp show --name "${FUNCTION_APP}" --resource-group "${RESOURCE_GROUP}" \
+  --query defaultHostName -o tsv)"
+echo "✓ Aplicación de funciones  https://${HOSTNAME}"
 
 # --- CORS del almacenamiento --------------------------------------------------
 #
@@ -186,19 +188,80 @@ echo "✓ CORS del almacenamiento restringido a https://${HOSTNAME}"
 
 # --- Configuración de la aplicación ------------------------------------------
 #
-# Aquí es donde viven las credenciales. Nunca en el repositorio.
+# Aquí viven las credenciales y la lista de administración. Nunca en el
+# repositorio.
 
-az staticwebapp appsettings set \
-  --name "${STATIC_WEB_APP}" \
+az functionapp config appsettings set \
+  --name "${FUNCTION_APP}" \
   --resource-group "${RESOURCE_GROUP}" \
-  --setting-names \
-    "COSMOS_CONNECTION_STRING=${COSMOS_CONNECTION_STRING}" \
+  --settings \
     "STORAGE_CONNECTION_STRING=${STORAGE_CONNECTION_STRING}" \
-    "COSMOS_DATABASE=${DATABASE_NAME}" \
     "STORAGE_CONTAINER=${CONTAINER_NAME}" \
-    "ADMIN_ROLE=administrador" \
+    "ADMIN_EMAILS=${ADMIN_EMAILS}" \
   --output none
 echo "✓ Configuración cargada"
+
+# --- Autenticación ------------------------------------------------------------
+#
+# Registro de aplicación en el directorio + App Service Authentication. La
+# plataforma resuelve el inicio de sesión y reenvía la identidad ya validada;
+# aquí no se guarda ni se ve ninguna contraseña.
+#
+# `AzureADandPersonalMicrosoftAccount` admite tanto las cuentas de la universidad
+# —que además **acreditan** la pertenencia por el dominio del correo— como
+# cualquier cuenta personal de Microsoft.
+
+APP_ID="$(az ad app list --display-name "${AAD_APP_NAME}" --query "[0].appId" -o tsv 2>/dev/null || true)"
+if [[ -z "${APP_ID}" ]]; then
+  APP_ID="$(az ad app create \
+    --display-name "${AAD_APP_NAME}" \
+    --sign-in-audience AzureADandPersonalMicrosoftAccount \
+    --web-redirect-uris "https://${HOSTNAME}/.auth/login/aad/callback" \
+    --enable-id-token-issuance true \
+    --query appId -o tsv)"
+  az ad sp create --id "${APP_ID}" --output none 2>/dev/null || true
+  echo "✓ Aplicación registrada en el directorio (${APP_ID})"
+
+  # El secreto va directo a la configuración de la aplicación: no se imprime, no
+  # se guarda en disco y no pasa por el historial de la terminal.
+  SECRETO="$(az ad app credential reset --id "${APP_ID}" --append \
+    --display-name easyauth --years 2 --query password -o tsv)"
+  az functionapp config appsettings set \
+    --name "${FUNCTION_APP}" --resource-group "${RESOURCE_GROUP}" \
+    --settings "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET=${SECRETO}" --output none
+  unset SECRETO
+  echo "✓ Secreto de cliente guardado en la configuración"
+else
+  echo "✓ Aplicación del directorio ya existente (${APP_ID})"
+fi
+
+# La extensión authV2 no viene de serie y sin ella los comandos fallan pidiendo
+# confirmación por teclado, que en un script no llega nunca.
+az extension add --name authV2 --allow-preview true --yes --only-show-errors 2>/dev/null || true
+
+# Un Function App recién creado arranca en configuración de autenticación v1, y
+# los comandos v2 se niegan a trabajar sobre ella. Hay que migrarla primero.
+if [[ "$(az webapp auth config-version show --name "${FUNCTION_APP}" \
+      --resource-group "${RESOURCE_GROUP}" --query configVersion -o tsv 2>/dev/null)" != "v2" ]]; then
+  az webapp auth config-version upgrade --name "${FUNCTION_APP}" \
+    --resource-group "${RESOURCE_GROUP}" --output none
+fi
+
+az webapp auth microsoft update \
+  --name "${FUNCTION_APP}" --resource-group "${RESOURCE_GROUP}" \
+  --client-id "${APP_ID}" \
+  --client-secret-setting-name MICROSOFT_PROVIDER_AUTHENTICATION_SECRET \
+  --issuer "https://login.microsoftonline.com/common/v2.0" \
+  --yes --output none
+
+# CRÍTICO: sin `AllowAnonymous` la plataforma exigiría iniciar sesión para ver la
+# página, y aportar sin cuenta —que es el camino por defecto y una decisión de
+# producto— dejaría de ser posible.
+az webapp auth update \
+  --name "${FUNCTION_APP}" --resource-group "${RESOURCE_GROUP}" \
+  --enabled true --unauthenticated-client-action AllowAnonymous \
+  --redirect-provider azureactivedirectory --output none
+echo "✓ Autenticación configurada, acceso anónimo preservado"
 
 # --- Alerta de presupuesto ----------------------------------------------------
 
@@ -217,32 +280,24 @@ else
   echo "  Créala a mano: portal → Administración de costos → Presupuestos."
 fi
 
-# --- Token de despliegue ------------------------------------------------------
-
-DEPLOYMENT_TOKEN="$(az staticwebapp secrets list \
-  --name "${STATIC_WEB_APP}" --resource-group "${RESOURCE_GROUP}" \
-  --query "properties.apiKey" -o tsv)"
-
 cat <<RESUMEN
 
 ──────────────────────────────────────────────────────────────
-Listo. La aplicación vivirá en:
+Infraestructura lista. La aplicación vivirá en:
 
     https://${HOSTNAME}
 
-Falta un paso, y hay que darlo desde esta misma terminal para que
-el token no pase por ningún sitio intermedio:
+Falta publicar el código:
 
-    gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN \\
-      --repo JuanUrrego146/RecyCol \\
-      --body "${DEPLOYMENT_TOKEN}"
+    CONTACT_EMAIL="tu-correo@ejemplo.com" bash dataApp/infra/package.sh
+    az functionapp deployment source config-zip \
+      --name ${FUNCTION_APP} --resource-group ${RESOURCE_GROUP} \
+      --src dataApp/.package/recycol-aporta.zip
 
-Y otro que se hace en el portal, una sola vez:
+Administración (moderación, informe académico y exportación) para:
 
-    Static Web App → Configuración → Administración de roles →
-    Invitar usuario → GitHub → tu usuario → rol "administrador"
+    ${ADMIN_EMAILS}
 
-Sin ese rol, /revisar y la exportación quedan cerradas para todo el
-mundo, incluido tú.
+Se cambia sin volver a desplegar, con `az functionapp config appsettings set`.
 ──────────────────────────────────────────────────────────────
 RESUMEN

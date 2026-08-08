@@ -16,14 +16,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchMe, saveProfile, type StoredProfile } from "./apiClient";
-import { readPrincipal, verifiesUmng, type ClientPrincipal } from "./session";
 import type { ProfileDraft } from "../domain/account";
+
+/** Identidad activa, tal y como la resuelve el servidor. */
+export interface Identity {
+  readonly email: string;
+  readonly displayName: string | null;
+  readonly provider: string;
+}
 
 export interface SessionState {
   readonly loading: boolean;
-  readonly principal: ClientPrincipal | null;
+  readonly principal: Identity | null;
   readonly profile: StoredProfile | null;
-  /** `true` si entró con el correo institucional de la UMNG. */
+  /** `true` si entró con el correo institucional de la UMNG. Lo decide el servidor. */
   readonly umngVerified: boolean;
   /** Identificador con el que se firman las capturas, o `null` si aún se está resolviendo. */
   readonly accountContributorId: string | null;
@@ -49,31 +55,37 @@ export function useSession(): Session {
   const [state, setState] = useState<SessionState>(INITIAL);
   const [saving, setSaving] = useState(false);
 
+  /**
+   * Una sola petición a `/api/me`, que es la fuente de identidad de la
+   * aplicación. No se consulta `/.auth/me`: en un Function App esa ruta no la
+   * atiende el middleware de autenticación y devuelve el HTML de la propia
+   * aplicación, con lo que toda sesión parecería anónima.
+   */
   const reload = useCallback(async () => {
-    const principal = await readPrincipal();
-    if (!principal) {
-      setState({ ...INITIAL, loading: false });
-      return;
-    }
     try {
       const me = await fetchMe();
+      if (!me.signedIn) {
+        setState({ ...INITIAL, loading: false });
+        return;
+      }
       setState({
         loading: false,
-        principal,
+        principal: {
+          email: me.email ?? "",
+          displayName: me.displayName ?? null,
+          provider: me.provider ?? "aad",
+        },
         profile: me.profile ?? null,
-        umngVerified: verifiesUmng(principal),
+        umngVerified: me.umngVerified ?? false,
         accountContributorId: me.contributorId ?? null,
         error: null,
       });
     } catch (error) {
-      // Hay identidad pero la API no responde. Se deja constancia y se sigue:
-      // sin perfil confirmado se aporta de forma anónima antes que no aportar.
+      // Sin respuesta de la API no se puede saber si hay sesión. Se sigue como
+      // anónimo: aportar sin cuenta es preferible a no poder aportar.
       setState({
+        ...INITIAL,
         loading: false,
-        principal,
-        profile: null,
-        umngVerified: verifiesUmng(principal),
-        accountContributorId: null,
         error: error instanceof Error ? error.message : "No se pudo leer tu perfil",
       });
     }
