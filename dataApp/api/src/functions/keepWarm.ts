@@ -45,9 +45,14 @@ app.timer("keepWarm", {
   schedule: "0 */5 * * * *",
   // Sin disparo al arrancar: provoca reinicios en cadena si algo va mal.
   runOnStartup: false,
-  // Sin monitor no hay arrendamiento de blob ni recuperación de disparos
-  // perdidos. Aquí ninguna de las dos cosas importa —perderse un latido no tiene
-  // consecuencia— y se ahorra una escritura al almacenamiento cada vez.
+  // Sin recuperación de disparos perdidos: perderse un latido no tiene ninguna
+  // consecuencia, y así no se guarda un registro de estado por cada uno.
+  //
+  // Ojo con lo que esto **no** ahorra: el escuchador del temporizador es un
+  // singleton y toma un arrendamiento de blob sobre el almacenamiento del host
+  // pase lo que pase, así que sí hay unas pocas transacciones periódicas. Son
+  // céntimos al mes a precio de blob, muy por debajo del tope del proyecto, pero
+  // decir «cero transacciones» sería falso.
   useMonitor: false,
   handler: keepWarm,
 });

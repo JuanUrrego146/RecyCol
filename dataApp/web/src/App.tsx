@@ -33,6 +33,7 @@ import {
   loadContributor,
   markAnonymousLinked,
   markUmngAsked,
+  setClaimsAnonymous,
   needsConsent,
   randomId,
   recordContribution,
@@ -159,6 +160,7 @@ function ContributeApp() {
   useEffect(() => {
     const yaEnlazado = contributor.linkedAnonymousId === contributor.id;
     if (
+      !contributor.claimsAnonymous ||
       session.loading ||
       !session.profile ||
       !session.accountContributorId ||
@@ -187,6 +189,7 @@ function ContributeApp() {
     session.accountContributorId,
     contributor.id,
     contributor.linkedAnonymousId,
+    contributor.claimsAnonymous,
     uploader.pending,
   ]);
 
@@ -293,6 +296,11 @@ function ContributeApp() {
           <ProfileScreen
             email={session.principal?.email ?? ""}
             umngVerified={session.umngVerified}
+            anonymousCount={contributor.contributed}
+            claimsAnonymous={contributor.claimsAnonymous}
+            onClaimsAnonymousChange={(claims) =>
+              setContributor((actual) => setClaimsAnonymous(actual, claims))
+            }
             initial={
               session.profile
                 ? {
@@ -307,7 +315,7 @@ function ContributeApp() {
             onSave={(draft) => {
               // Se ofrece enlazar lo aportado antes de entrar: la misma persona
               // no puede contar como dos aportantes (§10).
-              void session.save(draft, contributor.id).then((ok) => {
+              void session.save(draft, contributor.claimsAnonymous ? contributor.id : null).then((ok) => {
                 if (ok) {
                   void refreshStats();
                   setScreen({ name: "home" });

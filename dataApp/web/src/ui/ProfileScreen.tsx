@@ -30,6 +30,9 @@ export function ProfileScreen({
   email,
   umngVerified,
   initial,
+  anonymousCount,
+  claimsAnonymous,
+  onClaimsAnonymousChange,
   saving,
   error,
   onSave,
@@ -37,6 +40,10 @@ export function ProfileScreen({
   onSkip,
 }: {
   email: string;
+  /** Aportes hechos sin cuenta en este navegador. Cero en el caso normal. */
+  anonymousCount: number;
+  claimsAnonymous: boolean;
+  onClaimsAnonymousChange: (claims: boolean) => void;
   /** `true` si entró con el correo institucional: entonces la adscripción no se pregunta, se sabe. */
   umngVerified: boolean;
   initial: ProfileDraft | null;
@@ -166,6 +173,40 @@ export function ProfileScreen({
               la UMNG está declarada por ti y no comprobada.
             </Notice>
           )}
+        </div>
+      )}
+
+      {/*
+        Equipos compartidos: en un campus son lo normal. Si alguien aportó sin
+        cuenta y luego entra otra persona en el mismo navegador, dar por hecho
+        que esas fotos son suyas le acreditaría el trabajo ajeno — y eso aquí es
+        la nota de alguien, no solo una fila mal atribuida.
+      */}
+      {anonymousCount > 0 && (
+        <div className="card">
+          <h2>Antes de entrar ya se aportaron {anonymousCount} fotos aquí</h2>
+          <div className="choice-row">
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={claimsAnonymous}
+              onClick={() => onClaimsAnonymousChange(true)}
+            >
+              <span aria-hidden="true">🙋</span> Son mías
+            </button>
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={!claimsAnonymous}
+              onClick={() => onClaimsAnonymousChange(false)}
+            >
+              <span aria-hidden="true">🙅</span> No, son de otra persona
+            </button>
+          </div>
+          <p className="tiny">
+            Si son tuyas, se suman a tu cuenta y cuentan para tu profesor. Si no, se quedan como
+            aportes anónimos: siguen sirviendo al proyecto igual.
+          </p>
         </div>
       )}
 

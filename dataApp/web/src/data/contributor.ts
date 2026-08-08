@@ -46,6 +46,17 @@ export interface ContributorState {
    * la partición por persona que exige §10 sin que nada avisara.
    */
   readonly linkedAnonymousId: string | null;
+  /**
+   * Si la persona reconoce como suyos los aportes anónimos que ya había en este
+   * dispositivo.
+   *
+   * Existe por los equipos compartidos, que en un campus son lo normal: si
+   * alguien aporta sin cuenta y después **otra persona** entra en la suya en el
+   * mismo navegador, unir sin preguntar le acreditaría a la segunda las fotos de
+   * la primera. Y eso no es solo un dato mal atribuido: es la nota de un
+   * estudiante y la partición por persona de §10, las dos a la vez.
+   */
+  readonly claimsAnonymous: boolean;
   readonly createdAt: string;
 }
 
@@ -61,6 +72,7 @@ function newContributor(): ContributorState {
     recentMissions: [],
     umngAsked: false,
     linkedAnonymousId: null,
+    claimsAnonymous: true,
     createdAt: new Date().toISOString(),
   };
 }
@@ -92,6 +104,7 @@ export function loadContributor(): ContributorState {
         ? (parsed.recentMissions as Material[])
         : [],
       umngAsked: parsed.umngAsked === true,
+      claimsAnonymous: parsed.claimsAnonymous !== false,
       linkedAnonymousId:
         typeof parsed.linkedAnonymousId === "string" ? parsed.linkedAnonymousId : null,
       createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : new Date().toISOString(),
@@ -140,6 +153,11 @@ export function recordMissionShown(state: ContributorState, material: Material):
 
 export function recordContribution(state: ContributorState): ContributorState {
   return persist({ ...state, contributed: state.contributed + 1 });
+}
+
+/** Reconoce, o deja de reconocer, los aportes anónimos de este dispositivo. */
+export function setClaimsAnonymous(state: ContributorState, claims: boolean): ContributorState {
+  return persist({ ...state, claimsAnonymous: claims });
 }
 
 /** La pregunta de adscripción se hace una sola vez, no en cada visita. */
