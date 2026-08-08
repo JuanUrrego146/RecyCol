@@ -1,0 +1,124 @@
+# RecyCol Aporta — pruebas y despliegue de la plataforma de recolección.
+#
+# Corre en runners hospedados de GitHub, no en los propios del proyecto: aquí no
+# hace falta ni JDK ni Android SDK, y ocupar un ejecutor de 8 GB para compilar
+# TypeScript le quitaría cola al build de Android, que es el camino crítico.
+#
+# Filtrado por rutas: este workflow solo se despierta si cambia algo de
+# `dataApp/`. El check «Compilar y probar» de `ci.yml` sigue corriendo en todos
+# los PR por su cuenta.
+
+name: DataApp
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dataApp/**"
+      - ".github/workflows/dataapp.yml"
+      - "shared/resources/profiles/**"
+  pull_request:
+    paths:
+      - "dataApp/**"
+      - ".github/workflows/dataapp.yml"
+      - "shared/resources/profiles/**"
+
+concurrency:
+  group: dataapp-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  FUNCTION_APP: func-recycol-aporta-w94b924
+
+jobs:
+  verify:
+    name: Probar dataApp
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # `npm ci` sin caché compartida: son dos paquetes pequeños y la caché por
+      # lockfile daría más problemas de invalidación que segundos de ahorro.
+      - name: Instalar dependencias
+        run: |
+          npm ci --prefix dataApp/web
+          npm ci --prefix dataApp/api
+
+      - name: Comprobar tipos
+        run: |
+          npm run typecheck --prefix dataApp/web
+          npm run typecheck --prefix dataApp/api
+
+      - name: Pruebas
+        run: |
+          npm test --prefix dataApp/web
+          npm test --prefix dataApp/api
+
+      # El perfil normativo se importa desde shared/resources: si RULES cambia
+      # co.json de forma incompatible, esto se pone rojo aquí y no en producción.
+      - name: Empaquetar
+        env:
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+        run: bash dataApp/infra/package.sh
+
+      - name: Guardar el artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: recycol-aporta
+          path: dataApp/.package/recycol-aporta.zip
+          retention-days: 7
+
+  deploy:
+    name: Desplegar
+    needs: verify
+    # Solo desde main y nunca desde un fork: el perfil de publicación no puede
+    # quedar al alcance de un PR ajeno.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: recycol-aporta
+
+      # El paquete lleva dentro la web y la API: las sirve la misma aplicación,
+      # así que comparten origen y la sesión fluye sin CORS.
+      - name: Publicar en Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNCTION_APP }}
+          package: recycol-aporta.zip
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+
+      # Un despliegue verde no significa una aplicación viva.
+      #
+      # El 08/08 la publicación respondió correctamente y a partir de ahí TODAS
+      # las rutas devolvieron 500, incluidos los archivos estáticos: el host se
+      # quedó con una vista a medias del contenido nuevo en el recurso compartido
+      # que usa el plan de consumo Windows. Un reinicio lo arregló, pero nadie se
+      # habría enterado hasta abrir el enlace.
+      #
+      # Desde aquí no hay credenciales para reiniciar —el perfil de publicación
+      # solo sirve para publicar—, así que lo que se puede hacer es no callarse:
+      # si tras dos minutos no responde, el workflow se pone rojo.
+      - name: Comprobar que la aplicación responde
+        run: |
+          BASE="https://${{ env.FUNCTION_APP }}.azurewebsites.net"
+          for intento in $(seq 1 10); do
+            sleep 12
+            portada=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/" --max-time 60 || echo 000)
+            api=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/stats" --max-time 60 || echo 000)
+            echo "intento $intento: portada $portada · api $api"
+            if [ "$portada" = "200" ] && [ "$api" = "200" ]; then
+              echo "Aplicación viva."
+              exit 0
+            fi
+          done
+          echo "::error::La publicación terminó pero la aplicación no responde."
+          echo "::error::Reinicia y vuelve a comprobar: az functionapp restart --name ${{ env.FUNCTION_APP }} --resource-group rg-recycol-aporta"
+          exit 1

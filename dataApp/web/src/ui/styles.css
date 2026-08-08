@@ -1,0 +1,482 @@
+/*
+ * Estilos de RecyCol Aporta.
+ *
+ * Móvil primero y oscuro por defecto: se usa junto a canecas, muchas veces de
+ * noche o en interiores mal iluminados, y un fondo blanco a pantalla completa
+ * deslumbra y estropea la siguiente foto. La estética sigue el espíritu de
+ * RNF-009 (minimalismo, sin sombras duras, sin ripple) sin importar el design
+ * system de la app Android, que es de otro ámbito y de otra plataforma.
+ *
+ * Todo lo accionable tiene al menos 48 px de alto y vive en la mitad inferior:
+ * se aporta con una mano, la otra sostiene la basura.
+ */
+
+:root {
+  --bg: #0e1113;
+  --surface: #171b1e;
+  --surface-raised: #1f2529;
+  --border: #2b3236;
+  --text: #f2f5f6;
+  --text-muted: #97a3a9;
+  --accent: #35c86f;
+  --accent-ink: #06210f;
+  --warn: #f0a63c;
+  --danger: #f2565c;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --gap: 12px;
+  --touch: 48px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  overscroll-behavior-y: none;
+}
+
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  padding-top: 18px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.tiny {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- Botones --- */
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.button {
+  min-height: var(--touch);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1), opacity 140ms ease;
+}
+
+/* Respuesta táctil sin ripple: escala corta, como en la app principal. */
+.button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.button-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.button-secondary {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.button-ghost {
+  color: var(--text-muted);
+  min-height: var(--touch);
+  padding: 8px 12px;
+}
+
+.button-block {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* --- Progreso --- */
+
+.progress {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 400ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* --- Opciones en fichas --- */
+
+.choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: var(--touch);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+  color: var(--text);
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.material-tile {
+  min-height: 72px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.material-tile:active {
+  transform: scale(0.97);
+}
+
+.material-tile[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+}
+
+.material-tile .glyph {
+  font-size: 1.35rem;
+}
+
+.material-tile .name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* --- Menú de lo que falta --- */
+
+.need-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.need-row {
+  width: 100%;
+  min-height: var(--touch);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.need-row:active {
+  transform: scale(0.98);
+}
+
+.need-row .glyph {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.need-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.need-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* El número es la información: se lee antes que el motivo, y no se parte. */
+.need-count {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Cubierta: sigue tocable, pero deja de reclamar la vista. */
+.need-count-covered {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* --- Cámara --- */
+
+.viewfinder {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 3 / 4;
+}
+
+.viewfinder video,
+.viewfinder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.viewfinder .overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.shutter {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid rgba(255, 255, 255, 0.25);
+  background-clip: padding-box;
+  margin: 0 auto;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.shutter:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.shutter:disabled {
+  opacity: 0.4;
+}
+
+/* --- Avisos --- */
+
+.notice {
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.notice-warn {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.notice-danger {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.notice-info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* --- Recompensa --- */
+
+.bin-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bin-swatch {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.stat-row {
+  display: flex;
+  gap: 10px;
+}
+
+.stat {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+
+.stat strong {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand span {
+  color: var(--accent);
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-item img {
+  width: 100%;
+  border-radius: var(--radius);
+  display: block;
+}
+
+.field-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.field-list dt {
+  color: var(--text-muted);
+}
+
+.field-list dd {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

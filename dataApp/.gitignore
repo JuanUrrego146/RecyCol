@@ -1,0 +1,21 @@
+# Ignorados propios de dataApp.
+#
+# Van aquí y no en el .gitignore de la raíz porque el de la raíz es ámbito
+# compartido: `dist/` significa cosas distintas en `ml/` y en un paquete de npm,
+# y una regla global las mezclaría.
+
+node_modules/
+dist/
+.vite/
+
+# Credenciales de las funciones en local. NUNCA se sube: contiene las cadenas de
+# conexión del almacenamiento.
+local.settings.json
+
+# Salidas de herramientas
+*.tsbuildinfo
+coverage/
+.swa/
+
+# Paquete de despliegue: se regenera con infra/package.sh
+.package/

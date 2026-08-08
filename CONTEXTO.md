@@ -61,9 +61,10 @@ contaminación con toma dirigida · asistencia de captura · adaptación por gam
 justificación normativa · historial local · pantalla de login preparada sin
 backend.
 
-**Fuera de v1:** IA en la nube, backend real, cámaras fijas, y **recolección de
-dataset propio** (los modelos se entrenan solo sobre datasets públicos,
-augmentación y síntesis — ver §7 para la excepción registrada).
+**Fuera de v1:** IA en la nube, backend real y cámaras fijas. La **recolección de
+dataset propio** también lo estaba, y **dejó de estarlo el 08/08**: existe como
+componente aparte, desplegado, en `dataApp/` (§10). No toca la app Android ni sus
+invariantes — tiene su propio despliegue y su propio modelo de privacidad.
 
 ---
 
@@ -815,7 +816,7 @@ VM (issue #128): no los corras a la vez.
 | Riesgo | Estado |
 |---|---|
 | 🔴 **LEGAL — Garbage Dataset v2 sin cadena de derechos acreditada** (issue **#77**) | **Bloquea el lanzamiento comercial, no el desarrollo.** La ficha de Kaggle dice MIT y el paper dice CC BY 4.0 — ambas permiten uso comercial, pero la inconsistencia ya es señal de gestión informal, y parte del contenido viene de «repositorios públicos y web scraping curados»: la declaración del autor solo vale para lo que era suyo. **Ningún modelo entrenado con él puede publicarse comercialmente sin revisión legal previa.** Aporta ~70 % del pool: excluirlo sin reemplazo hace inalcanzable RNF-008 |
-| 🟠 **Salida al riesgo legal: dataset propio** | Registrada, no decidida. Completo (11 clases, 5 500–11 000 fotos): 25–90 h de captura + 15–20 h de QC. **Quirúrgico (solo `BEVERAGE_CARTON`, 300–500 fotos): 3–5 h** — máximo retorno por hora, recomendado hacerlo pronto porque ninguna fuente pública apta cubre bien esa clase |
+| 🟠 **Salida al riesgo legal: dataset propio** | **Construida y desplegada** el 08/08 (§10): RecyCol Aporta recoge fotos con cesión explícita y versionada. Falta lo único que no depende del código — que la gente aporte. Estimación original, aún válida como referencia de esfuerzo: Completo (11 clases, 5 500–11 000 fotos): 25–90 h de captura + 15–20 h de QC. **Quirúrgico (solo `BEVERAGE_CARTON`, 300–500 fotos): 3–5 h** — máximo retorno por hora, recomendado hacerlo pronto porque ninguna fuente pública apta cubre bien esa clase |
 | 🔴 **El caso estrella no es verificable** | RealWaste **no contiene `BEVERAGE_CARTON`, `BATTERY` ni `ELECTRONIC`**. Hoy el diferenciador del producto — el vaso de café contaminado — no tiene control de dominio real. RULES dejó especificado un mini-set propio de ≈400 fotos, **de evaluación exclusivamente, jamás de entrenamiento**. **Lo resuelve §10** |
 | ✅ ~~La contaminación sintética puede no transferir~~ | **Materializado y cerrado con decisión** (07/08): 94 % en sintético y **98,75 % de RealWaste marcado como limpio**. Plan B activado — pregunta al usuario, solo cartón y papel (decisión 9). Diagnóstico y palancas en §7; captura prioritaria en §10 |
 | 🟠 **Los datasets públicos no generalizan al móvil real** | **El riesgo dominante una vez cerrado M4.** Mitigado en parte —de 61,4 % a 74,2 % de ruta contra control— pero **RNF-008 sigue sin cumplirse** y ni la arquitectura ni la cuantización explican lo que falta. **La solución de fondo es §10** |
@@ -879,6 +880,56 @@ se renombró el clon principal.
 **Nada de eso está en git y nada de eso se regenera solo.** Antes de borrar o
 mover esta carpeta, respáldalas.
 
+### El dataset propio NO está en disco: está en Azure
+
+Las fotos que aporta la gente por [RecyCol Aporta](#10-recycol-aporta--en-producción)
+no viven ni en git ni en `ml/data/`. Viven en **una sola cuenta de
+almacenamiento**, `strecycolaporta94b924`, dentro del grupo `rg-recycol-aporta`:
+
+| Qué | Dónde |
+|---|---|
+| Las fotos | Blob Storage, contenedor `captures`, como `MATERIAL/aportante/captura.jpg` |
+| Las etiquetas y metadatos | Table Storage, tabla `captures` |
+| Aportantes, contadores y cola de moderación | Table Storage: `contributors`, `counters`, `pendingreview` |
+| Topes diarios por dirección de red | Table Storage: `ipquota`. Solo contadores, sin direcciones ni referencias a capturas |
+
+**Para descargarlo todo**, con `az login` hecho y desde la raíz del repositorio:
+
+```bash
+bash dataApp/infra/export.sh
+```
+
+Deja las imágenes y `manifest.csv` en `ml/data/recycol_aporta/`, más un
+`RESUMEN.txt` con los recuentos y los avisos. **No hace falta `azcopy`** —no está
+instalado en la máquina— ni sesión abierta en la aplicación web. Procedimiento
+completo y trampas en
+[`dataApp/docs/DESCARGAR-DATASET.md`](dataApp/docs/DESCARGAR-DATASET.md).
+
+> **Ese script es también la copia de seguridad.** Si se borrara el grupo de
+> recursos, o si Microsoft suspendiera la suscripción de estudiante, lo único que
+> sobrevive es lo que ya esté en disco.
+
+### Límites de la suscripción de Azure — caros de redescubrir
+
+La suscripción del proyecto es **Azure for Students**, y su política **solo**
+permite las regiones `southcentralus, chilecentral, canadacentral, eastus,
+northcentralus`. Comprobado a base de chocar, el 08/08:
+
+| Lo que no se puede | Qué pasa | Qué se hizo en su lugar |
+|---|---|---|
+| **Cosmos DB** | Rechaza crear la cuenta en las cuatro regiones permitidas, con capa gratuita, sin servidor y aprovisionada. Dice «alta demanda»; es un tope de la suscripción y levantarlo son días de trámite | Los metadatos van en **Table Storage**, en la misma cuenta que las fotos. Encaja mejor: su clave de partición es literalmente `contributorId` |
+| **Azure Static Web Apps** | Solo existe en `centralus, eastus2, westus2, westeurope, eastasia`. **La intersección con lo permitido es vacía** | Una **aplicación de funciones** sirve la web y la API desde el mismo origen |
+| **Plan de consumo Linux** | Se crea sin errores, queda en «Running» y devuelve 503 para siempre, también su sitio de despliegue | Plan de consumo **Windows**, que funcionó a la primera en la misma región |
+
+Antes de crear cualquier recurso nuevo, comprobar la lista vigente:
+
+```bash
+az policy assignment list --query "[0].parameters.listOfAllowedLocations.value"
+```
+
+Y el CLI de Azure está instalado pero **fuera del PATH**:
+`export PATH="/c/Program Files/Microsoft SDKs/Azure/CLI2/wbin:$PATH"`.
+
 ### Un agente nuevo
 
 Ya no hace falta un worktree por agente: **se trabaja en `RecyCol` directamente,
@@ -897,16 +948,50 @@ terminar, y **jamás debe apuntar a la carpeta que contiene `ml/data`**.
 
 ---
 
-## 10. Fase futura — RecyCol Entrenamiento
+## 10. RecyCol Aporta — en producción
 
-**No se construye ahora.** Queda escrito porque es **la solución directa a los
-dos problemas que M4 no pudo cerrar**, y porque las recomendaciones técnicas de
-abajo salen de haber chocado con ellos.
+> ### 🟢 Construido y desplegado el 08/08/2026
+>
+> **https://func-recycol-aporta-w94b924.azurewebsites.net**
+>
+> Vive en [`dataApp/`](dataApp/). No es una APK: acabó siendo una **web**, porque
+> así se difunde con un enlace y contribuye cualquiera desde el navegador del
+> móvil sin instalar nada. Todo lo demás de esta sección sigue vigente — son las
+> recomendaciones con las que se construyó.
+>
+> **Dónde están los datos y cómo bajarlos: §9.** El código en
+> [`dataApp/README.md`](dataApp/README.md).
 
-Una **segunda APK** que, al detectar un objeto, le toma la foto, se la muestra al
-usuario y le pregunta «¿qué es esto?». El usuario responde, y la pareja
-foto + etiqueta se envía a una base de datos (Azure u otra, por decidir). Juan
-también la usaría él mismo para aportar fotos.
+Es **la solución directa a los dos problemas que M4 no pudo cerrar**, y las
+recomendaciones técnicas de abajo salen de haber chocado con ellos.
+
+Al detectar un objeto le toma la foto, se la muestra a la persona y le pregunta
+«¿qué es esto?». La pareja foto + etiqueta se guarda en Azure.
+
+**Lo que cambió respecto a lo previsto aquí, y por qué:**
+
+- **La aplicación enseña lo que falta, ordenado, y la persona elige** — en vez de
+  que el modelo proponga y la persona corrija. Los `.tflite` son INT8 con firma
+  NCHW y no corren en navegador; además el orden por clase resuelve el equilibrio,
+  que esta misma sección dice que pesa más que el volumen. El flujo de «el modelo
+  propone» queda para cuando ML exporte a ONNX, y entonces cada corrección será
+  aprendizaje activo.
+
+  La pantalla de inicio empezó siendo **una** misión impuesta y dejó de serlo el
+  08/08: pedía un vaso de café a quien estaba frente a una caneca de botellas, y
+  la respuesta útil quedaba detrás de un botón secundario. Ahora son las cinco
+  clases que más faltan, tocables, con «faltan N» y su motivo, más «ver los once
+  materiales» para el resto. **El orden sigue siendo nuestro y sale de los datos
+  de §7** (RESIDUAL al 2,8 % de acierto, ELECTRONIC a cero, `BEVERAGE_CARTON` con
+  ~100 imágenes); lo que cambia es que elegir es de quien tiene la basura delante.
+- **Hay cuentas, opcionales.** Se añadieron el 07/08 a petición de Juan para
+  hablar con profesores de la UMNG y que den puntos por aportar. Entrar con el
+  correo institucional **acredita** la pertenencia; declararla desde otra cuenta
+  la deja como «declarado», y el informe distingue las dos. Aportar sin cuenta
+  sigue siendo el camino por defecto.
+- **Consentimiento versión 2.0**, en
+  [`dataApp/docs/CONSENT-v2.md`](dataApp/docs/CONSENT-v2.md). La 1.0 prometía que
+  no se pedía nombre ni cuenta y dejó de ser cierta; nunca llegó a producción.
 
 ### Por qué resuelve exactamente lo que bloquea a M4
 
@@ -940,7 +1025,7 @@ mitad del valor** y no se puede diagnosticar nada cuando el modelo falle.
 | Foto **sin recortar** + recorte/bbox si lo hubo | Permite reprocesar con otro pipeline mañana. Guardar solo el recorte es irreversible | 🟠 alta |
 | Condición de luz (interior / exterior / poca luz / contraluz) | Etiquetar el dominio permite medir **dónde** falla el modelo en vez de saber solo que falla | 🟠 alta |
 | Ángulo aproximado (cenital / oblicuo / lateral) | Igual que la luz: es la variable que separa foto de estudio de foto de móvil | 🟠 alta |
-| Métricas de `frame_quality_gate.py` (nitidez, exposición) | **Ya existe, es de CAM y sigue sin usarse.** Sale gratis y permite filtrar por calidad sin descartar nada | 🟠 alta |
+| Métricas de `frame_quality_gate.py` (nitidez, exposición) | **Ya existe, es de CAM y sigue sin usarse.** Sale gratis y permite filtrar por calidad sin descartar nada. ⚠️ Las que trae el manifiesto **las declara el navegador y nadie las verifica**: el pipeline tiene que recalcularlas sobre las imágenes antes de filtrar por ellas ([INTEGRACION-ML.md](dataApp/docs/INTEGRACION-ML.md)). Lo mismo vale para el `phash` | 🟠 alta |
 | Estado físico (íntegro / deformado / roto) | RealWaste es todo objeto degradado; sin este campo no se puede replicar esa condición | 🟡 media |
 | Fondo (caneca / suelo / mesa / bolsa) | El modelo puede estar usando el fondo como atajo — pasó con la síntesis | 🟡 media |
 | Marca de dispositivo/gama y timestamp | Diagnóstico de sesgo por cámara | 🟡 media |
@@ -1119,3 +1204,8 @@ copies su contenido aquí.**
 | [`shared/resources/profiles/README.md`](shared/resources/profiles/README.md) | Esquema del perfil normativo y cómo añadir un país |
 | [`ml/README.md`](ml/README.md) | Estructura del pipeline de ML, fuentes y comandos de descarga (`docker/GPU.md` llega con el PR #114) |
 | [`README.md`](README.md) | Portada pública del repositorio |
+| [`dataApp/README.md`](dataApp/README.md) | **RecyCol Aporta**: qué es, cómo funciona para quien aporta y qué se guarda de cada foto |
+| [`dataApp/docs/DESCARGAR-DATASET.md`](dataApp/docs/DESCARGAR-DATASET.md) | **Dónde está la base de datos y cómo bajarla para entrenar.** Un comando, más las tres cosas que no se pueden hacer mal |
+| [`dataApp/docs/DESPLIEGUE.md`](dataApp/docs/DESPLIEGUE.md) | Qué hay montado en Azure, cómo publicar un cambio y por qué no es lo que decía la propuesta |
+| [`dataApp/docs/CONSENT-v2.md`](dataApp/docs/CONSENT-v2.md) | Texto archivado del consentimiento y cesión de derechos vigente |
+| [`dataApp/docs/INTEGRACION-ML.md`](dataApp/docs/INTEGRACION-ML.md) | Cómo entra el dataset propio al pipeline sin contaminar el control |
