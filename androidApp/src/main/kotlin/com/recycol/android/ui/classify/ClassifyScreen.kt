@@ -1,10 +1,14 @@
 package com.recycol.android.ui.classify
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -74,6 +78,7 @@ import com.recycol.domain.model.CaptureHint
 import com.recycol.domain.model.ClassificationOutcome
 import com.recycol.domain.model.ContaminationState
 import com.recycol.domain.model.Disposal
+import com.recycol.domain.model.FallbackReason
 import com.recycol.domain.model.WasteMaterial
 import com.recycol.domain.model.ImageFrame
 import kotlinx.coroutines.flow.Flow
@@ -98,11 +103,16 @@ fun ClassifyScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
-    val state = remember { ClassifyScreenState(dependencies.classifyWaste, scope) }
+    // La sesión de seguimiento tiene el ciclo de vida de la pantalla, y el efecto
+    // que la arranca se keya por todo lo que participa: keyar el remember sin
+    // keyar el efecto dejaría un estado nuevo sin nadie que llame a start() y la
+    // pantalla muerta.
+    val tracker = remember(dependencies) { dependencies.trackClassification() }
+    val state = remember(tracker) { ClassifyScreenState(tracker, scope) }
     var showManualSheet by remember { mutableStateOf(false) }
     var sheetCandidates by remember { mutableStateOf(emptyList<WasteMaterial>()) }
     var inspectionMaterials by remember { mutableStateOf(emptySet<WasteMaterial>()) }
-    DisposableEffect(frames) {
+    DisposableEffect(frames, state) {
         state.start(frames)
         onDispose { state.stop() }
     }
@@ -116,20 +126,51 @@ fun ClassifyScreen(
     // La orientación se rige por la decisión visible: mientras no haya ninguna
     // hay que decirle al usuario qué hacer, y si lleva mucho rato con la misma
     // en pantalla es que se ha quedado parado y conviene recordárselo.
+    // La guía se rige por la identidad de la decisión, no por la caneca: PLASTIC
+    // y PAPER comparten caneca blanca y no contaban como cambio.
     val guidanceVisible = rememberGuidanceVisible(
-        decisionKey = state.outcome?.disposal?.bin?.id,
+        decisionKey = state.decision?.epoch,
     )
 
     // Puente temporal mientras la detección automática de contaminación no
     // transfiere a suciedad real (ver SoilQuestionCard): para los materiales que
     // el perfil marca con inspección, se pregunta en vez de adivinar. Se
     // recuerda lo respondido para no repetir la pregunta con cada fotograma.
-    var soilAnsweredFor by remember { mutableStateOf<WasteMaterial?>(null) }
+    // Una pregunta por decisión, no por material. Con la ranura única de antes,
+    // los dos materiales con inspección del perfil colombiano —que son además los
+    // más confundibles entre sí— se borraban la respuesta mutuamente. El epoch es
+    // monótono: volver a ver cartón después de haber respondido sobre otra cosa
+    // *es* una decisión nueva. Se exige además que haya caneca: con una papeleta
+    // de duda sobre un material de inspección aparecerían a la vez la pregunta de
+    // suciedad y el aviso de baja confianza en la misma ranura inferior.
+    var soilAnsweredEpoch by remember(tracker) { mutableStateOf(NO_EPOCH) }
     val detectedMaterial = state.outcome?.classification?.material
     val needsSoilAnswer = detectedMaterial != null &&
         detectedMaterial in inspectionMaterials &&
-        soilAnsweredFor != detectedMaterial &&
+        state.outcome?.disposal != null &&
+        // Nunca sobre una decisión provisional: preguntar «¿está sucio?» por algo
+        // que la app todavía no ha decidido acababa cambiando la pregunta debajo
+        // del usuario mientras la contestaba.
+        state.decision?.provisional == false &&
+        soilAnsweredEpoch != state.decision?.epoch &&
         state.outcome?.manualSelection != true
+
+    // Qué ocupa la ranura inferior. Sellado y excluyente a propósito: es lo que
+    // garantiza que nunca haya dos superficies de cristal a la vez (#161).
+    val visible = state.outcome
+    val soilMaterial = detectedMaterial?.takeIf { needsSoilAnswer }
+    val decided = visible?.disposal
+    val bottomSlot: DecisionSlot = when {
+        soilMaterial != null -> DecisionSlot.Soil(soilMaterial)
+        decided != null -> DecisionSlot.Decided(
+            disposal = decided,
+            material = detectedMaterial,
+            epoch = state.decision?.epoch,
+        )
+
+        visible?.needsUserDecision == true -> DecisionSlot.Unsure
+        else -> DecisionSlot.Empty
+    }
 
     fun resolveManual(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
@@ -146,9 +187,11 @@ fun ClassifyScreen(
      */
     fun answerSoil(material: WasteMaterial, contamination: ContaminationState) {
         scope.launch {
-            soilAnsweredFor = material
             val result = dependencies.resolveManualDisposal.resolve(material, contamination)
-            state.applyManualOutcome(result)
+            // El epoch se toma de la decisión ya fijada, nunca de un estado que
+            // todavía no ha mutado: fijarla lo incrementa, así que leerlo antes
+            // garantiza que nunca coincidan y deja este guard como código muerto.
+            soilAnsweredEpoch = state.applyManualOutcome(result).epoch
         }
     }
 
@@ -242,73 +285,92 @@ fun ClassifyScreen(
                 ),
         )
 
-        // Mientras la pregunta de suciedad está en pantalla, la decisión se
-        // calla: todavía no está decidida, depende de lo que conteste.
-        if (needsSoilAnswer && detectedMaterial != null) {
-            SoilQuestionCard(
-                material = detectedMaterial,
-                onAnswer = { contamination -> answerSoil(detectedMaterial, contamination) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(
-                        start = BotaTheme.spacing.screenMargin,
-                        end = BotaTheme.spacing.screenMargin,
-                        bottom = BotaTheme.spacing.xxl,
-                    ),
-            )
+        // Una sola superficie viva en la ranura inferior (#161). Antes eran tres
+        // visibilidades independientes en la misma posición: al cambiar de
+        // estado, la saliente seguía compuesta mientras la entrante ya estaba
+        // dentro, las dos capas de atenuación del cristal se sumaban y quedaba
+        // un rectángulo más oscuro con bordes duros y el texto de la tarjeta
+        // anterior asomando por debajo. El cristal no estaba mal: se apilaba.
+        AnimatedContent(
+            targetState = bottomSlot,
+            transitionSpec = {
+                // La saliente se apaga **antes** de que entre la siguiente. Sin
+                // ese retardo las dos coexisten translúcidas y el material se
+                // suma consigo mismo, que es justo el artefacto.
+                //
+                // Sin morfeo de tamaño: las tres tarjetas tienen alturas
+                // distintas y animar el contenedor recortaba la que entraba
+                // mientras crecía, que se veía como un recuadro suelto a media
+                // altura. La tarjeta aparece ya con su tamaño y solo se funde.
+                (
+                    fadeIn(
+                        tween(
+                            BotaMotion.DURATION_BASE_MS,
+                            delayMillis = BotaMotion.DURATION_FAST_MS,
+                        ),
+                    ) + slideInVertically(BotaMotion.surfaceSpring()) { it / 2 }
+                    ) togetherWith fadeOut(tween(BotaMotion.DURATION_FAST_MS)) using
+                    SizeTransform(clip = false) { _, _ -> snap() }
+            },
+            contentAlignment = Alignment.BottomCenter,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = BotaTheme.spacing.screenMargin,
+                    end = BotaTheme.spacing.screenMargin,
+                    bottom = BotaTheme.spacing.xxl,
+                ),
+            label = "decisionSlot",
+        ) { slot ->
+            when (slot) {
+                DecisionSlot.Empty -> Spacer(modifier = Modifier)
+
+                // Mientras la pregunta de suciedad está en pantalla, la decisión
+                // se calla: todavía no está decidida, depende de lo que conteste.
+                is DecisionSlot.Soil -> SoilQuestionCard(
+                    material = slot.material,
+                    onAnswer = { contamination -> answerSoil(slot.material, contamination) },
+                )
+
+                is DecisionSlot.Decided -> ResultOverlay(
+                    disposal = slot.disposal,
+                    material = slot.material,
+                    decisionEpoch = slot.epoch,
+                    onClick = { state.outcome?.let(onOpenResultDetail) },
+                    onCorrect = {
+                        // Desmentir la decisión arranca por las hipótesis
+                        // probables, igual que el camino de baja confianza.
+                        sheetCandidates = state.candidates()
+                        showManualSheet = true
+                    },
+                )
+
+                DecisionSlot.Unsure -> LowConfidencePrompt(
+                    onChooseManually = {
+                        // La desambiguación arranca con las hipótesis probables
+                        // del modelo: hoy la mejor (top-1); top-K cuando llegue #126.
+                        sheetCandidates = state.candidates()
+                        showManualSheet = true
+                    },
+                )
+            }
         }
-
-        ResultOverlay(
-            disposal = if (needsSoilAnswer) null else state.outcome?.disposal,
-            material = state.outcome?.classification?.material,
-            onClick = { state.outcome?.let(onOpenResultDetail) },
-            onCorrect = {
-                // Desmentir la decisión arranca por las hipótesis probables,
-                // igual que el camino de baja confianza.
-                sheetCandidates = listOfNotNull(state.outcome?.classification?.material)
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    start = BotaTheme.spacing.screenMargin,
-                    end = BotaTheme.spacing.screenMargin,
-                    bottom = BotaTheme.spacing.xxl,
-                ),
-        )
-
-        LowConfidencePrompt(
-            visible = state.outcome?.needsUserDecision == true &&
-                state.outcome?.disposal == null,
-            onChooseManually = {
-                // La desambiguación arranca con las hipótesis probables del
-                // modelo: hoy la mejor (top-1); top-K cuando llegue #126.
-                sheetCandidates = listOfNotNull(state.outcome?.classification?.material)
-                showManualSheet = true
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    start = BotaTheme.spacing.screenMargin,
-                    end = BotaTheme.spacing.screenMargin,
-                    bottom = BotaTheme.spacing.xxl,
-                ),
-        )
 
         // La recompensa: la flor del logo florece sobre lo que se acaba de
         // clasificar. Solo cuando la decisión es firme — ver BloomBurst.
         val disposal = state.outcome?.disposal
         BloomBurst(
-            // El disparador lleva también si la decisión vino de una respuesta
-            // del usuario: sin eso, contestar a la pregunta de suciedad dejaba
-            // la misma caneca y la flor no volvía a salir justo en el momento
-            // que más lo merece, que es cuando el usuario acaba de resolverlo.
-            trigger = disposal?.bin?.id?.let { it to (state.outcome?.manualSelection == true) },
+            // Una vez por decisión: el epoch avanza también cuando el usuario
+            // contesta la pregunta de suciedad, que es el momento que más lo
+            // merece, y no avanza porque otro fotograma repita lo mismo.
+            trigger = state.decision?.takeIf { it.outcome?.disposal != null }?.epoch,
             celebrate = disposal != null &&
                 !needsSoilAnswer &&
                 state.outcome?.needsUserDecision != true &&
                 !disposal.degradedByContamination &&
-                disposal.fallbackReason == null,
+                // `fallbackReason` no es nullable: comparar con null era siempre
+                // falso y la flor no llegaba a dibujarse nunca.
+                disposal.fallbackReason == FallbackReason.NONE,
             modifier = Modifier.align(Alignment.Center),
         )
 
@@ -332,21 +394,33 @@ fun ClassifyScreen(
 }
 
 /**
+ * Qué ocupa la ranura inferior de la pantalla, que es una sola: decisión,
+ * pregunta de suciedad, aviso de duda o nada. Sellado para que el compilador
+ * garantice la exclusión mutua — cuando eran tres visibilidades sueltas nada
+ * impedía que se pintaran a la vez (#161).
+ */
+private sealed interface DecisionSlot {
+    data object Empty : DecisionSlot
+    data class Soil(val material: WasteMaterial) : DecisionSlot
+    data class Decided(
+        val disposal: Disposal,
+        val material: WasteMaterial?,
+        val epoch: Int?,
+    ) : DecisionSlot
+
+    data object Unsure : DecisionSlot
+}
+
+/**
  * Aviso de baja confianza (RF-023): la app no adivina; ofrece otra toma o
  * la selección manual. Discreto, sin bloquear la vista en vivo.
  */
 @Composable
 private fun LowConfidencePrompt(
-    visible: Boolean,
     onChooseManually: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(BotaMotion.surfaceSpring()) { it / 2 } + fadeIn(),
-        exit = slideOutVertically(tween(BotaMotion.DURATION_FAST_MS)) { it / 2 } + fadeOut(),
-        modifier = modifier,
-    ) {
+    Box(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -519,21 +593,14 @@ private fun HintOverlay(hint: CaptureHint?, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun ResultOverlay(
-    disposal: Disposal?,
+    disposal: Disposal,
     material: WasteMaterial?,
+    decisionEpoch: Int?,
     onClick: () -> Unit,
     onCorrect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = disposal != null,
-        enter = slideInVertically(BotaMotion.surfaceSpring()) { it / 2 } + fadeIn(),
-        exit = slideOutVertically(tween(BotaMotion.DURATION_FAST_MS)) { it / 2 } + fadeOut(),
-        modifier = modifier,
-    ) {
-        var lastDisposal by remember { mutableStateOf(disposal) }
-        if (disposal != null) lastDisposal = disposal
-
+    Box(modifier = modifier) {
         val interactionSource = remember { MutableInteractionSource() }
         val pressed by interactionSource.collectIsPressedAsState()
         val scale by animateFloatAsState(
@@ -545,14 +612,15 @@ private fun ResultOverlay(
 
         // Una decisión nueva se confirma también con el tacto: un golpe seco y
         // corto, el equivalente a que algo encaje en su sitio.
+        // Por identidad de decisión, no por caneca: dos materiales distintos que
+        // comparten caneca son decisiones distintas, y la misma caneca reafirmada
+        // por otro fotograma no lo es.
         val haptics = LocalHapticFeedback.current
-        LaunchedEffect(disposal?.bin?.id) {
-            if (disposal != null) {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            }
+        LaunchedEffect(decisionEpoch) {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         }
 
-        lastDisposal?.let { current ->
+        disposal.let { current ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -805,6 +873,12 @@ internal fun materialLabel(material: WasteMaterial): String = stringResource(
  * decisión —no coinciden nunca—, solo separarse del borde inferior.
  */
 private val GUIDANCE_BOTTOM_INSET = 120.dp
+
+/**
+ * Epoch imposible: el estabilizador empieza en cero y solo crece, así que este
+ * valor significa «el usuario aún no ha contestado a nada en esta sesión».
+ */
+private const val NO_EPOCH = -1
 
 /**
  * Ancho del marco de encuadre. Bajó de 0,72 a 0,62: encuadra igual y deja

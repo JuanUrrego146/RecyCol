@@ -130,7 +130,7 @@ class DirectedCaptureController(
         height = frame.height,
         timestampMillis = frame.timestampMillis,
         luma = frame.luma.copyOf(),
-        rotationDegrees = frame.rotationDegrees,
+        argb = frame.argb.copyOf(),
     )
 
     companion object {

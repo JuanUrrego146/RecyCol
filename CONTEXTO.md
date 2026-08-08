@@ -6,17 +6,25 @@ Sustituye a `context-for-vibe-coding.md`, a `ml/DATASETS.md` y a los siete
 sintetizado aquí; lo que no está aquí, está enlazado desde la sección
 [Documentos formales](#documentos-formales) y no se duplica.
 
-Última consolidación: **07/08/2026**, tras el reinicio de la máquina y el cierre
-de la campaña de siete agentes en paralelo del 06–07/08.
+Última consolidación: **07/08/2026**, al cerrar la **versión 1**.
 
-> ### 🔄 Renombrado en curso: BotaBien → RecyCol
+> ### ✅ Renombrado BotaBien → RecyCol: terminado
 >
-> El proyecto se está renombrando por partes verificables (QA, en curso).
-> Hechos y verificados: documentación, Docker/runners/CI, repo de GitHub y el
-> namespace de código (`com.recycol.*`). **Solo falta la fase 7**: las carpetas
-> en disco (`BotaBien`, `BotaBien-ml`) siguen con el nombre viejo — se
-> renombran coordinando con Juan/ML para no tumbar un entrenamiento activo. No
-> edites las menciones a esas rutas para "adelantarlas".
+> Ya no queda nada del nombre viejo en infraestructura viva: namespace
+> (`com.recycol.*`), `rootProject.name`, base de datos y preferencias, imágenes y
+> contenedores Docker, runners self-hosted, repositorio de GitHub
+> (`JuanUrrego146/RecyCol`) y **carpetas en disco** (§9). Las menciones a
+> `BotaBien` que quedan en este documento son **históricas a propósito** —
+> describen de dónde viene algo— y no rutas vivas.
+
+> ### 🏁 Estado: versión 1 cerrada
+>
+> La app clasifica de verdad en dispositivo real, con los modelos de M4, y la
+> decisión visible es estable. Publicada como **release `v1.0.0`** en GitHub con
+> el APK de depuración adjunto. Lo que sigue son dos frentes independientes: la
+> **APK de desarrollador** (§11, encargo abierto para el siguiente agente) y la
+> **fase RecyCol Entrenamiento** (§10, para cerrar la brecha de dominio del
+> modelo).
 
 ---
 
@@ -182,39 +190,67 @@ Fecha de corte: **07/08/2026**, tras el reinicio.
 | **M1** | App shell y design system | FRONT | ✅ **Cerrado en `main`** — 6/6 sesiones + extras (#101 selección manual, #113 adopción de casos de uso, #127 baja confianza como flujo protagonista) |
 | **M2** | Cámara y calidad de imagen | CAM | ✅ **Cerrado en `main`**. Costuras abiertas: #104 (EDGE), #105 (FRONT), #21 (ML) |
 | **M3** | Inferencia y gamas | EDGE | ✅ **Cerrado en `main`** — S15–S20 y la coordinación #102 fusionadas. Quedan 2 ramas listas sin PR: `edge/coord-94-tier-preference` y `edge/coord-s27-banco-validacion` |
-| **M4** | Modelos y datos | ML | 🔶 **En curso — es el camino crítico y donde va todo el presupuesto.** Ver §7 |
+| **M4** | Modelos y datos | ML | ✅ **S22–S28 completos** (07/08). Modelo ganador `mid` MobileNetV3-Large: **74,2 % de ruta contra control**, desde el 61,4 % de partida. **RNF-008 sigue sin cumplirse** y la brecha restante es de dominio — la ataca la fase RecyCol Entrenamiento (§10). Ver §7 |
 | **M5** | Motor de reglas y perfiles | RULES | ✅ **Cerrado en `main`** — S29–S33 + coordinación #54 |
 | **M6** | Escaneo de canecas | BINS | 🔶 S34 en `main`; **S35 en PR #133** (CI verde, sin fusionar). La issue #33 **no se cierra con #133**: falta la pantalla de confirmación, que es ámbito de FRONT |
 | **M7** | Persistencia, historial y auth | DATA | ✅ **Cerrado en `main`** — S36, S37, S38 |
-| **M8** | Confianza, integración y QA | QA | 🔶 Andamiaje en `main` (#63). **S39–S42 sin empezar** |
+| **M8** | Confianza, integración y QA | QA | ✅ **Integración cerrada (v1)**: inferencia real cableada, decisión estabilizada y auditoría en dispositivo real. Ver «Qué cerró la v1» |
 | **M9** | Preparación iOS y demo | RELEASE | ⬜ Sin empezar. Los targets iOS de `:shared` se activan en S43 (necesita macOS); protegido mientras tanto por `:shared:verifyPlatformIsolation` |
+
+### Qué cerró la versión 1 (PR #162)
+
+Hasta este punto **la app entera corría sobre los fakes de `shared/testing/`**.
+El runtime de inferencia de EDGE estaba escrito y probado en aislamiento desde
+S18, pero su módulo de Koin nunca se había registrado, `:androidApp:inference`
+nunca fue dependencia de compilación y no existía implementación Android de
+`ProfileSource`. Nadie lo había notado porque cada pieza pasaba sus pruebas.
+
+1. **Cableado real**: clasificador LiteRT sobre los `.tflite` de M4, perfiles
+   normativos empaquetados como assets, detección de gama enchufada. Cero fakes
+   en el APK.
+2. **Contrato de entrada de los modelos**: los `.tflite` declaran
+   `[1,3,lado,lado] INT8 NCHW`, no el `[1,lado,lado,3] UINT8` del contrato S15.
+   Se adaptó **el preprocesado del runtime**, con paridad numérica verificada
+   contra el preprocesado de referencia de ML. Ver `androidApp/inference/README.md`.
+3. **Reparto por gama corregido**: con el criterio de acierto de **ruta**, la
+   gama alta llevaba el peor modelo. Alta y media comparten ahora el ganador.
+4. **Calidad de frame recalibrada** con capturas del propio dispositivo: los
+   umbrales estaban puestos a ojo y bloqueaban casi todos los fotogramas, así
+   que la app pedía «acércate» eternamente y no clasificaba nunca.
+5. **Estabilización temporal de la decisión** (`ClassificationStabilizer`, §4).
+6. **Cuatro bugs de interfaz** que solo aparecen probando en un teléfono, no
+   compilando: la flor de recompensa nunca se dibujaba, la pregunta de suciedad
+   se pisaba a sí misma entre materiales, tres superficies de cristal se
+   apilaban, y los «recuadros» eran la sombra de elevación del propio cristal
+   vista a través de él (#161).
+
+### Auditoría en dispositivo — issues abiertas
+
+Encontradas probando en un Samsung Galaxy A35 real. **Ninguna está arreglada**;
+las cuatro son de FRONT salvo la de gama.
+
+| Issue | Gravedad | Qué pasa |
+|---|---|---|
+| **#157** | 🔴 | Girar la pantalla reinicia la sesión hasta el onboarding: `AppNavState` usa `remember`, no `rememberSaveable` |
+| **#158** | 🟠 | La detección de gama no llega a la interfaz: Ajustes promete que se mide al arrancar y no se refleja |
+| **#159** | 🟡 | El resultado dice «Selección manual» aunque el material lo identificara la cámara |
+| **#160** | 🟡 | Con la cámara denegada conviven «Apunta a un residuo» y «Permitir cámara» |
 
 ### PRs abiertos
 
 | PR | Qué es | Estado |
 |---|---|---|
-| **#133** | S35 · confirmación, edición y persistencia de canecas | CI verde, revisado, **listo para fusionar** |
-| **#135** | Coordinación #21 · mancha de lente sintética (CAM→ML) | **Sin revisar por QA** |
 | **#114** | S22 · pipeline de ingesta de ML (+ cadena S23–S27) | **Draft.** Al salir de draft, CORE debe revisar el diff de los 4 archivos `docker/` (ámbito CORE, versiones fijadas) |
-| #136–#140 | Handoffs de QA, DATA, RULES, CORE y FRONT | **Obsoletos: su contenido está en este documento.** Se cierran, no se fusionan; las ramas quedan en `origin` por si hay que recuperar algo |
 
-Los abiertos apuntan directo a `main`: no hay cadenas vivas, se pueden fusionar
-en cualquier orden.
+### Salud de `main`
 
-### Salud de `main` tras el reinicio
-
-- **Workflow `CI` («Compilar y probar»): verde** en el último merge completado
-  (#134). El run de #132 quedó **en cola** porque los runners están caídos.
-- **Workflow `Calidad`: rojo de forma sostenida.** Falla en
-  `:androidApp:lintDebug` con **9 errores y 46 warnings de Android Lint**. No es
-  infraestructura ni flake: es deuda real y lleva fallando desde al menos #110.
-  No bloquea fusiones (no es el check obligatorio), pero está rojo.
-- **Los dos runners self-hosted están `offline`** y **Docker Desktop no está
-  arrancado**. Hasta levantarlos, ningún check de `CI` avanza y no se puede
-  compilar ni entrenar nada.
-- **Disco C: al 87 %** (32 GB libres). Mejoró respecto al 98 % que causó los
-  crashes de la VM del 07/08, pero sigue siendo el margen que hay para datasets y
-  checkpoints.
+- **Workflow `CI` («Compilar y probar»), que es el check obligatorio: verde.**
+- **Workflow `Calidad`: rojo de forma sostenida**, en `:androidApp:lintDebug`.
+  Es deuda real de Android Lint, no flake, y lleva fallando desde al menos #110.
+  No bloquea fusiones. Sigue pendiente.
+- **Runner self-hosted `recycol-runner-1`: arriba.**
+- **Disco C: 19 GB libres.** Es el margen que hay para datasets y checkpoints;
+  por debajo de 15 GB conviene avisar antes de entrenar.
 
 ---
 
@@ -310,10 +346,45 @@ interface AuthProvider {
 Casos de uso en `shared/domain/usecase/`: `ClassifyWaste` (dos pasos con
 inspección), `ResolveManualDisposal`, `ScanBins`, `SelectCountry` (resetea
 canecas al cambiar de país, #65), `ManageHistory`, `AdjustPerformance`,
-`ConfidenceThresholds` (inyectable; su calibración es S39/QA).
+`ConfidenceThresholds` y `StabilityThresholds` (inyectables; su calibración
+es de QA).
 
 Mientras una implementación real no exista, se trabaja contra el *fake*
-determinista de `shared/testing/`. **Nadie espera a nadie.**
+determinista de `shared/testing/`. **Nadie espera a nadie.** Con el aviso que
+costó la v1: que cada pieza pase sus pruebas contra fakes **no significa que
+estén conectadas**. Antes de dar por hecho que algo funciona de verdad, hay que
+verlo correr en un teléfono.
+
+### Estabilización de la decisión — por qué existe
+
+`ClassificationStabilizer` + `TrackClassificationUseCase`, en
+`shared/domain/usecase/`. Es el único componente **con estado** del flujo de
+clasificación y tiene **ciclo de vida por pantalla**.
+
+Existe por un dato medido: sobre un objeto quieto, el top-1 del modelo **cambia
+en el 13,8 % de los fotogramas consecutivos**. Publicar cada frame —que es lo
+que hacía la pantalla— daba una decisión distinta tres veces por segundo, con
+vibración a 3,3 Hz, y la respuesta del usuario duraba lo que tardaba el
+siguiente fotograma.
+
+Cuatro mecanismos, cada uno con un trabajo distinto:
+
+1. **Permanencia mínima** (1,4 s): suelo duro contra el parpadeo. No depende de
+   la cadencia de análisis, que no está garantizada.
+2. **Votación por papeletas** sobre una ventana **de conteo** (no de tiempo): la
+   duda de RF-023 vota como una candidata más, en vez de fabricar un segundo
+   camino en la interfaz.
+3. **Caducidad de la evidencia** por tiempo **y** por pasadas. Las dos: solo con
+   tiempo, una cadencia lenta borra y repinta la pantalla en cada pasada; solo
+   con pasadas, perder la calidad de forma sostenida no retira nada.
+4. **Congelación de lo publicado**: una decisión comprometida solo la releva una
+   ventana **entera y unánime**, y la del usuario, lo mismo. Que el clasificador
+   insista no es motivo para contradecir a una persona.
+
+Decisión de producto detrás del punto 4: con un modelo que se contradice a sí
+mismo el 14 % de los fotogramas, **una respuesta estable que se corrige con «No
+es esto» sirve más que una sucesión de respuestas honestas**. El precio es que
+si acierta mal, se queda mal hasta que alguien la corrija o aparte el objeto.
 
 ### Contrato de modelos EDGE ↔ ML — congelado
 
@@ -478,6 +549,21 @@ Están tomadas. No se re-discuten sin él.
 8. **Garbage v2 se usa pese al riesgo legal** (decisión del 06/08) para no frenar
    el camino crítico — pero **bloquea el lanzamiento comercial** hasta revisión
    legal. Ver §8.
+9. **Plan B de contaminación activado** (07/08, tras la evidencia de S26 en §7).
+   La etapa 2 automática se sustituye por **una pregunta al usuario** («¿está
+   sucio? ¿tiene grasa o restos?»), y **solo para cartón y papel**, que es donde
+   la contaminación es irreversible. **Plástico, vidrio y metal no preguntan
+   nada**: se enjuagan y se reciclan igual.
+
+   Lo que **no** cambia: el motor de reglas (la regla vive en el perfil, en
+   `contaminatedFallback`), ni el contrato EDGE (`inspectContamination` sigue
+   existiendo). Lo único que cambia es **quién rellena `ContaminationState`**.
+   Encaja con la decisión 7 y con que en gama baja la etapa 2 ya era solo captura
+   manual dirigida: el plan B alinea las tres gamas.
+
+   Ventaja no menor: elimina el falso «limpio» silencioso, que es el error caro
+   —manda un reciclable sucio a la blanca sin que nadie se entere—. El usuario sí
+   sabe si su vaso tiene café dentro.
 
 ---
 
@@ -510,19 +596,39 @@ usarse.
 
 ### Métricas contra control — el hallazgo central de M4
 
-| Run | val material | val ruta | **control material** | **control ruta** |
-|---|---|---|---|---|
-| baseline `low` (sin v2) | 88,9 % | 98,4 % | 39,3 % | 65,9 % |
-| `full-v2` (con v2) | 91,0 % | 97,7 % | 42,1 % | **61,4 %** |
+Todas medidas sobre RealWaste (4 752 imágenes jamás vistas). Reporte completo en
+`ml/REPORTE_METRICAS.md`, que llega a `main` con el PR #114.
 
-**La val interna mejora y el control empeora.** Esa divergencia es el hallazgo
-central: 98,4 % de ruta en val frente a 65,9 % contra control. **Cualquier
-decisión tomada solo con val interna es sospechosa por defecto.**
+| Run | val ruta | **control material** | **control ruta** |
+|---|---|---|---|
+| baseline `low` (sin v2) | 98,4 % | 39,3 % | 65,9 % |
+| `full-v2` (con v2 entero) | 97,7 % | 42,1 % | **61,4 %** |
+| `low` sin `trash` | 98,1 % | 46,2 % | 70,6 % |
+| **`mid` sin `trash` — GANADOR** | 98,6 % | **50,6 %** | **74,2 %** |
+| `high` sin `trash` (EfficientNet-B2) | **98,7 %** | 49,3 % | 69,8 % |
+| `low` sin `trash` + palancas de coste | 97,6 % | 41,8 % | 63,6 % |
 
-**RNF-008 (≥85 % material, ≥95 % ruta) no se cumple hoy.**
+**La val interna no predice el control.** Pasó tres veces: `full-v2` (mejor val,
+peor control), EfficientNet-B2 (**la mejor val de todo el proyecto y el peor
+control de las tres variantes finales**) y la etapa 2 de contaminación (94 % en
+sintético, inservible en dominio real). **Cualquier decisión tomada solo con val
+interna es sospechosa por defecto.**
 
-Barrido de arquitectura/lr en `ml/runs/sweep_summary.md`; ganador provisional
-**en val interna** (por tanto, provisional de verdad): EfficientNet-B2.
+**RNF-008 (≥85 % material, ≥95 % ruta) no se cumple.** La brecha restante es de
+**dominio**, y está demostrado: el INT8 no la causa (§ export) y la arquitectura
+tampoco (más capacidad la empeora).
+
+> ### ⚠️ La varianza entre runs idénticos es 2,16 pp de ruta
+>
+> Dos ejecuciones de la **misma** configuración dieron 68,5 % y 70,6 %. Antes era
+> invisible porque `train_material.py` sembraba la augmentación con `hash()` de
+> Python, **aleatorizado por proceso** salvo `PYTHONHASHSEED` (que la imagen no
+> fija). Corregido con md5 el 07/08.
+>
+> **Regla: una diferencia menor de ~2 pp entre dos runs no significa nada.**
+> Afecta retroactivamente a `ml/runs/sweep_summary.md`, cuyo «ganador» aventajaba
+> al segundo en 0,13 pp: **ese ganador nunca estuvo establecido**, y de hecho la
+> evaluación contra control lo desmintió.
 
 ### Causa raíz: la carpeta `trash` de Garbage v2 está envenenada
 
@@ -563,13 +669,19 @@ Lo que el usuario sufre son las **confusiones caras**: cualquier cosa ↔ ORGANI
 el cruce blanca ↔ negra, y `BEVERAGE_CARTON` confundido con `CARDBOARD` (se salta
 la inspección del vaso: la contaminación no se detecta y termina en blanca).
 
-De ahí las dos palancas, **ninguna ejecutada todavía ni una sola vez** — el
-primer run que las use debe mirarse con ojo crítico:
+De ahí dos palancas — `--route-cost` (pérdida sensible al coste de caneca) y
+`--select route-macro` (checkpoint por ruta promediada por clase). **Se probaron
+juntas el 07/08 y empeoran: −5,9 pp, 2,7 veces la varianza.** Suben el error caro
+de ~505 a 734, justo lo que venían a evitar.
 
-- `--route-cost` — pérdida sensible a coste de caneca (confusión intra-blanca
-  ≈ 0, cruce blanca ↔ negra/verde alto).
-- `--select route-macro` — checkpoint por ruta **promediada por clase**. En micro,
-  TEXTILE y ORGANIC deciden solos y tapan el hundimiento de una clase entera.
+Explicación probable: optimizan la ruta **en el dominio de entrenamiento**, donde
+ya está al 97–98 % y no queda margen; el término solo rigidiza el modelo
+alrededor de las fronteras del dominio limpio y se paga al generalizar. **No se
+descarta la idea, se descarta esa configuración** — un peso de 0,1 y el `select`
+por separado siguen sin probar, y con ±2,16 pp cada pregunta cuesta dos runs.
+
+**La receta final es la exclusión sola**: `--exclude garbage_dataset_v2:RESIDUAL`,
+sin palancas.
 
 **Publicar siempre la matriz colapsada por caneca** junto a la de material.
 `evaluate_control.py` ya la emite. Sin ella las decisiones se toman a ciegas.
@@ -580,20 +692,87 @@ RealWaste **no entrena, no ajusta umbrales y no elige checkpoints**. Es la únic
 evidencia de generalización que queda; en cuanto se use para seleccionar algo,
 deja de serlo. Toda selección se hace sobre val interna.
 
-### Qué falta en M4, en orden
+### S26 · contaminación: entrena bien y no transfiere
 
-1. **Reentrenar sin la carpeta `trash` y evaluar contra control.** Prioridad 1:
-   demuestra o refuta el diagnóstico. **Criterio de éxito**: la ruta contra
-   control recupera **≥ 65 %** conservando la mejora de ORGANIC que trajo v2
-   (31,9 % frente al 14,6 % del baseline).
-2. Variantes `mid` y `high` con la receta final.
-3. **S26 contaminación: se perdió en un crash de Docker, hay que relanzarlo.**
-   Los pares sintéticos sí existen (`ml/data/derived/contamination/pairs.csv`).
-4. S27 export INT8 con pérdida de exactitud **medida** (banco de EDGE, §4).
-5. S28 `ml/REPORTE_METRICAS.md` (`eval/build_report.py` ya está escrito).
+Relanzado el 07/08 tras perderse en el crash de Docker. Separa los pares
+sintéticos casi perfectamente —**94,0 % de exactitud**, umbral 0,62 con recall
+92,2 %— y **declara limpio el 98,75 % de RealWaste**, que son residuos reales
+degradados de un relleno sanitario.
 
-Coste aproximado en la RTX 3060 Ti: `low` ~50 min, `mid` ~37 min, `high` ~41 min
-por run, más unos minutos por evaluación de control.
+| Conjunto | Marcado CONTAMINATED |
+|---|---|
+| val limpia de estudio | 0,00 % |
+| control RealWaste (degradado real) | **1,25 %** |
+
+**Por qué no transfiere.** La causa principal no es la mancha: es **el diseño del
+par**. Cada par limpio/sucio es *la misma foto* con y sin mancha superpuesta, así
+que la tarea se reduce a «¿hay un parche añadido?» — trivialmente separable. El
+modelo nunca tuvo que aprender qué aspecto tiene un objeto sucio en términos
+absolutos. Encima la señal es del tipo equivocado: la síntesis compone un blob
+localizado, opaco (alfa 0,80–0,97) y de color saturado dentro de la máscara de
+U²-Net, dejando el fondo intacto; la suciedad real es **decoloración global,
+pérdida de transparencia, deformación, arrugas, restos adheridos con textura,
+humedad y fondo de vertedero**. Nada de eso se reproduce.
+
+**Palancas si se retoma**, por retorno: (1) romper la simetría del par —que
+limpio y sucio no vengan del mismo objeto—, que es lo más barato y el mejor
+diagnóstico: si la exactitud sintética se desploma, confirma que el 94 % era el
+atajo; (2) bajar el alfa a 0,3–0,7; (3) añadir degradación **global** además de
+la mancha; (4) componer sobre fondos degradados. **Pero ninguna es medible sin un
+conjunto real con etiqueta limpio/sucio**: la métrica sintética ya demostró
+mentir. Ese mini-set es la condición para iterar aquí, y es justo lo que RecyCol
+Entrenamiento (§10) debe capturar.
+
+### S27 · export INT8: la brecha no es de cuantización
+
+Los cuatro artefactos del contrato salen: **18,0 MB** de 150 de presupuesto.
+
+| Variante | float → INT8 top-1 | float → INT8 ruta |
+|---|---|---|
+| `low` | 46,2 % → **15,9 %** | 70,6 % → 61,1 % |
+| `mid` | 50,6 % → 49,4 % | 74,2 % → **74,4 %** |
+| `high` | 49,3 % → 47,3 % | 69,8 % → 67,7 % |
+
+**`mid` cuantiza sin perder ruta: la brecha contra control NO la causa el INT8.**
+Era la pregunta que la separación float/INT8 venía a responder, y queda cerrada:
+es brecha de **dominio**.
+
+**Problema nuevo: `low` pierde 30 pp de top-1 al cuantizar.** Con el mismo
+pipeline para las tres variantes, que dos aguanten y una colapse señala al
+modelo: MobileNetV3-Small cuantiza mal (hard-swish y bloques SE). **Afecta justo
+a la gama baja.** Opciones: QAT, cuantización por canal más agresiva, o servir a
+la gama baja el modelo de gama media si la latencia lo permite.
+
+> ⚠️ **Los `.tflite` no cumplen el contrato de entrada de S15 y no se pueden
+> cablear tal cual.** Declaran `[1, 3, lado, lado] INT8 (NCHW)`; el contrato exige
+> `[1, lado, lado, 3] UINT8`. El **orden de salida sí es correcto**. Hay que
+> reexportar con firma UINT8 NHWC o declarar esta en el `ModelSpec` de EDGE:
+> requiere issue de coordinación.
+
+**Deuda de herramienta**: `ai-edge-torch` se renombró a `litert-torch`; el paquete
+viejo instalable es un shim vacío y sus versiones anteriores fijan un `tf-nightly`
+que PyPI ya purgó. `export_litert.py` lo resuelve con tres fallbacks
+(`litert_torch`, `torchao.quantization.pt2e`, `torch.export.export`) y **exige
+torch ≥ 2.11**, que se instala en el contenedor de export sin tocar el de
+entrenamiento (que sigue en 2.6 y no debe moverse: invalidaría la comparabilidad
+de lo ya entrenado).
+
+### Lo que M4 dejó sin cerrar
+
+1. **RNF-008 no se cumple** (50,6 % / 74,2 % frente a 85 % / 95 %). Brecha de
+   dominio: la ataca §10.
+2. **La gama alta llevaría hoy el peor modelo.** Decisión de contrato pendiente.
+3. **Firma de entrada de los `.tflite`** — coordinación con EDGE.
+4. **`low` inutilizable en INT8** — afecta a la gama baja.
+5. **RESIDUAL es la clase más débil** (2,8 % top-1, 37,2 % ruta): perdió 350
+   ejemplos al excluir `trash`. El error va en la dirección menos grave (residuo
+   señalado como reciclable), pero es deuda.
+6. **`frame_quality_gate.py` de CAM sigue sin usarse** para caracterizar la
+   degradación del control.
+
+Coste medido en la RTX 3060 Ti: `low` ~35 min, `mid` ~40 min, `high` ~45 min por
+run; evaluación de control ~3 min; export completo ~5 min. VRAM pico: 610 MB
+(`low`), 1 585 MB (`mid`), 3 122 MB (`high` con batch 32 — con 64 no cabe).
 
 ### Lección del orquestador que se cayó
 
@@ -613,8 +792,8 @@ que nadie miraba.
 ### Entorno de ML
 
 **Docker es el único entorno.** No hay Python local.
-`docker compose -p botabien-ml` (CPU) o el overlay
-`docker-compose.gpu.yml -p botabien-ml-gpu`. `shm_size` está acotado a 2 GB **a
+`docker compose -p recycol-ml` (CPU) o el overlay
+`docker-compose.gpu.yml -p recycol-ml-gpu`. `shm_size` está acotado a 2 GB **a
 propósito**: subirlo invita al OOM killer de la VM de WSL2, que ya tumbó el
 barrido una vez. Los runners de CI y los entrenamientos comparten la RAM de esa
 VM (issue #128): no los corras a la vez.
@@ -623,9 +802,11 @@ VM (issue #128): no los corras a la vez.
 
 - `frame_quality_gate.py` de CAM, para caracterizar la degradación del control y
   ver si el filtro de calidad rescataría parte de la brecha.
-- El banco de validación de EDGE, para separar **pérdida de cuantización** de
-  **pérdida de dominio** (S27, issue #25). Con una brecha de 91 % → 42 %, esa
-  separación es la información que decide si el problema es el INT8 o el dataset.
+- **El banco de validación de EDGE**: corre como `connectedDebugAndroidTest` y
+  **exige un dispositivo o emulador Android conectado**, que esta máquina no
+  tiene. La parte que no depende de hardware —la pérdida por cuantización— se
+  midió con `eval/evaluate_tflite.py` sobre el intérprete de LiteRT. Lo que sigue
+  necesitando hardware real es **latencia y memoria por gama**: es S41 de QA.
 
 ---
 
@@ -635,9 +816,12 @@ VM (issue #128): no los corras a la vez.
 |---|---|
 | 🔴 **LEGAL — Garbage Dataset v2 sin cadena de derechos acreditada** (issue **#77**) | **Bloquea el lanzamiento comercial, no el desarrollo.** La ficha de Kaggle dice MIT y el paper dice CC BY 4.0 — ambas permiten uso comercial, pero la inconsistencia ya es señal de gestión informal, y parte del contenido viene de «repositorios públicos y web scraping curados»: la declaración del autor solo vale para lo que era suyo. **Ningún modelo entrenado con él puede publicarse comercialmente sin revisión legal previa.** Aporta ~70 % del pool: excluirlo sin reemplazo hace inalcanzable RNF-008 |
 | 🟠 **Salida al riesgo legal: dataset propio** | Registrada, no decidida. Completo (11 clases, 5 500–11 000 fotos): 25–90 h de captura + 15–20 h de QC. **Quirúrgico (solo `BEVERAGE_CARTON`, 300–500 fotos): 3–5 h** — máximo retorno por hora, recomendado hacerlo pronto porque ninguna fuente pública apta cubre bien esa clase |
-| 🔴 **El caso estrella no es verificable** | RealWaste **no contiene `BEVERAGE_CARTON`, `BATTERY` ni `ELECTRONIC`**. Hoy el diferenciador del producto — el vaso de café contaminado — no tiene control de dominio real. RULES dejó especificado un mini-set propio de ≈400 fotos, **de evaluación exclusivamente, jamás de entrenamiento** |
-| 🟠 **La contaminación sintética puede no transferir** | Se entrenó solo con síntesis; la transferencia a suciedad real solo tiene control indirecto. Plan B: reducir la etapa 2 a una pregunta explícita al usuario, conservando el flujo de UX |
-| 🟠 **Los datasets públicos no generalizan al móvil real** | Ya materializado: 91 % en dominio propio vs 42 % contra control. Mitigación en curso: validación cruzada obligatoria, augmentación agresiva de S23, exclusión de `trash` |
+| 🔴 **El caso estrella no es verificable** | RealWaste **no contiene `BEVERAGE_CARTON`, `BATTERY` ni `ELECTRONIC`**. Hoy el diferenciador del producto — el vaso de café contaminado — no tiene control de dominio real. RULES dejó especificado un mini-set propio de ≈400 fotos, **de evaluación exclusivamente, jamás de entrenamiento**. **Lo resuelve §10** |
+| ✅ ~~La contaminación sintética puede no transferir~~ | **Materializado y cerrado con decisión** (07/08): 94 % en sintético y **98,75 % de RealWaste marcado como limpio**. Plan B activado — pregunta al usuario, solo cartón y papel (decisión 9). Diagnóstico y palancas en §7; captura prioritaria en §10 |
+| 🟠 **Los datasets públicos no generalizan al móvil real** | **El riesgo dominante una vez cerrado M4.** Mitigado en parte —de 61,4 % a 74,2 % de ruta contra control— pero **RNF-008 sigue sin cumplirse** y ni la arquitectura ni la cuantización explican lo que falta. **La solución de fondo es §10** |
+| 🟠 **`low` inutilizable en INT8** | Pierde 30 pp de top-1 al cuantizar (§7) y es **la gama baja**. Opciones: QAT, cuantización por canal, o servir el modelo `mid` a gama baja si la latencia lo permite |
+| 🟠 **Los `.tflite` no cumplen la firma de entrada del contrato** | Declaran `[1,3,lado,lado] INT8 NCHW`; S15 exige `[1,lado,lado,3] UINT8`. **No se pueden cablear tal cual.** El orden de salida sí es correcto. Coordinación con EDGE |
+| 🟠 **La gama alta llevaría el peor modelo** | EfficientNet-B2 rinde 4,4 pp por debajo de MobileNetV3-Large contra control pese a tener la mejor val. Cambiarlo toca el contrato congelado de S15 |
 | 🟠 **Pesos preentrenados** | «APTO con nota»: las licencias de distribución (BSD-3/Apache 2.0) permiten uso comercial, pero hay debate jurídico no resuelto sobre pesos entrenados sobre datasets solo-investigación (ImageNet, DUTS-TR). Práctica de industria: utilizables. **La aceptación es decisión de Juan** |
 | 🟡 **`Calidad` rojo en `main`** | 9 errores de Android Lint sin atender. No bloquea fusiones pero es deuda visible |
 | 🟡 **Costura CAM ↔ EDGE (#104)** | **Bloquea la integración real.** CameraX entrega `LumaImageFrame` (solo luma); el clasificador exige `PixelAccessFrame` con `readArgbPixels()` / `readArgbRegion()`. Sin esa conversión YUV→ARGB, la clasificación no puede consumir el flujo de cámara. Lo mismo bloquea al detector de canecas (#108) |
@@ -670,32 +854,250 @@ VM (issue #128): no los corras a la vez.
 
 ## 9. Carpetas en disco
 
-Tras la limpieza del 07/08, en `C:\Users\Juan\Documents\GitHub\`:
+Al cerrar la v1 (07/08) **se consolidó todo en una sola carpeta**. En
+`C:\Users\Juan\Documents\GitHub\` queda:
 
-| Carpeta | Qué es | Por qué se conserva |
+| Carpeta | Qué es |
+|---|---|
+| `RecyCol` | **Único clon del proyecto**, en `main`. Aquí está todo: código, datasets de ML, checkpoints y modelos exportados |
+
+Antes había cuatro (`BotaBien`, `BotaBien-front`, `BotaBien-ml`, `BotaBien-qa`):
+el clon principal y tres worktrees de agentes. Se eliminaron los worktrees —
+todos limpios y con sus ramas en `origin`, así que no se perdió ni un commit— y
+se renombró el clon principal.
+
+**Lo que no está en git se conservó moviéndolo, no copiándolo:**
+
+| Ruta dentro de `RecyCol` | Qué es | Por qué importa |
 |---|---|---|
-| `BotaBien` | **Clon principal**, en `main` y limpio. Zona neutral compartida | Es el repositorio de referencia y el padre de todos los worktrees. **No se trabaja ni se commitea aquí** |
-| `BotaBien-ml` | Worktree del agente ML (`ml/S22-pipeline-ingesta`) | **Contiene los datasets (2,0 GB), los checkpoints (94 MB) y los reportes de entrenamiento, que no están en git y no se regeneran sin volver a descargar y entrenar.** Nunca borrar sin respaldar `ml/data/`, `ml/runs/` y `ml/reports/` |
+| `ml/data/` | Datasets (≈2,0 GB) | No se regeneran sin volver a descargar de Kaggle |
+| `ml/runs/` | Checkpoints de entrenamiento | Horas de GPU |
+| `ml/dist/models/` | Los cuatro `.tflite` exportados | Son los que la app empaqueta |
+| `ml/reports/logs/` | Registros de entrenamiento | Trazabilidad de las métricas de §7 |
+| `androidApp/inference/src/main/assets/models/` | Copia de los `.tflite` que entra en el APK | Sin ellos la app arranca pero no clasifica |
 
-Se eliminaron **16 worktrees** de agentes cerrados (`BotaBien-core`,
-`BotaBien-front`, `BotaBien-cam`, `BotaBien-data`, `BotaBien-qa`,
-`BotaBien-qa-hotfix`, `BotaBien.worktrees/rules` y los nueve
-`.botabien-worktrees/edge-*`). Todos estaban limpios y con sus commits
-empujados; **sus ramas siguen en `origin`**, así que no se perdió nada.
+**Nada de eso está en git y nada de eso se regenera solo.** Antes de borrar o
+mover esta carpeta, respáldalas.
 
-El clon principal estaba en un `HEAD` desprendido de un commit viejo con
-cambios sin commitear. Se sincronizó con `main`; su estado anterior quedó en
-`stash@{0}` por si acaso (`git stash list` / `git stash pop`). Lo único que
-había allí y en ningún otro sitio —el bloque de `.gitignore` para las
-credenciales de Kaggle— se rescató y va en este mismo commit.
+### Un agente nuevo
 
-**Un agente nuevo crea el suyo y lo borra al terminar:**
+Ya no hace falta un worktree por agente: **se trabaja en `RecyCol` directamente,
+en una rama propia.** El esquema de un worktree por agente tenía sentido con
+siete agentes en paralelo; con uno o dos a la vez solo multiplicaba copias de
+2 GB y caches de Gradle.
 
 ```bash
-git -C C:/Users/Juan/Documents/GitHub/BotaBien worktree add ../BotaBien-<agente> -b <agente>/S<NN>-<slug> origin/main
-# ... al cerrar, con todo empujado:
-git -C C:/Users/Juan/Documents/GitHub/BotaBien worktree remove ../BotaBien-<agente>
+cd C:/Users/Juan/Documents/GitHub/RecyCol
+git switch -c <agente>/S<NN>-<slug> origin/main
 ```
+
+Si alguna vez vuelven a coincidir varios agentes a la vez, el patrón de worktree
+sigue siendo válido — pero el que lo cree es responsable de borrarlo al
+terminar, y **jamás debe apuntar a la carpeta que contiene `ml/data`**.
+
+---
+
+## 10. Fase futura — RecyCol Entrenamiento
+
+**No se construye ahora.** Queda escrito porque es **la solución directa a los
+dos problemas que M4 no pudo cerrar**, y porque las recomendaciones técnicas de
+abajo salen de haber chocado con ellos.
+
+Una **segunda APK** que, al detectar un objeto, le toma la foto, se la muestra al
+usuario y le pregunta «¿qué es esto?». El usuario responde, y la pareja
+foto + etiqueta se envía a una base de datos (Azure u otra, por decidir). Juan
+también la usaría él mismo para aportar fotos.
+
+### Por qué resuelve exactamente lo que bloquea a M4
+
+1. **Ataca la brecha de dominio, que es la única que queda.** El modelo da 98,6 %
+   de ruta en su propio dominio y 74,2 % contra residuos reales. Esa distancia no
+   es de arquitectura (más capacidad la empeora, §7) ni de cuantización (`mid`
+   cuantiza sin pérdida, §7): es que **los datasets públicos son fotos de estudio
+   y la app se usa con un móvil sobre basura real**. RecyCol Entrenamiento produce
+   fotos del dominio exacto de destino. Es la palanca de mayor retorno que queda.
+2. **Disuelve el riesgo legal de raíz.** Garbage v2 aporta ~70 % del pool y
+   **bloquea el lanzamiento comercial** (#77). Datos propios con consentimiento
+   explícito tienen cadena de derechos limpia. No hay que reemplazar el 70 % de
+   golpe: cada imagen propia reduce la dependencia.
+3. **Cubre lo que ningún dataset público cubre.** `BEVERAGE_CARTON` sigue con
+   ~100 imágenes y es **el caso estrella del producto**; `ELECTRONIC` está a cero
+   y por eso entró en v1 solo por selección manual (decisión 1). Ni RealWaste los
+   contiene, así que hoy **el diferenciador del producto no es ni siquiera
+   verificable**.
+4. **Es la única vía para reactivar la etapa 2 de contaminación.** Ver abajo.
+
+### Qué capturar además de la foto y la etiqueta
+
+Una foto con etiqueta sirve para entrenar material. Sin lo demás, **se pierde la
+mitad del valor** y no se puede diagnosticar nada cuando el modelo falle.
+
+| Campo | Por qué | Prioridad |
+|---|---|---|
+| **Estado de contaminación** (limpio / con restos / con líquido / con grasa) | **Lo más valioso de todo.** Es exactamente lo que la síntesis no logró replicar (§7) y no existe en ninguna fuente pública. **Prioritario en cartón y papel**, que es donde el plan B pregunta y donde la contaminación es irreversible | 🔴 máxima |
+| **Etiqueta de material** | El objetivo primario | 🔴 máxima |
+| **Consentimiento explícito y su versión** | Sin esto los datos **no son utilizables comercialmente** y se repite el problema que se venía a resolver | 🔴 máxima |
+| Foto **sin recortar** + recorte/bbox si lo hubo | Permite reprocesar con otro pipeline mañana. Guardar solo el recorte es irreversible | 🟠 alta |
+| Condición de luz (interior / exterior / poca luz / contraluz) | Etiquetar el dominio permite medir **dónde** falla el modelo en vez de saber solo que falla | 🟠 alta |
+| Ángulo aproximado (cenital / oblicuo / lateral) | Igual que la luz: es la variable que separa foto de estudio de foto de móvil | 🟠 alta |
+| Métricas de `frame_quality_gate.py` (nitidez, exposición) | **Ya existe, es de CAM y sigue sin usarse.** Sale gratis y permite filtrar por calidad sin descartar nada | 🟠 alta |
+| Estado físico (íntegro / deformado / roto) | RealWaste es todo objeto degradado; sin este campo no se puede replicar esa condición | 🟡 media |
+| Fondo (caneca / suelo / mesa / bolsa) | El modelo puede estar usando el fondo como atajo — pasó con la síntesis | 🟡 media |
+| Marca de dispositivo/gama y timestamp | Diagnóstico de sesgo por cámara | 🟡 media |
+| Geolocalización | ❌ **No capturar.** Riesgo de privacidad sin retorno técnico; el país ya se conoce por el perfil activo | — |
+
+> **Invariante 6 del proyecto — «las imágenes no salen del proceso» — es de la app
+> principal y aquí no aplica**, porque el propósito es justamente enviarlas. Pero
+> eso convierte a RecyCol Entrenamiento en **una app con un modelo de privacidad
+> distinto**: necesita consentimiento explícito, aviso claro, y no debe compartir
+> el código de persistencia con la app principal para que nadie herede por
+> accidente el permiso de subir imágenes.
+
+### Cómo evitar etiquetas basura
+
+El texto libre es la peor opción: da «botella», «botella de plástico», «plastico»,
+«PET», «envase», y todas hay que mapearlas a mano. Y las faltas de ortografía
+crecen sin límite. El plan que recomiendo:
+
+1. **El modelo actual propone y el usuario confirma o corrige.** Se le enseñan las
+   2–3 hipótesis del top-K (que EDGE ya puede emitir, #126) más «ninguna de
+   estas». Un toque para confirmar: fricción mínima y etiqueta canónica.
+2. **«Ninguna de estas» abre la lista cerrada de los 11 materiales**, con icono y
+   ejemplo. Nunca texto libre como vía principal.
+3. **Texto libre solo como campo opcional de matiz** («vaso de café con tapa»),
+   que no se usa para entrenar pero sirve para descubrir clases que faltan.
+4. **La corrección del usuario vale más que la confirmación.** Cuando alguien
+   corrige al modelo, esa imagen es **precisamente donde el modelo falla**:
+   márcala y priorízala en el muestreo. Es aprendizaje activo casi gratis.
+5. **Redundancia en una submuestra**: que un ~10 % lo etiquete más de una persona.
+   Sin acuerdo entre etiquetadores no se sabe si una clase es difícil para el
+   modelo o **ambigua para los humanos** — y si lo segundo, el problema es la
+   taxonomía, no el modelo.
+6. **Confirmar sin mirar es el fallo de modo esperable.** Si el usuario acepta la
+   sugerencia en menos de ~1 s, o acepta 20 seguidas, baja la confianza de esas
+   etiquetas. Guardar el tiempo de respuesta cuesta un entero.
+
+### Volumen y balance que moverían la aguja
+
+Referencia: el pool actual es de 17 176 imágenes de entrenamiento y da 74,2 % de
+ruta contra control. **No hacen falta otras 17 000**: los datos propios valen
+mucho más por imagen porque son del dominio de destino.
+
+| Objetivo | Volumen | Qué compra |
+|---|---|---|
+| **Desbloquear el caso estrella** | **300–500 de `BEVERAGE_CARTON`**, la mitad con restos dentro | El vaso de café pasa de no verificable a verificable. **Es el mejor retorno por hora de todo el proyecto**: 3–5 h de captura |
+| **Reactivar la etapa 2** | **400–600 de cartón y papel** con estado de contaminación etiquetado, balanceado limpio/sucio | Convierte la contaminación de sintética a real, **solo en las clases donde el plan B pregunta** |
+| **Cubrir `ELECTRONIC`** | 300–500 | Cierra la única clase a cero |
+| **Mover la aguja de dominio** | **500–800 por clase** en las 11, ~6 000–9 000 en total | Es donde cabría esperar acercarse a RNF-008 |
+| Mínimo con el que ya se aprende algo | ~150 por clase | Permite **fine-tuning** sobre el modelo actual, no entrenar desde cero |
+
+**Balance**: importa más el equilibrio que el total. El pool actual ya está sesgado
+y `RESIDUAL` es hoy la clase más débil (2,8 % de top-1). Un tope por clase en la
+app —dejar de pedir fotos de plástico cuando sobran— vale más que duplicar el
+volumen.
+
+### Cómo integrarlo sin contaminar el control
+
+**Esta es la parte donde es fácil destruir año y medio de evidencia.** RealWaste
+es la única prueba de generalización que existe; si se contamina, no hay forma de
+saber si un modelo mejora.
+
+1. **RealWaste sigue intocable, pase lo que pase.** No se mezcla, no se amplía, no
+   se sustituye. Los datos nuevos son **otra fuente**, con su entrada en
+   `label_mapping.yaml` y en `DATA_LICENSES.md` **antes** de usarse.
+2. **Partir por aportante, no por imagen.** Si la misma persona fotografía su
+   botella cinco veces y esas fotos caen unas en train y otras en validación, la
+   métrica queda inflada — es el mismo error que ya sospechamos entre train y val.
+   **La unidad de partición es el usuario, y después el objeto físico.**
+3. **Reservar desde el primer día un segundo control propio**, congelado, que
+   **jamás entrena**: idealmente aportado por personas que no aparecen en train.
+   RealWaste no contiene `BEVERAGE_CARTON`, `BATTERY` ni `ELECTRONIC`, así que
+   **hoy no hay control para el caso estrella**; este lo daría.
+4. **Deduplicar contra todo lo existente** con el pHash que ya usa S22, incluido
+   contra RealWaste: si alguien fotografía algo casualmente idéntico al control,
+   fuera.
+5. **Cuarentena antes de entrenar.** Ninguna imagen entra al pool sin pasar por
+   revisión — la app es pública y llegará ruido, fotos irrelevantes y, con
+   suerte, alguna imagen inapropiada.
+6. **Medir el efecto por separado**: entrenar con y sin los datos propios y
+   comparar **contra el control de siempre**. Es la única forma de saber cuánto
+   aportan, y evita repetir la lección de `full-v2`, donde una fuente nueva mejoró
+   la val interna mientras empeoraba lo que importa.
+7. **Reentrenar con la receta ya validada** (`--exclude garbage_dataset_v2:RESIDUAL`,
+   sin palancas de coste) y recordar la regla de §7: **una diferencia menor de
+   ~2 pp entre runs no significa nada.**
+
+### Sobre la contaminación en cartón, ahora que el problema es más pequeño
+
+Con el recorte del plan B a **solo cartón y papel**, el problema deja de ser
+«detectar suciedad en cualquier residuo» y pasa a ser **«detectar grasa y líquido
+en fibra de celulosa»**. Es mucho más fácil, y por una razón física aprovechable:
+la fibra **absorbe**. Una mancha de grasa en cartón no es un parche superpuesto —
+que es justo lo que la síntesis fabricaba y por lo que fracasó— sino un cambio de
+**translucidez y saturación** del propio material, con bordes difusos y sin brillo
+especular. Esa firma es más estable entre objetos que «suciedad» en abstracto, y
+apunta a que una síntesis específica de absorción en fibra (oscurecer, saturar y
+reducir contraste local con bordes difusos, **sin** superponer color opaco)
+transferiría mucho mejor que la actual.
+
+Pero se aplica lo mismo que en §7: **sin datos reales etiquetados no hay forma de
+saber si funciona**, porque la métrica sintética ya demostró mentir. Por eso el
+estado de contaminación en cartón y papel es **la captura prioritaria** de
+RecyCol Entrenamiento.
+
+---
+
+## 11. Encargo abierto — «RecyCol desarrollador»
+
+**Esto es lo siguiente que hay que construir.** Juan lo pidió al cerrar la v1 y
+lo hará otro agente. Lo que sigue es el encargo tal cual, más lo que ya está
+hecho para que nadie lo repita.
+
+### Qué es
+
+Una **segunda APK**, instalable **junto a la normal** (no en vez de ella), cuyo
+único fin es **diagnosticar y subir la tasa de aciertos**. La normal es para
+enseñar; esta es para entender por qué falla.
+
+Lo que Juan pidió exponer, y por qué cada cosa:
+
+| Qué | Para qué sirve |
+|---|---|
+| **Confianza por clase**, no solo la ganadora | Distinguir «se equivocó con seguridad» de «estaba dudando». Son fallos distintos y se arreglan distinto |
+| **Alternativas que consideró el modelo** | Ver si la correcta iba segunda —brecha de calibración— o ni aparece —brecha de dominio, la de §7 |
+| **Latencia** | Confirmar RNF-001 y el reparto por gama con números reales, que es la issue **#18** y sigue sin cerrar |
+| **Gama detectada** | Saber qué modelo corrió de verdad; hoy no hay forma de comprobarlo desde la app (#158) |
+| **Corregir a mano lo que el modelo falló** | Cada corrección es una etiqueta. Es la semilla directa de la captura de §10 |
+
+Juan fue explícito: **«define tú qué es útil con ese objetivo, es tu criterio»**.
+Lo de arriba es el mínimo, no el límite.
+
+### Lo que ya está hecho — no rehacer
+
+- **`InferenceDiagnostics`** existe en
+  `androidApp/inference/.../diagnostics/`: está escrito y sin cablear. Falta
+  **una línea** en `LiteRtWasteClassifier`, justo antes del `argmax`, para
+  publicar la distribución completa y la latencia. Ese es el punto de entrada
+  natural, no hace falta abrir el puerto de dominio.
+- **El puerto `WasteClassifier` solo devuelve el top-1.** La distribución de las
+  11 clases existe *dentro* de la inferencia y se descarta ahí. Para exponerla
+  sin romper el contrato de M0, intercepta en la capa de inferencia; abrir el
+  puerto a top-K es la issue **#126** y es una decisión de CORE.
+- **`ClassificationStabilizer.candidates()`** ya expone las hipótesis vivas de la
+  ventana de votación, y es lo que siembra la hoja de selección manual.
+- **La corrección manual ya existe** en la interfaz («No es esto» y la entrada
+  manual) y ya fija la decisión. Lo que falta es **registrarla**.
+
+### Restricciones
+
+- **Dos APKs instalables a la vez** ⇒ `applicationIdSuffix` distinto, no dos
+  ramas. Lo natural es un `productFlavor`; el intento de la v1 se revirtió sin
+  terminar, así que se empieza limpio.
+- **RNF-002 y RNF-012 siguen mandando**: todo local, y **jamás se retienen
+  fotogramas**. Los diagnósticos son números, no imágenes. Guardar fotos entra en
+  el terreno de §10 y **eso todavía no se construye**.
+- La base de datos y la app de recolección de datos **no son parte de este
+  encargo**: Juan las dejó explícitamente para una fase posterior.
 
 ---
 

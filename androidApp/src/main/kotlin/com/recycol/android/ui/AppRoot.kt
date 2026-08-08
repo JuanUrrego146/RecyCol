@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.recycol.android.camera.CameraXFrameSource
+import com.recycol.android.inference.tier.BenchmarkedTierPolicy
 import com.recycol.android.ui.classify.CameraViewfinder
 import com.recycol.android.ui.classify.ClassifyScreen
 import com.recycol.android.ui.components.BotaActivityIndicator
@@ -23,19 +24,29 @@ import com.recycol.android.ui.navigation.AppNavState
 import com.recycol.android.ui.result.ResultDetailScreen
 import com.recycol.android.ui.settings.SettingsScreen
 import com.recycol.android.ui.theme.BotaTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 
 /**
  * Raíz de la aplicación: resuelve el destino inicial (onboarding si no hay
  * perfil activo, RF-001) y monta el grafo de navegación. Las dependencias
- * son los casos de uso del dominio, hoy cableados sobre los fakes
- * ([fakeAppDependencies]) hasta que RULES y DATA publiquen implementaciones.
+ * son los casos de uso del dominio sobre las implementaciones reales de
+ * todos los agentes ([rememberAppDependencies], resueltas por Koin).
  */
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
-    val dependencies = remember { fakeAppDependencies() }
+    val dependencies = rememberAppDependencies()
+    val tierPolicy = koinInject<BenchmarkedTierPolicy>()
     val appContext = LocalContext.current.applicationContext
     val frameSource = remember { CameraXFrameSource(appContext) }
     var start by remember { mutableStateOf<AppDestination?>(null) }
+    LaunchedEffect(tierPolicy) {
+        // Una vez por arranque, fuera del hilo principal (RF-029): con caché
+        // válida es no-op; en el primer arranque corre el micro-benchmark
+        // dentro del presupuesto de 2 s. No bloquea el destino inicial.
+        withContext(Dispatchers.Default) { tierPolicy.ensureResolved() }
+    }
     LaunchedEffect(dependencies) {
         start = if (dependencies.selectCountry.activeProfileOrNull() == null) {
             AppDestination.Onboarding

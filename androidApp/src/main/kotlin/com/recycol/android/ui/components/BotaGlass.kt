@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,9 +62,10 @@ enum class BotaGlassState {
  *    parece pintada sobre la pantalla en vez de flotar por encima.
  * 4. **Brillo especular** en el contorno, más intenso donde daría la luz.
  *
- * Más una sombra exterior que la despega del fondo. La primera versión de este
- * componente se quedó corta justamente en el bisel y en la sombra, y el
- * resultado fue que el material no se distinguía del velo plano anterior.
+ * Todo el relieve sale de esas cuatro capas, dibujadas **dentro** del material.
+ * Llevó además una sombra de elevación, y hubo que quitarla: el sistema la
+ * dibuja por debajo del nodo a partir de su contorno, y sobre una superficie
+ * translúcida se ve a través del propio cristal (#161).
  *
  * @param tint tinte de la caneca decidida. Sigue siendo dato del perfil
  *   normativo (`BinDefinition.colorHex`), no una decisión de diseño: el cristal
@@ -125,15 +125,26 @@ fun Modifier.botaGlass(
     val transparent = colors.onScrim.copy(alpha = 0f)
 
     return this
-        .then(
-            if (opaque || !filled) {
-                Modifier
-            } else {
-                // Sombra exterior: sin ella la superficie parece pintada sobre
-                // la pantalla; con ella flota por encima del contenido.
-                Modifier.shadow(elevation = GLASS_ELEVATION, shape = shape, clip = false)
-            },
-        )
+        // Sin sombra de elevación, a propósito (#161).
+        //
+        // La llevaba, para que el material flotase en vez de parecer pintado
+        // sobre la pantalla. Pero una sombra de elevación la dibuja el sistema a
+        // partir del contorno del nodo y **por debajo** de él: mientras la
+        // superficie sea opaca no se nota, y este material es translúcido por
+        // definición. La sombra acababa viéndose a través del propio cristal
+        // como un rectángulo de esquinas rectas metido 16 dp hacia dentro, con
+        // su propio degradado — lo que se percibía como recuadros sueltos
+        // dentro de las tarjetas.
+        //
+        // Medido en el Galaxy A35: con 12 dp de elevación el escalón es de ocho
+        // niveles de gris justo a 44 px de cada borde; con 0 dp desaparece y el
+        // cristal queda uniforme. Se descartaron antes, con medidas, el tinte de
+        // caneca, el relleno del contenido, la forma y el contenedor animado.
+        //
+        // El relieve lo sostienen el canto biselado y el brillo del contorno,
+        // que sí se dibujan dentro del material. Si alguna vez se recupera la
+        // sombra tiene que ser una sombra **dibujada** por fuera de la forma,
+        // nunca una de elevación sobre una superficie translúcida.
         .clip(shape)
         .then(
             if (!filled) {
@@ -224,8 +235,6 @@ private fun rememberBreath(active: Boolean): Float {
 /** Grosor del brillo del borde. */
 private val RIM_WIDTH = 1.5.dp
 
-/** Elevación de la sombra que despega el cristal del fondo. */
-private val GLASS_ELEVATION = 12.dp
 
 /** Atenuación del material transparente: deja ver, pero sostiene el contraste. */
 private const val CLEAR_DIM_ALPHA = 0.42f

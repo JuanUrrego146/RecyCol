@@ -78,6 +78,17 @@ class BenchmarkedTierPolicy(
     }
 
     /**
+     * Ajuste manual vigente, o `null` si la selección es automática.
+     *
+     * Punto de lectura del puerto de dominio `TierPreferenceRepository`
+     * (coordinación #94): la pantalla de ajustes no puede depender de este
+     * módulo directamente (invariante 4), así que un adaptador delgado sobre
+     * esta misma instancia satisface el puerto sin duplicar el estado.
+     */
+    @Synchronized
+    fun manualOverride(): DeviceTier? = manualOverride
+
+    /**
      * Señal de uso real: latencia extremo a extremo de una clasificación.
      * Solo actúa en modo automático; con la ventana completa por encima del
      * umbral de la gama actual, la gama medida baja un escalón de forma

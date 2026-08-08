@@ -4,24 +4,48 @@
 sobre LiteRT con delegados NNAPI y GPU y respaldo automático en CPU. Todo corre
 local: sin red (RNF-002) y sin persistir frames (RNF-012).
 
-## Contrato de modelos (estable — coordinación con el agente ML)
+## Contrato de modelos (coordinación EDGE ↔ ML)
 
 Los `.tflite` **no se versionan** (`.gitignore`): se reconstruyen con el
 pipeline de `ml/` y se dejan caer en `src/main/assets/models/`. Mientras no
 existan, la inyección sirve un `StubWasteClassifier` determinista y la app
 sigue funcionando.
 
-| Archivo | Modelo | Entrada | Salida |
-|---|---|---|---|
-| `material_low.tflite` | MobileNetV3-Small INT8 | 224×224×3 RGB UINT8 | softmax sobre los materiales |
-| `material_mid.tflite` | MobileNetV3-Large 0.75 INT8 | 224×224×3 RGB UINT8 | softmax sobre los materiales |
-| `material_high.tflite` | EfficientNet-Lite2 INT8 | 260×260×3 RGB UINT8 | softmax sobre los materiales |
-| `contamination.tflite` | binario INT8 | 224×224×3 RGB UINT8 | softmax `[CLEAN, CONTAMINATED]` |
-| `detector.tflite` | detector genérico (p. ej. EfficientDet-Lite0) | 320×320×3 RGB UINT8 | post-procesado TFLite estándar: `[cajas, clases, puntuaciones, conteo]` |
+⚠️ **Los artefactos de M4 (S27) no cumplen el layout/tipo de entrada
+original de este contrato.** Declaran `[1, 3, lado, lado]` INT8 (NCHW) en vez
+de `[1, lado, lado, 3]` UINT8 (NHWC) — litert-torch conserva el layout nativo
+de PyTorch al exportar. Detectado por `ml/eval/evaluate_tflite.py`, que lee la
+firma real del artefacto en vez de asumirla. Se adaptó el **preprocesado del
+runtime** (`FramePreprocessor`, `InputTensorSpec.normalizedInt8Quantization`)
+en vez de reexportar: más barato y más verificable, con pruebas que
+reproducen exactamente los valores que mide `ai_edge_litert.interpreter`
+sobre el artefacto real. El **orden de salida** sí cumple el contrato; la
+tabla de abajo documenta la firma real, no la original:
+
+| Archivo | Modelo | Entrada real | Cuantización de entrada | Salida |
+|---|---|---|---|---|
+| `material_low.tflite` | MobileNetV3-Small INT8 | `[1,3,224,224]` NCHW INT8 | scale=0.018649335950613022, zeroPoint=-14, ImageNet mean/std | logits sobre los materiales (no softmax) |
+| `material_mid.tflite` | MobileNetV3-Large INT8 | `[1,3,224,224]` NCHW INT8 | ídem | logits sobre los materiales |
+| `material_high.tflite` | EfficientNet-B2 INT8 | `[1,3,260,260]` NCHW INT8 | ídem | logits sobre los materiales — **retirado del reparto por gama, ver abajo** |
+| `contamination.tflite` | binario INT8 | `[1,3,224,224]` NCHW INT8 | ídem | logits `[CLEAN, CONTAMINATED]` |
+| `detector.tflite` | detector genérico (p. ej. EfficientDet-Lite0) | 320×320×3 RGB UINT8 | contrato original sin cambios (no lo entregó M4) | post-procesado TFLite estándar: `[cajas, clases, puntuaciones, conteo]` |
 
 El detector es **opcional y agnóstico a la clase** (RF-010): solo aporta dónde
 está el objeto dominante. Si falta, o la gama no habilita `OBJECT_DETECTION`,
 todas las gamas usan el marco guía fijo y nada deja de funcionar.
+
+### Reparto por gama (invertido respecto al contrato original, ver `ModelCatalog`)
+
+El contrato original asignaba un modelo distinto por gama asumiendo que
+mayor tamaño ⇒ mayor precisión. Contra control y con el criterio correcto
+(RNF-008 = acierto de **ruta**, no de material top-1; `ml/REPORTE_METRICAS.md`)
+el orden se invierte: `mid` (74,4 % de ruta INT8) le gana a `high` (67,7 %) y
+a `low` (61,1 %, además degradado por la cuantización). `high` queda
+**dominado en los dos ejes** por `mid` — peor y más pesado —, así que gama
+alta y media comparten hoy el modelo `mid`; `material_high.tflite` se
+conserva en el catálogo pero ninguna gama lo recibe. Gama baja se queda con
+su propio modelo: no hay banco de latencia en hardware de gama baja real que
+confirme que aguantaría `mid` (decisión de producto, no de arquitectura).
 
 Reglas del contrato:
 
@@ -29,12 +53,17 @@ Reglas del contrato:
    posición `i` de `ModelOutputOrder` (`WasteMaterial` en su orden de
    declaración para la etapa 1; `[CLEAN, CONTAMINATED]` para la etapa 2).
    Debe coincidir con `ml/taxonomy/label_mapping.yaml`.
-2. **Layout de entrada**: `[1, lado, lado, 3]`, RGB por filas, sin alfa.
-   UINT8 `[0, 255]` en todas las variantes INT8. Si un modelo futuro usara
-   entrada FLOAT32, se declara en su `ModelSpec` con media y desviación.
+2. **Layout de entrada**: `[1, lado, lado, 3]` NHWC, UINT8 `[0, 255]` sin
+   normalizar es el contrato original. Un modelo puede declarar en su
+   `ModelSpec` una de tres codificaciones: UINT8 crudo (`quantizedInput`),
+   FLOAT32 normalizado (`inputMean`/`inputStd`), o INT8 normalizado con la
+   cuantización real del artefacto (`normalizedInt8Quantization` — el caso de
+   M4, ver arriba). El layout (`inputLayout`) es NHWC por defecto; NCHW si el
+   artefacto lo exige.
 3. **Salida**: `[1, n_clases]`, UINT8/INT8 cuantizada o FLOAT32; el runtime
-   decuantiza solo. Si `n_clases` no cuadra con la taxonomía, el clasificador
-   falla con error explícito: nunca mapea mal en silencio.
+   decuantiza solo (`LiteRtEngines`, lee la escala/punto cero reales del
+   tensor). Si `n_clases` no cuadra con la taxonomía, el clasificador falla
+   con error explícito: nunca mapea mal en silencio.
 4. Cambiar nombres de archivo, tamaños de entrada u orden de clases es cambiar
    el contrato: requiere issue de coordinación EDGE ↔ ML.
 

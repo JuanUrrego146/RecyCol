@@ -51,14 +51,26 @@ android {
         // en #142, agente FRONT. Suprimido hasta que ese trabajo aterrice.
         disable += "MissingApplicationIcon"
     }
+
+    sourceSets {
+        getByName("main") {
+            // Los perfiles normativos (RULES, shared/resources/profiles/) se
+            // empaquetan tal cual, sin copiarlos: cada archivo queda accesible
+            // por su nombre bajo assets/ (catalog.json, co.json...), que es
+            // justo lo que espera ProfileCatalog. profile.schema.json y el
+            // README de esa carpeta entran también, sin uso en runtime pero
+            // sin daño.
+            assets.srcDirs("../shared/resources/profiles")
+        }
+    }
 }
 
 dependencies {
     implementation(project(":shared"))
-    // Provisional (modelo de trabajo M0: nadie espera a nadie): la UI se cablea
-    // sobre los fakes deterministas hasta que RULES (S30) y DATA (S36) publiquen
-    // sus implementaciones; entonces esta dependencia sale del APK.
-    implementation(project(":shared:testing"))
+    // Runtime de inferencia real (EDGE). Antes solo se probaba en aislamiento
+    // (:androidApp:inference:testDebugUnitTest en CI); nunca había sido
+    // dependencia de compilación de la app, así que nunca llegó a cablearse.
+    implementation(project(":androidApp:inference"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

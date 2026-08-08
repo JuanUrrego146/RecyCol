@@ -16,7 +16,8 @@ class FrameRingTest {
         ring.nextSlot(100)
         val segundaVuelta = ring.nextSlot(100)
 
-        assertSame(primera, segundaVuelta, "Tras una vuelta completa debe volver el mismo búfer")
+        assertSame(primera.luma, segundaVuelta.luma, "Tras una vuelta completa debe volver el mismo búfer")
+        assertSame(primera.argb, segundaVuelta.argb)
     }
 
     @Test
@@ -25,7 +26,20 @@ class FrameRingTest {
         val a = ring.nextSlot(100)
         val b = ring.nextSlot(100)
 
-        assertNotSame(a, b, "Dos ranuras consecutivas no pueden compartir búfer")
+        assertNotSame(a.luma, b.luma, "Dos ranuras consecutivas no pueden compartir búfer")
+        assertNotSame(a.argb, b.argb)
+    }
+
+    @Test
+    fun `los dos planos de una ranura avanzan juntos`() {
+        val ring = FrameRing(slots = 2)
+        val primera = ring.nextSlot(100)
+        val segunda = ring.nextSlot(100)
+        val terceraEsLaPrimera = ring.nextSlot(100)
+
+        assertSame(primera.luma, terceraEsLaPrimera.luma)
+        assertSame(primera.argb, terceraEsLaPrimera.argb)
+        assertNotSame(segunda.argb, terceraEsLaPrimera.argb)
     }
 
     @Test
@@ -35,15 +49,16 @@ class FrameRingTest {
         ring.nextSlot(100)
         val grande = ring.nextSlot(200)
 
-        assertNotSame(chico, grande)
-        assertEquals(200, grande.size)
+        assertNotSame(chico.luma, grande.luma)
+        assertEquals(200, grande.luma.size)
+        assertEquals(200, grande.argb.size)
     }
 
     @Test
     fun `la memoria es estable en una sesion larga`() {
         val ring = FrameRing(slots = 3)
         val vistos = mutableSetOf<ByteArray>()
-        repeat(10_000) { vistos.add(ring.nextSlot(640 * 480)) }
+        repeat(10_000) { vistos.add(ring.nextSlot(640 * 480).luma) }
 
         assertEquals(3, vistos.size, "Una sesión larga no debe asignar más búferes que ranuras")
     }

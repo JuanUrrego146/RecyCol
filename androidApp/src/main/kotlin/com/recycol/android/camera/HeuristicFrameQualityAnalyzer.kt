@@ -99,6 +99,15 @@ class HeuristicFrameQualityAnalyzer(
     }
 
     /**
+     * Fracción de la energía de bordes que cayó en el área útil en el último
+     * análisis, o `-1` si la escena era demasiado plana para evaluarla.
+     * Existe para poder calibrar el umbral con capturas reales en vez de a ojo.
+     */
+    @Volatile
+    internal var lastCenterEnergyRatio: Double = -1.0
+        private set
+
+    /**
      * `true` si el área útil central concentra suficiente energía de bordes:
      * el objeto está dentro del marco guía y tiene detalle analizable.
      */
@@ -125,8 +134,13 @@ class HeuristicFrameQualityAnalyzer(
             }
             y += step
         }
-        if (totalEnergy < FrameQualityThresholds.MIN_TOTAL_EDGE_ENERGY) return false
-        return centerEnergy / totalEnergy >= FrameQualityThresholds.CENTER_ENERGY_FRACTION
+        if (totalEnergy < FrameQualityThresholds.MIN_TOTAL_EDGE_ENERGY) {
+            lastCenterEnergyRatio = -1.0
+            return false
+        }
+        val ratio = centerEnergy / totalEnergy
+        lastCenterEnergyRatio = ratio
+        return ratio >= FrameQualityThresholds.CENTER_ENERGY_FRACTION
     }
 
     private fun abs(v: Int): Int = if (v < 0) -v else v

@@ -27,9 +27,11 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Enlaza dos casos de uso: previsualización (opcional) y análisis de imagen
  * con contrapresión `KEEP_ONLY_LATEST`, de modo que el análisis nunca encola
- * frames viejos. Cada frame se reduce a su plano de luminancia sobre un anillo
- * de búferes reutilizados: la memoria es constante en sesiones largas y el
- * `ImageProxy` nativo se cierra siempre antes de salir del analizador.
+ * frames viejos. Cada frame se vuelca, ya rotado a la vertical del usuario, en
+ * sus dos planos —luminancia para la calidad y ARGB para el clasificador—
+ * sobre un anillo de búferes reutilizados: la memoria es constante en sesiones
+ * largas y el `ImageProxy` nativo se cierra siempre antes de salir del
+ * analizador.
  *
  * Los frames no se persisten, no se serializan y no se registran (RNF-012).
  */
@@ -103,6 +105,10 @@ class CameraXFrameSource(
                     .build(),
             )
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            // El clasificador necesita color, no solo luminancia. CameraX hace
+            // la conversión desde YUV en código nativo: más rápida y más
+            // fiable que rehacerla aquí plano a plano.
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
         analysis.setAnalyzer(executor) { proxy -> onFrame(proxy) }
 
@@ -126,22 +132,24 @@ class CameraXFrameSource(
             val plane = proxy.planes[0]
             val width = proxy.width
             val height = proxy.height
-            val luma = ring.nextSlot(width * height)
-            LumaPlaneCopier.copy(
+            val rotation = proxy.imageInfo.rotationDegrees
+            val slot = ring.nextSlot(width * height)
+            ArgbFrameConverter.convert(
                 source = plane.buffer,
                 rowStride = plane.rowStride,
-                pixelStride = plane.pixelStride,
-                width = width,
-                height = height,
-                dest = luma,
+                sourceWidth = width,
+                sourceHeight = height,
+                rotationDegrees = rotation,
+                argb = slot.argb,
+                luma = slot.luma,
             )
             mutableFrames.tryEmit(
                 LumaImageFrame(
-                    width = width,
-                    height = height,
+                    width = ArgbFrameConverter.rotatedWidth(width, height, rotation),
+                    height = ArgbFrameConverter.rotatedHeight(width, height, rotation),
                     timestampMillis = System.currentTimeMillis(),
-                    luma = luma,
-                    rotationDegrees = proxy.imageInfo.rotationDegrees,
+                    luma = slot.luma,
+                    argb = slot.argb,
                 ),
             )
         } finally {
