@@ -17,7 +17,6 @@
  * repartan entre train y control— es suficiente.
  */
 
-import type { Material } from "../domain/materials";
 import { CONSENT_VERSION } from "../domain/consent";
 
 const STORAGE_KEY = "recycol.aporta.contributor.v1";
@@ -31,8 +30,6 @@ export interface ContributorState {
   readonly consentAcceptedAt: string | null;
   /** Aportes confirmados por el servidor. Para la racha y los logros. */
   readonly contributed: number;
-  /** Últimas clases pedidas por la misión, para no repetir siempre la misma. */
-  readonly recentMissions: readonly Material[];
   /** `true` cuando ya se preguntó si es de la UMNG. Se pregunta una sola vez. */
   readonly umngAsked: boolean;
   /**
@@ -60,8 +57,6 @@ export interface ContributorState {
   readonly createdAt: string;
 }
 
-const RECENT_MISSIONS_KEPT = 10;
-
 function newContributor(): ContributorState {
   return {
     id: randomId(),
@@ -69,7 +64,6 @@ function newContributor(): ContributorState {
     consentVersion: null,
     consentAcceptedAt: null,
     contributed: 0,
-    recentMissions: [],
     umngAsked: false,
     linkedAnonymousId: null,
     claimsAnonymous: true,
@@ -100,9 +94,6 @@ export function loadContributor(): ContributorState {
       consentAcceptedAt:
         typeof parsed.consentAcceptedAt === "string" ? parsed.consentAcceptedAt : null,
       contributed: typeof parsed.contributed === "number" ? parsed.contributed : 0,
-      recentMissions: Array.isArray(parsed.recentMissions)
-        ? (parsed.recentMissions as Material[])
-        : [],
       umngAsked: parsed.umngAsked === true,
       claimsAnonymous: parsed.claimsAnonymous !== false,
       linkedAnonymousId:
@@ -144,11 +135,6 @@ export function needsConsent(state: ContributorState): boolean {
 export function setNickname(state: ContributorState, nickname: string): ContributorState {
   const trimmed = nickname.trim().slice(0, 24);
   return persist({ ...state, nickname: trimmed.length > 0 ? trimmed : null });
-}
-
-export function recordMissionShown(state: ContributorState, material: Material): ContributorState {
-  const recent = [...state.recentMissions, material].slice(-RECENT_MISSIONS_KEPT);
-  return persist({ ...state, recentMissions: recent });
 }
 
 export function recordContribution(state: ContributorState): ContributorState {

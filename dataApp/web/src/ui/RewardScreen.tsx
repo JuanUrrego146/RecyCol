@@ -20,6 +20,7 @@ import { Header, Notice } from "./components";
 export function RewardScreen({
   material,
   contamination,
+  requested,
   totalContributed,
   queued,
   onSameObject,
@@ -28,6 +29,8 @@ export function RewardScreen({
 }: {
   material: Material;
   contamination: ContaminationState | null;
+  /** Lo que se eligió en el menú antes de disparar, o `null` si se disparó sin elegir. */
+  requested: Material | null;
   totalContributed: number;
   queued: boolean;
   onSameObject: () => void;
@@ -86,7 +89,9 @@ export function RewardScreen({
           Otra foto del mismo objeto
         </button>
         <button type="button" className="button button-primary button-block" onClick={onNext}>
-          Siguiente misión
+          {requested
+            ? `Otra foto de ${MATERIAL_INFO[requested].name.toLowerCase()}`
+            : "Otra foto de otra cosa"}
         </button>
         <p className="tiny">
           Varias fotos del mismo objeto desde ángulos distintos valen mucho: enseñan que es la misma

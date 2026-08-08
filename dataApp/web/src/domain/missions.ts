@@ -1,12 +1,15 @@
 /**
- * Misiones — la app pide la clase que falta en vez de esperar a que llegue.
+ * Misiones — qué falta y en qué orden.
  *
  * CONTEXTO.md §10 dice que **importa más el equilibrio que el total**: «un tope
  * por clase en la app —dejar de pedir fotos de plástico cuando sobran— vale más
  * que duplicar el volumen». Este módulo es ese tope, y de paso resuelve el
- * problema de la etiqueta: cuando la app pide «un vaso de café», la persona ya
- * sabe qué está fotografiando antes de disparar. La intención precede a la foto,
- * así que la etiqueta nace limpia y sin sesgo de confirmación.
+ * problema de la etiqueta: quien elige una clase del menú antes de disparar ya
+ * sabe qué está fotografiando. La intención precede a la foto, así que la
+ * etiqueta nace limpia y sin sesgo de confirmación.
+ *
+ * Ordenar es cosa nuestra; elegir, de quien tiene la basura delante. `rankNeeds`
+ * explica por qué esa división y no una misión impuesta.
  *
  * Los objetivos salen literalmente de la tabla «volumen y balance que moverían
  * la aguja» de §10. No son estimaciones nuevas.
@@ -131,6 +134,8 @@ export interface Mission {
   readonly material: Material;
   readonly target: number;
   readonly collected: number;
+  /** Cuántas faltan para el objetivo. Siempre mayor que cero en lo que devuelve `rankNeeds`. */
+  readonly missing: number;
   readonly reason: string;
   readonly preference: ContaminationPreference;
 }
@@ -156,44 +161,28 @@ function preferenceFor(target: MissionTarget, counts: MaterialTally): Contaminat
 }
 
 /**
- * Elige qué pedir ahora.
+ * Todo lo que falta, ordenado por lo que más falta.
  *
- * Recorre los tramos de prioridad en orden y, dentro del primero que aún tenga
- * clases incompletas, escoge la menos avanzada. `recent` evita pedir la misma
- * clase indefinidamente: si las últimas `REPEAT_LIMIT` peticiones fueron de esa
- * clase, cede el turno a la siguiente candidata. Sin eso la app pediría vasos de
- * café cuatrocientas veces seguidas y nadie volvería.
+ * Primero el tramo de prioridad y, dentro de él, la clase menos avanzada. Ese
+ * orden es el mismo de siempre; lo que cambió es que se devuelve la lista entera
+ * en vez de su primer elemento.
  *
- * Devuelve `null` cuando todos los objetivos están cubiertos.
+ * **Por qué un menú y no una misión impuesta.** Una sola petición obliga a
+ * adivinar qué tiene delante quien abre la aplicación, y adivina mal casi
+ * siempre: si pide un vaso de café y la persona está frente a una caneca de
+ * botellas, la respuesta útil —«tengo esto otro»— quedaba escondida detrás de un
+ * botón secundario. Enseñando las cinco que más faltan, la persona empareja lo
+ * que ve con lo que el proyecto necesita, y el equilibrio entre clases que pide
+ * §10 se consigue igual: el orden sigue siendo nuestro, la elección es suya.
+ * De paso desaparece la rotación anti-racha, que existía solo para que una misión
+ * impuesta no pidiera vasos de café cuatrocientas veces seguidas.
+ *
+ * Devuelve la lista vacía cuando todos los objetivos están cubiertos.
  */
-export const REPEAT_LIMIT = 4;
-
-export function selectMission(tally: Tally, recent: readonly Material[] = []): Mission | null {
-  const pending = MISSION_TARGETS.filter(
-    (target) => tallyOf(tally, target.material).total < target.target,
-  );
-  if (pending.length === 0) return null;
-
-  // Orden global: primero el tramo de prioridad, y dentro de él la clase menos
-  // avanzada.
-  const candidates = [...pending].sort(
-    (a, b) => a.tier - b.tier || progressOf(tally, a) - progressOf(tally, b),
-  );
-
-  // Al agotar la racha se salta a la siguiente candidata **de la lista entera**,
-  // no solo del mismo tramo. Si el tramo prioritario tiene una única clase —y el
-  // primero lo tiene: cartón de bebidas—, ceder dentro del tramo no cedería
-  // nunca, y la aplicación pediría vasos de café cuatrocientas veces seguidas.
-  const streak = trailingStreak(recent);
-  const rotated =
-    streak !== null && streak.count >= REPEAT_LIMIT
-      ? candidates.filter((target) => target.material !== streak.material)
-      : candidates;
-
-  // El respaldo solo entra en juego cuando esa clase es literalmente la única que
-  // queda pendiente: mejor repetirla que no pedir nada.
-  const chosen = rotated[0] ?? candidates[0];
-  return chosen ? toMission(chosen, tallyOf(tally, chosen.material)) : null;
+export function rankNeeds(tally: Tally): Mission[] {
+  return MISSION_TARGETS.filter((target) => tallyOf(tally, target.material).total < target.target)
+    .sort((a, b) => a.tier - b.tier || progressOf(tally, a) - progressOf(tally, b))
+    .map((target) => toMission(target, tallyOf(tally, target.material)));
 }
 
 function toMission(target: MissionTarget, counts: MaterialTally): Mission {
@@ -201,6 +190,7 @@ function toMission(target: MissionTarget, counts: MaterialTally): Mission {
     material: target.material,
     target: target.target,
     collected: counts.total,
+    missing: Math.max(0, target.target - counts.total),
     reason: target.reason,
     preference: preferenceFor(target, counts),
   };
@@ -208,14 +198,6 @@ function toMission(target: MissionTarget, counts: MaterialTally): Mission {
 
 function progressOf(tally: Tally, target: MissionTarget): number {
   return tallyOf(tally, target.material).total / target.target;
-}
-
-function trailingStreak(recent: readonly Material[]): { material: Material; count: number } | null {
-  const last = recent[recent.length - 1];
-  if (last === undefined) return null;
-  let count = 0;
-  for (let i = recent.length - 1; i >= 0 && recent[i] === last; i -= 1) count += 1;
-  return { material: last, count };
 }
 
 /** Progreso global del proyecto, para la barra de la pantalla de inicio. */
@@ -238,15 +220,21 @@ export function missionTableCoversTaxonomy(): boolean {
   return MATERIALS.every((material) => MISSION_TARGETS.some((entry) => entry.material === material));
 }
 
-/** Texto de la petición, ya resuelto con la preferencia de contaminación. */
-export function missionHeadline(mission: Mission, materialName: string): string {
-  switch (mission.preference) {
+/**
+ * Matiz de contaminación de una fila del menú, o `null` si da igual.
+ *
+ * Es una coletilla y no un título porque el título de la fila es el material: en
+ * una lista de cinco, cinco frases que empiezan por «Busca» no se distinguen de
+ * un vistazo.
+ */
+export function preferenceHint(preference: ContaminationPreference): string | null {
+  switch (preference) {
     case "PREFER_DIRTY":
-      return `Busca ${materialName.toLowerCase()} usado o sucio`;
+      return "mejor usado o sucio";
     case "PREFER_CLEAN":
-      return `Busca ${materialName.toLowerCase()} limpio`;
+      return "mejor limpio";
     case "ANY":
-      return `Busca ${materialName.toLowerCase()}`;
+      return null;
   }
 }
 

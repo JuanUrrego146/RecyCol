@@ -20,13 +20,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CAPTURE_SCHEMA_VERSION, readDeviceInfo, type CaptureRecord } from "./domain/capture";
 import { CONSENT_VERSION } from "./domain/consent";
 import type { Material } from "./domain/materials";
-import {
-  EMPTY_TALLY,
-  countsAsContaminated,
-  selectMission,
-  type Mission,
-  type Tally,
-} from "./domain/missions";
+import { EMPTY_TALLY, countsAsContaminated, rankNeeds, type Tally } from "./domain/missions";
 import { fetchStats, linkAnonymousContributions } from "./data/apiClient";
 import {
   acceptConsent,
@@ -37,7 +31,6 @@ import {
   needsConsent,
   randomId,
   recordContribution,
-  recordMissionShown,
   setNickname,
   type ContributorState,
 } from "./data/contributor";
@@ -119,10 +112,7 @@ function ContributeApp() {
       : contributor.id;
 
   const tally = useMemo(() => mergeTallies(serverTally, localTally), [serverTally, localTally]);
-  const mission = useMemo(
-    () => selectMission(tally, contributor.recentMissions),
-    [tally, contributor.recentMissions],
-  );
+  const needs = useMemo(() => rankNeeds(tally), [tally]);
 
   const refreshStats = useCallback(async () => {
     try {
@@ -207,11 +197,17 @@ function ContributeApp() {
     );
   }
 
-  const startMission = (activeMission: Mission | null) => {
-    if (activeMission) setContributor(recordMissionShown(contributor, activeMission.material));
+  /**
+   * Arranca la cámara para un material.
+   *
+   * `null` es el camino de quien no sabe qué tiene delante: se dispara primero y
+   * se etiqueta después. Queda registrado como modo libre, que en el manifiesto
+   * es lo que separa «lo elegí antes de disparar» de «lo reconocí después».
+   */
+  const startCapture = (material: Material | null) => {
     setScreen({
       name: "camera",
-      requested: activeMission?.material ?? null,
+      requested: material,
       objectId: randomId(),
       sameObject: false,
       prefill: null,
@@ -332,14 +328,14 @@ function ContributeApp() {
       return (
         <div className="app">
           <HomeScreen
-            mission={mission}
+            needs={needs}
             tally={tally}
             contributor={contributor}
             account={session.profile}
             uploader={uploader}
             statsError={statsError}
-            onStartMission={() => startMission(mission)}
-            onStartFree={() => startMission(null)}
+            onStartMaterial={(material) => startCapture(material)}
+            onStartFree={() => startCapture(null)}
             onRetryUploads={() => void uploader.retryAll()}
             onOpenLogin={() => setScreen({ name: "login" })}
             onOpenProfile={() => setScreen({ name: "profile" })}
@@ -399,6 +395,7 @@ function ContributeApp() {
           <RewardScreen
             material={screen.draft.material}
             contamination={screen.draft.contamination}
+            requested={screen.requested}
             totalContributed={contributor.contributed}
             queued={uploader.pending > 0}
             onSameObject={() =>
@@ -414,7 +411,10 @@ function ContributeApp() {
             }
             onNext={() => {
               void refreshStats();
-              startMission(mission);
+              // Otro objeto, misma clase: quien está junto a una caneca de
+              // botellas tiene delante la segunda botella, no el siguiente hueco
+              // de la lista. Para cambiar de clase está el menú, a un toque.
+              startCapture(screen.requested);
             }}
             onHome={() => {
               void refreshStats();

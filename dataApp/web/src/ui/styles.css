@@ -257,6 +257,68 @@ button {
   font-size: 0.95rem;
 }
 
+/* --- Menú de lo que falta --- */
+
+.need-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.need-row {
+  width: 100%;
+  min-height: var(--touch);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.need-row:active {
+  transform: scale(0.98);
+}
+
+.need-row .glyph {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.need-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.need-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* El número es la información: se lee antes que el motivo, y no se parte. */
+.need-count {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Cubierta: sigue tocable, pero deja de reclamar la vista. */
+.need-count-covered {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 /* --- Cámara --- */
 
 .viewfinder {

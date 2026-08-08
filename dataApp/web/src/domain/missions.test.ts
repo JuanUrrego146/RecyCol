@@ -1,17 +1,17 @@
 /**
  * El motor de misiones es lo que equilibra el dataset. §10 dice que el balance
  * entre clases pesa más que el total, así que estas pruebas fijan el orden de
- * prioridad, el tope por clase y la alternancia.
+ * prioridad y el tope por clase.
  */
 
 import { describe, expect, it } from "vitest";
 import { MATERIALS } from "./materials";
 import {
   MISSION_TARGETS,
-  REPEAT_LIMIT,
   missionTableCoversTaxonomy,
   overallProgress,
-  selectMission,
+  preferenceHint,
+  rankNeeds,
   targetFor,
   type Tally,
 } from "./missions";
@@ -53,61 +53,67 @@ describe("tabla de misiones", () => {
   });
 });
 
-describe("selección de misión", () => {
-  it("empieza por el cartón de bebidas cuando no hay nada", () => {
-    expect(selectMission({})?.material).toBe("BEVERAGE_CARTON");
+describe("orden de lo que falta", () => {
+  it("sin nada aportado enseña las once, con el cartón de bebidas primero", () => {
+    const needs = rankNeeds({});
+    expect(needs).toHaveLength(MISSION_TARGETS.length);
+    expect(needs[0]?.material).toBe("BEVERAGE_CARTON");
   });
 
-  it("deja de pedir una clase cuando llega a su objetivo", () => {
-    const mission = selectMission(full("BEVERAGE_CARTON"));
-    expect(mission?.material).not.toBe("BEVERAGE_CARTON");
-    expect(["CARDBOARD", "PAPER"]).toContain(mission?.material);
+  it("saca de la lista la clase que llegó a su objetivo", () => {
+    const needs = rankNeeds(full("BEVERAGE_CARTON"));
+    expect(needs.map((need) => need.material)).not.toContain("BEVERAGE_CARTON");
+    expect(["CARDBOARD", "PAPER"]).toContain(needs[0]?.material);
   });
 
-  it("dentro del mismo tramo elige la clase menos avanzada", () => {
+  it("ordena por tramo de prioridad y, dentro del tramo, por avance", () => {
     const tally: Tally = {
       BEVERAGE_CARTON: { total: 400, contaminated: 200 },
       CARDBOARD: { total: 300, contaminated: 150 },
       PAPER: { total: 10, contaminated: 5 },
     };
-    expect(selectMission(tally)?.material).toBe("PAPER");
+    const materials = rankNeeds(tally).map((need) => need.material);
+    expect(materials[0]).toBe("PAPER");
+    expect(materials[1]).toBe("CARDBOARD");
+    // El tramo 2 entero va antes que cualquier cosa del tramo 3 en adelante.
+    expect(materials.indexOf("CARDBOARD")).toBeLessThan(materials.indexOf("ELECTRONIC"));
   });
 
-  it("cede el turno tras varias peticiones seguidas de lo mismo", () => {
-    const recent = Array.from({ length: REPEAT_LIMIT }, () => "BEVERAGE_CARTON" as const);
-    const mission = selectMission({}, recent);
-    expect(mission?.material).not.toBe("BEVERAGE_CARTON");
-  });
-
-  it("no cede antes de llegar al límite de repeticiones", () => {
-    const recent = Array.from({ length: REPEAT_LIMIT - 1 }, () => "BEVERAGE_CARTON" as const);
-    expect(selectMission({}, recent)?.material).toBe("BEVERAGE_CARTON");
+  it("nunca lista una clase sin nada que falte", () => {
+    const tally: Tally = { BEVERAGE_CARTON: { total: 100_000, contaminated: 0 } };
+    for (const need of rankNeeds(tally)) {
+      expect(need.missing).toBeGreaterThan(0);
+      expect(need.missing).toBe(need.target - need.collected);
+    }
   });
 
   it("pide sucio cuando sobra limpio en una clase de fibra", () => {
     const tally: Tally = { BEVERAGE_CARTON: { total: 100, contaminated: 5 } };
-    expect(selectMission(tally)?.preference).toBe("PREFER_DIRTY");
+    expect(rankNeeds(tally)[0]?.preference).toBe("PREFER_DIRTY");
   });
 
   it("pide limpio cuando sobra sucio", () => {
     const tally: Tally = { BEVERAGE_CARTON: { total: 100, contaminated: 95 } };
-    expect(selectMission(tally)?.preference).toBe("PREFER_CLEAN");
+    expect(rankNeeds(tally)[0]?.preference).toBe("PREFER_CLEAN");
   });
 
   it("no expresa preferencia cuando el reparto ya está equilibrado", () => {
     const tally: Tally = { BEVERAGE_CARTON: { total: 100, contaminated: 50 } };
-    expect(selectMission(tally)?.preference).toBe("ANY");
+    expect(rankNeeds(tally)[0]?.preference).toBe("ANY");
+    expect(preferenceHint("ANY")).toBeNull();
   });
 
   it("nunca pide contaminación fuera de la fibra", () => {
     const tally = allFull();
     delete (tally as Record<string, unknown>).PLASTIC;
-    expect(selectMission(tally)?.material).toBe("PLASTIC");
-    expect(selectMission(tally)?.preference).toBe("ANY");
+    const needs = rankNeeds(tally);
+    expect(needs).toHaveLength(1);
+    expect(needs[0]?.material).toBe("PLASTIC");
+    expect(needs[0]?.preference).toBe("ANY");
   });
 
-  it("devuelve null cuando todo está cubierto", () => {
-    expect(selectMission(allFull())).toBeNull();
+  it("devuelve la lista vacía cuando todo está cubierto", () => {
+    expect(rankNeeds(allFull())).toEqual([]);
   });
 });
 
