@@ -3,10 +3,12 @@ package com.recycol.android.ui.classify
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -295,6 +297,11 @@ fun ClassifyScreen(
                 // La saliente se apaga **antes** de que entre la siguiente. Sin
                 // ese retardo las dos coexisten translúcidas y el material se
                 // suma consigo mismo, que es justo el artefacto.
+                //
+                // Sin morfeo de tamaño: las tres tarjetas tienen alturas
+                // distintas y animar el contenedor recortaba la que entraba
+                // mientras crecía, que se veía como un recuadro suelto a media
+                // altura. La tarjeta aparece ya con su tamaño y solo se funde.
                 (
                     fadeIn(
                         tween(
@@ -302,8 +309,10 @@ fun ClassifyScreen(
                             delayMillis = BotaMotion.DURATION_FAST_MS,
                         ),
                     ) + slideInVertically(BotaMotion.surfaceSpring()) { it / 2 }
-                    ) togetherWith fadeOut(tween(BotaMotion.DURATION_FAST_MS))
+                    ) togetherWith fadeOut(tween(BotaMotion.DURATION_FAST_MS)) using
+                    SizeTransform(clip = false) { _, _ -> snap() }
             },
+            contentAlignment = Alignment.BottomCenter,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
