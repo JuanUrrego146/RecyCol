@@ -94,3 +94,31 @@ jobs:
           app-name: ${{ env.FUNCTION_APP }}
           package: recycol-aporta.zip
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+
+      # Un despliegue verde no significa una aplicación viva.
+      #
+      # El 08/08 la publicación respondió correctamente y a partir de ahí TODAS
+      # las rutas devolvieron 500, incluidos los archivos estáticos: el host se
+      # quedó con una vista a medias del contenido nuevo en el recurso compartido
+      # que usa el plan de consumo Windows. Un reinicio lo arregló, pero nadie se
+      # habría enterado hasta abrir el enlace.
+      #
+      # Desde aquí no hay credenciales para reiniciar —el perfil de publicación
+      # solo sirve para publicar—, así que lo que se puede hacer es no callarse:
+      # si tras dos minutos no responde, el workflow se pone rojo.
+      - name: Comprobar que la aplicación responde
+        run: |
+          BASE="https://${{ env.FUNCTION_APP }}.azurewebsites.net"
+          for intento in $(seq 1 10); do
+            sleep 12
+            portada=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/" --max-time 60 || echo 000)
+            api=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/stats" --max-time 60 || echo 000)
+            echo "intento $intento: portada $portada · api $api"
+            if [ "$portada" = "200" ] && [ "$api" = "200" ]; then
+              echo "Aplicación viva."
+              exit 0
+            fi
+          done
+          echo "::error::La publicación terminó pero la aplicación no responde."
+          echo "::error::Reinicia y vuelve a comprobar: az functionapp restart --name ${{ env.FUNCTION_APP }} --resource-group rg-recycol-aporta"
+          exit 1
