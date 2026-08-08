@@ -12,25 +12,26 @@ Dirigido al agente **ML**. Describe qué produce esta plataforma y, sobre todo,
 
 ---
 
-## Lo que produce la plataforma
+## Cómo bajar los datos
 
-Dos cosas, ambas detrás del rol `administrador`:
+**Un comando**, desde la raíz del repositorio y con `az login` hecho:
 
 ```bash
-# 1 · Manifiesto de lo APROBADO (JSONL por defecto, o ?format=csv)
-curl -H "Cookie: <sesión>" "https://<host>/api/export/manifest?format=csv" > manifiesto.csv
-
-# 2 · Firma temporal de lectura para bajar las imágenes
-curl -H "Cookie: <sesión>" "https://<host>/api/export/sas?minutes=120"
-# devuelve { url, minutes, hint } — `hint` trae el azcopy ya montado
-azcopy copy "<url>" "./ml/data/recycol_aporta" --recursive
+bash dataApp/infra/export.sh
 ```
 
-Las imágenes quedan organizadas como `MATERIAL/contributor_id/capture_id.jpg`, y
-`relative_path` del manifiesto apunta ahí exactamente.
+Deja las imágenes y `manifest.csv` / `manifest.jsonl` en
+`ml/data/recycol_aporta/`, más un `RESUMEN.txt` con los recuentos y los avisos.
+El procedimiento completo, las columnas y las trampas están en
+[DESCARGAR-DATASET.md](DESCARGAR-DATASET.md).
 
-Ambas rutas paginan: el manifiesto devuelve la página siguiente en la cabecera
-`x-continuation-token`, y se pasa como `?cursor=…`. Vacía cuando no queda nada.
+> **No uses `azcopy`**: no está instalado en la máquina del proyecto. El script
+> usa `az storage blob download-batch`, que viene con el propio CLI.
+>
+> Las rutas `/api/export/manifest` y `/api/export/sas` existen y funcionan, pero
+> **solo desde el navegador con sesión de administrador**: la identidad la inyecta
+> la plataforma en una cabecera y desde la terminal no hay forma de reproducirla.
+> Sirven para echar un vistazo; para descargar de verdad, el script.
 
 **Solo sale lo aprobado.** Lo pendiente de revisión no se exporta: la cuarentena
 no sería cuarentena si el exportador la saltara.
